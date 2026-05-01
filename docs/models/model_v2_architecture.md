@@ -224,8 +224,17 @@ Pipeline:
 raw ingest
 -> latest raw -> normalized
 -> recompute health_recovery_daily
+-> recompute load_state_daily_v2
 -> recompute readiness_daily
 ```
+
+Фактический orchestration contract:
+
+- сначала пересчитывается `health_recovery_daily` для affected dates
+- затем `load_state_daily_v2` пересчитывается до latest recovery date
+- затем `readiness_daily` создается или обновляется для affected dates
+- pipeline валидирует, что `readiness_daily.explanation_json` содержит `recovery_explanation`
+- pipeline валидирует, что при доступном load-контуре `freshness` не равен `null`
 
 ---
 
@@ -290,7 +299,26 @@ readiness_score = clamp(round(readiness_score_raw, 1), 0, 100)
 good_day_probability = readiness_score / 100
 ```
 
-## 6.2 Storage
+## 6.2 Fallback behavior
+
+Readiness baseline не меняет формулу, но фиксирует controlled fallbacks:
+
+- full path: `LoadState + RecoveryState`
+  - `readiness_score_raw = 0.6 * freshness_norm + 0.4 * recovery_score_simple`
+  - `fallback_mode = null`
+- recovery-only:
+  - `readiness_score_raw = recovery_score_simple`
+  - `fallback_mode = "recovery_only"`
+- load-only:
+  - `readiness_score_raw = freshness_norm`
+  - `fallback_mode = "load_only"`
+- no-data:
+  - backend возвращает `404`
+  - `readiness_daily` row не создается
+
+Во всех сценариях `good_day_probability = readiness_score / 100`.
+
+## 6.3 Storage
 
 Readiness хранится отдельно в `readiness_daily`.
 

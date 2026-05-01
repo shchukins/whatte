@@ -158,8 +158,10 @@ readiness_score_raw = 0.6 * freshness_norm + 0.4 * recovery_score_simple
 
 Fallback behavior:
 
-- если нет recovery score, используется `freshness_norm`
-- если нет load score, используется `recovery_score_simple`
+- если есть и load, и recovery, используется полная формула `0.6 * freshness_norm + 0.4 * recovery_score_simple`
+- если есть только recovery, используется `recovery_only` fallback и `readiness_score_raw = recovery_score_simple`
+- если есть только load, используется `load_only` fallback и `readiness_score_raw = freshness_norm`
+- если нет ни load, ни recovery, backend возвращает `404` и не создает row в `readiness_daily`
 
 ### 4.4 Final outputs
 
@@ -229,6 +231,7 @@ good_day_probability = readiness_score / 100
 
 Текущий `explanation_json` хранит:
 
+- `fallback_mode`
 - `freshness`
 - `freshness_norm`
 - `recovery_score_simple`
@@ -259,6 +262,7 @@ good_day_probability = readiness_score / 100
 
 ```json
 {
+  "fallback_mode": null,
   "formula": "0.6 * freshness_norm + 0.4 * recovery_score_simple",
   "weights": {
     "freshness_norm": 0.6,
@@ -278,6 +282,23 @@ good_day_probability = readiness_score / 100
   }
 }
 ```
+
+Для fallback-сценариев contract фиксирован так:
+
+- `recovery_only`:
+  - `fallback_mode = "recovery_only"`
+  - `freshness = null`
+  - `freshness_norm = null`
+  - `recovery_score_simple` сохраняется
+  - `good_day_probability = readiness_score / 100`
+- `load_only`:
+  - `fallback_mode = "load_only"`
+  - `freshness` и `freshness_norm` сохраняются
+  - `recovery_score_simple = null`
+  - `good_day_probability = readiness_score / 100`
+- full formula path:
+  - `fallback_mode = null`
+  - `recovery_explanation` протягивается из `health_recovery_daily.recovery_explanation_json`
 
 Это:
 
@@ -372,3 +393,16 @@ Source of truth:
 - быть отделено от planned layers
 
 Иначе его не нужно добавлять.
+
+---
+
+## 13. E2E readiness pipeline definition of done
+
+Сценарий readiness считается завершенным для Model V2 baseline, когда:
+
+- HealthKit full-sync пересчитывает `health_recovery_daily` для affected dates
+- `load_state_daily_v2` дотягивается минимум до latest recovery date
+- `readiness_daily` создается или обновляется для affected dates
+- `readiness_daily.explanation_json` содержит `recovery_explanation`
+- при доступном load-контуре `freshness` не является `null`
+- API не падает на частично неполных данных и использует зафиксированные fallback-режимы
