@@ -6,18 +6,12 @@
 //
 
 import SwiftUI
-import HealthKit
 
 struct ContentView: View {
 
     // MARK: - UI state
 
     @State private var viewModel = ContentViewModel()
-
-    // MARK: - Runtime control state
-
-    @State private var observersConfigured = false
-    @State private var pendingAutoSyncWorkItem: DispatchWorkItem?
 
     // MARK: - View
 
@@ -26,6 +20,7 @@ struct ContentView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     readinessCard
+                    syncStatusView
                 }
                 .padding()
             }
@@ -33,14 +28,13 @@ struct ContentView: View {
             .onAppear {
                 viewModel.reloadSyncState()
                 viewModel.loadTodayReadiness()
-
-                if !observersConfigured {
-                    HealthKitService.shared.enableObservers()
-                    setupObservers()
-                    observersConfigured = true
-                }
-
-                performInitialSync()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .syncStateDidChange)) { _ in
+                viewModel.reloadSyncState()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .autoSyncDidFinish)) { _ in
+                viewModel.reloadSyncState()
+                viewModel.loadTodayReadiness()
             }
         }
     }
@@ -148,120 +142,10 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - Auto sync / observers
-
-    /// Подписка на локальные уведомления, которые публикует HealthKitService
-    /// при обновлении соответствующих типов данных.
-    private func setupObservers() {
-        NotificationCenter.default.addObserver(
-            forName: .healthKitHRVUpdated,
-            object: nil,
-            queue: .main
-        ) { _ in
-            triggerAutoSync(reason: "HRV updated")
-        }
-
-        NotificationCenter.default.addObserver(
-            forName: .healthKitRestingHRUpdated,
-            object: nil,
-            queue: .main
-        ) { _ in
-            triggerAutoSync(reason: "Resting HR updated")
-        }
-
-        NotificationCenter.default.addObserver(
-            forName: .healthKitSleepUpdated,
-            object: nil,
-            queue: .main
-        ) { _ in
-            triggerAutoSync(reason: "Sleep updated")
-        }
-    }
-
-    /// Debounce для auto sync:
-    /// если несколько сигналов приходят подряд, выполняем только один sync.
-    private func triggerAutoSync(reason: String) {
-        pendingAutoSyncWorkItem?.cancel()
-
-        let workItem = DispatchWorkItem {
-            guard !viewModel.isSyncInProgress else { return }
-
-            viewModel.statusMessage = "Auto sync triggered: \(reason)"
-            performIncrementalSync()
-        }
-
-        pendingAutoSyncWorkItem = workItem
-        viewModel.statusMessage = "Auto sync scheduled: \(reason)"
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 5, execute: workItem)
-    }
-
-    // MARK: - Sync actions
-
-    /// Incremental sync:
-    /// использует anchors и отправляет только delta payload.
-    private func performIncrementalSync() {
-        viewModel.performIncrementalSync { result in
-            switch result {
-            case .success(let data):
-                guard let payload = data.payload else {
-                    return
-                }
-
-                viewModel.newHRVSamples = data.newHRVSamples
-                viewModel.newRestingHRSamples = data.newRestingHRSamples
-                viewModel.newSleepNightAggregates = data.newSleepNightAggregates
-
-                if !data.newHRVSamples.isEmpty {
-                    viewModel.hrvSamples = data.newHRVSamples
-                }
-
-                if !data.newRestingHRSamples.isEmpty {
-                    viewModel.restingHRSamples = data.newRestingHRSamples
-                }
-
-                if !data.newSleepNightAggregates.isEmpty {
-                    viewModel.sleepNightAggregates = data.newSleepNightAggregates
-                }
-
-                viewModel.sendPayload(payload, mode: .incremental) {
-                    viewModel.isSyncInProgress = false
-                    viewModel.loadTodayReadiness()
-                }
-
-            case .failure:
-                break
-            }
-        }
-    }
-
-    private func performInitialSync() {
-        viewModel.performInitialSyncIfNeeded { result in
-            switch result {
-            case .success(let data):
-                guard let payload = data.payload else { return }
-
-                if !data.newHRVSamples.isEmpty {
-                    viewModel.hrvSamples = data.newHRVSamples
-                }
-
-                if !data.newRestingHRSamples.isEmpty {
-                    viewModel.restingHRSamples = data.newRestingHRSamples
-                }
-
-                if !data.newSleepNightAggregates.isEmpty {
-                    viewModel.sleepNightAggregates = data.newSleepNightAggregates
-                }
-
-                viewModel.sendPayload(payload, mode: .incremental) {
-                    viewModel.isSyncInProgress = false
-                    viewModel.loadTodayReadiness()
-                }
-
-            case .failure:
-                break
-            }
-        }
+    private var syncStatusView: some View {
+        Text(syncStatusText)
+            .font(.caption)
+            .foregroundStyle(.secondary)
     }
 
     // MARK: - Reusable blocks
@@ -316,6 +200,38 @@ struct ContentView: View {
     private func freshnessText(from value: Double?) -> String {
         guard let value else { return "No load data" }
         return String(format: "%.1f", value)
+    }
+
+    private var syncStatusText: String {
+        if viewModel.syncState.lastErrorMessage != nil {
+            return "Sync failed, will retry"
+        }
+
+        guard let lastSuccessfulSyncAt = viewModel.syncState.lastSuccessfulSyncAt else {
+            return "No data yet"
+        }
+
+        return "Updated \(relativeTimeString(from: lastSuccessfulSyncAt))"
+    }
+
+    private func relativeTimeString(from date: Date) -> String {
+        let seconds = Int(Date().timeIntervalSince(date))
+
+        if seconds < 60 {
+            return "just now"
+        }
+
+        let minutes = seconds / 60
+        if minutes < 60 {
+            return minutes == 1 ? "1 min ago" : "\(minutes) min ago"
+        }
+
+        let hours = minutes / 60
+        if hours < 24 {
+            return hours == 1 ? "1 h ago" : "\(hours) h ago"
+        }
+
+        return DateFormatters.shortDateTime(date)
     }
 
     private func readinessColor(_ score: Double?) -> Color {

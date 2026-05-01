@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		54024A182F9282C4005289A1 /* ReadinessModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54024A172F9282BE005289A1 /* ReadinessModels.swift */; };
+		543E126D2FA5674B0043E124 /* SyncCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 543E126C2FA5674B0043E124 /* SyncCoordinator.swift */; };
 		549CBCE32F92B0A000E89E91 /* DebugView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 549CBCE22F92B09E00E89E91 /* DebugView.swift */; };
 		549CBCE52F92B13500E89E91 /* DebugViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 549CBCE42F92B13200E89E91 /* DebugViewModel.swift */; };
 		54E7D5682F842FCB002DD9D3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 54E7D5582F842FCB002DD9D3 /* Assets.xcassets */; };
@@ -36,6 +37,7 @@
 /* Begin PBXFileReference section */
 		54024A172F9282BE005289A1 /* ReadinessModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadinessModels.swift; sourceTree = "<group>"; };
 		5410D5A02F82E9290074C0EF /* HumanEngineIOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HumanEngineIOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		543E126C2FA5674B0043E124 /* SyncCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncCoordinator.swift; sourceTree = "<group>"; };
 		549CBCE22F92B09E00E89E91 /* DebugView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugView.swift; sourceTree = "<group>"; };
 		549CBCE42F92B13200E89E91 /* DebugViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugViewModel.swift; sourceTree = "<group>"; };
 		54E7D5562F842FCB002DD9D3 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -130,6 +132,7 @@
 				54E7D55F2F842FCB002DD9D3 /* APIClient.swift */,
 				54E7D5602F842FCB002DD9D3 /* HealthKitService.swift */,
 				54E7D5612F842FCB002DD9D3 /* SyncService.swift */,
+				543E126C2FA5674B0043E124 /* SyncCoordinator.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -258,6 +261,7 @@
 				54E7D57B2F844960002DD9D3 /* PermissionsSectionView.swift in Sources */,
 				54E7D5792F844684002DD9D3 /* DateFormatters.swift in Sources */,
 				54E7D56B2F842FCB002DD9D3 /* HealthKitAnchorStore.swift in Sources */,
+				543E126D2FA5674B0043E124 /* SyncCoordinator.swift in Sources */,
 				54E7D56C2F842FCB002DD9D3 /* Notifications.swift in Sources */,
 				549CBCE32F92B0A000E89E91 /* DebugView.swift in Sources */,
 				54E7D56D2F842FCB002DD9D3 /* SyncStateStore.swift in Sources */,
