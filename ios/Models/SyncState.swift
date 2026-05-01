@@ -18,6 +18,7 @@ struct SyncState: Codable {
     var lastErrorMessage: String?
     var lastSentItemCount: Int = 0
     var lastSyncMode: SyncMode?
+    var hasPendingAutoSync: Bool = false
 
     static let empty = SyncState()
 }
