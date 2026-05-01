@@ -40,6 +40,17 @@ def _describe_readiness_status(score: float | None) -> str:
     return "Очень свежий"
 
 
+def _detect_fallback_mode(
+    freshness_norm: float | None,
+    recovery_score_simple: float | None,
+) -> str | None:
+    if freshness_norm is None and recovery_score_simple is not None:
+        return "recovery_only"
+    if freshness_norm is not None and recovery_score_simple is None:
+        return "load_only"
+    return None
+
+
 def recompute_readiness_daily_for_date(user_id: str, target_date: str) -> dict[str, Any]:
     started_at = time.perf_counter()
     log_event(
@@ -92,11 +103,16 @@ def recompute_readiness_daily_for_date(user_id: str, target_date: str) -> dict[s
 
                 freshness_norm = _normalize_freshness(freshness)
 
+                fallback_mode = _detect_fallback_mode(
+                    freshness_norm=freshness_norm,
+                    recovery_score_simple=recovery_score_simple,
+                )
+
                 # V2 baseline formula:
                 # readiness = 60% load-state + 40% recovery-state
-                if freshness_norm is None:
+                if fallback_mode == "recovery_only":
                     readiness_score_raw = recovery_score_simple
-                elif recovery_score_simple is None:
+                elif fallback_mode == "load_only":
                     readiness_score_raw = freshness_norm
                 else:
                     readiness_score_raw = 0.6 * freshness_norm + 0.4 * recovery_score_simple
@@ -116,6 +132,7 @@ def recompute_readiness_daily_for_date(user_id: str, target_date: str) -> dict[s
                 status_text = _describe_readiness_status(readiness_score)
 
                 explanation_json = {
+                    "fallback_mode": fallback_mode,
                     "freshness": freshness,
                     "freshness_norm": freshness_norm,
                     "recovery_score_simple": recovery_score_simple,
@@ -174,10 +191,14 @@ def recompute_readiness_daily_for_date(user_id: str, target_date: str) -> dict[s
             "user_id": user_id,
             "date": target_date,
             "freshness": freshness,
+            "freshness_norm": freshness_norm,
             "recovery_score_simple": recovery_score_simple,
+            "readiness_score_raw": readiness_score_raw,
             "readiness_score": readiness_score,
             "good_day_probability": good_day_probability,
             "status_text": status_text,
+            "fallback_mode": fallback_mode,
+            "explanation_json": explanation_json,
         }
         log_event(
             logger,
