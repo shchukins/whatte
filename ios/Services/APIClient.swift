@@ -26,6 +26,64 @@ final class APIClient {
 
     private let baseURL = URL(string: "https://api.shchlab.ru")!
 
+    func fetchLatestReadiness(
+        userID: String,
+        completion: @escaping (Result<ReadinessDailyResponse, Error>) -> Void
+    ) {
+        let url = baseURL
+            .appendingPathComponent("api")
+            .appendingPathComponent("v1")
+            .appendingPathComponent("model")
+            .appendingPathComponent("readiness-daily")
+            .appendingPathComponent(userID)
+            .appendingPathComponent("latest")
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.timeoutInterval = 30
+
+        print("readiness_latest_request url=\(url.absoluteString)")
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            DispatchQueue.main.async {
+                if let error {
+                    print("readiness_latest_request network_error=\(error.localizedDescription)")
+                    completion(.failure(error))
+                    return
+                }
+
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    completion(.failure(APIError.invalidResponse))
+                    return
+                }
+
+                print("readiness_latest_response status=\(httpResponse.statusCode)")
+
+                guard let data else {
+                    completion(.failure(APIError.emptyResponseBody))
+                    return
+                }
+
+                if (200...299).contains(httpResponse.statusCode) {
+                    do {
+                        let decoder = JSONDecoder()
+                        let result = try decoder.decode(ReadinessDailyResponse.self, from: data)
+                        print("readiness_latest_decode success score=\(result.readinessScore.map { String($0) } ?? "nil")")
+                        completion(.success(result))
+                    } catch {
+                        let body = String(data: data, encoding: .utf8) ?? "n/a"
+                        print("readiness_latest_decode error=\(error.localizedDescription)")
+                        print("readiness_latest_decode body=\(body)")
+                        completion(.failure(error))
+                    }
+                } else {
+                    let body = String(data: data, encoding: .utf8) ?? "n/a"
+                    completion(.failure(APIError.serverError(code: httpResponse.statusCode, body: body)))
+                }
+            }
+        }.resume()
+    }
+    
     func sendHealthPayload(
         _ payload: HealthSyncPayload,
         userID: String,

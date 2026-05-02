@@ -187,14 +187,7 @@ final class ContentViewModel {
     // MARK: - Readiness
 
     func loadTodayReadiness() {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        let today = formatter.string(from: Date())
-
-        APIClient.shared.fetchReadiness(
-            userID: backendUserID,
-            date: today
-        ) { [weak self] result in
+        APIClient.shared.fetchLatestReadiness(userID: backendUserID) { [weak self] result in
             guard let self else { return }
 
             switch result {
@@ -203,7 +196,6 @@ final class ContentViewModel {
                 self.readinessErrorMessage = nil
 
             case .failure(let error):
-                self.todayReadiness = nil
                 self.readinessErrorMessage = error.localizedDescription
             }
         }
