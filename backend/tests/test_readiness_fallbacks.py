@@ -80,6 +80,8 @@ def test_recompute_readiness_daily_uses_full_formula_and_propagates_recovery_exp
     assert result["readiness_score_raw"] == 61.0
     assert result["readiness_score"] == 61.0
     assert result["good_day_probability"] == 0.61
+    assert result["recommendation"] == "moderate"
+    assert "Readiness score is 61/100" in result["reason"]
 
     assert explanation_json["fallback_mode"] is None
     assert explanation_json["freshness"] == 5.0
@@ -103,6 +105,8 @@ def test_recompute_readiness_daily_uses_recovery_only_fallback(monkeypatch):
     assert result["fallback_mode"] == "recovery_only"
     assert result["readiness_score"] == 66.4
     assert result["good_day_probability"] == 0.664
+    assert result["recommendation"] == "moderate"
+    assert "Load context is missing" in result["reason"]
 
     assert explanation_json["fallback_mode"] == "recovery_only"
     assert explanation_json["freshness"] is None
@@ -124,6 +128,8 @@ def test_recompute_readiness_daily_uses_load_only_fallback(monkeypatch):
     assert result["recovery_score_simple"] is None
     assert result["readiness_score"] == 62.5
     assert result["good_day_probability"] == 0.625
+    assert result["recommendation"] == "moderate"
+    assert "Recovery context is missing" in result["reason"]
 
     assert explanation_json["fallback_mode"] == "load_only"
     assert explanation_json["freshness"] == 12.5
