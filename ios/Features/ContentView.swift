@@ -12,6 +12,12 @@ struct ContentView: View {
     // MARK: - UI state
 
     @State private var viewModel = ContentViewModel()
+    private let terminalLabelFont = Font.system(size: 12, weight: .medium, design: .monospaced)
+    private let terminalRowFont = Font.system(size: 18, weight: .regular, design: .monospaced)
+    private let terminalValueFont = Font.system(size: 18, weight: .semibold, design: .monospaced)
+    private let mainBriefingFont = Font.system(size: 26, weight: .bold, design: .default)
+    private let scoreFont = Font.system(size: 64, weight: .black, design: .rounded)
+    private let bodyLabelFont = Font.system(size: 17, weight: .regular, design: .default)
 
     // MARK: - View
 
@@ -20,10 +26,10 @@ struct ContentView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     readinessCard
-                    syncStatusView
                 }
                 .padding()
             }
+            .background(Color(.systemGroupedBackground))
             .navigationTitle("Today")
             .onAppear {
                 viewModel.reloadSyncState()
@@ -46,64 +52,37 @@ struct ContentView: View {
     private var readinessCard: some View {
         Group {
             if let readiness = viewModel.todayReadiness {
-                VStack(alignment: .leading, spacing: 20) {
-                    heroSection(readiness)
-                    recommendationSection(readiness)
-                    trendSection
-                    whySection(readiness)
+                VStack(alignment: .leading, spacing: 12) {
+                    mainStatusPanel(readiness)
+                    recommendationPanel(readiness)
+                    trendPanel
+                    signalsPanel(readiness)
+                    recoveryPanel(readiness)
+                    footerView
+                }
+            } else if let error = viewModel.readinessErrorMessage {
+                terminalPanel {
+                    VStack(alignment: .leading, spacing: 8) {
+                        sectionLabel("STATUS")
 
-                    recoveryBreakdownSection(readiness)
+                        Text("Failed to load readiness")
+                            .font(.headline)
 
-                    if readiness.explanation?.freshness == nil {
-                        Text("Based only on recovery data")
+                        Text(error)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
-
-                    syncStatusView
                 }
-                .padding()
-                .background(Color(.systemBackground))
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(Color(.separator), lineWidth: 1)
-                )
-            } else if let error = viewModel.readinessErrorMessage {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Today")
-                        .font(.headline)
-
-                    Text("Failed to load readiness")
-                        .font(.subheadline)
-
-                    Text(error)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .padding()
-                .background(Color(.systemBackground))
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(Color(.separator), lineWidth: 1)
-                )
             } else {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Today")
-                        .font(.headline)
+                terminalPanel {
+                    VStack(alignment: .leading, spacing: 8) {
+                        sectionLabel("STATUS")
 
-                    Text("No readiness data yet")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        Text("No readiness data yet")
+                            .font(.headline)
+                            .foregroundStyle(.secondary)
+                    }
                 }
-                .padding()
-                .background(Color(.systemBackground))
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(Color(.separator), lineWidth: 1)
-                )
             }
         }
     }
@@ -114,112 +93,133 @@ struct ContentView: View {
             .foregroundStyle(.secondary)
     }
 
-    private var trendSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("7-day trend")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
+    private var footerView: some View {
+        HStack {
+            syncStatusView
+            Spacer()
+        }
+        .padding(.horizontal, 4)
+    }
 
-                Spacer()
+    private func mainStatusPanel(_ readiness: ReadinessDailyResponse) -> some View {
+        terminalPanel {
+            VStack(alignment: .leading, spacing: 12) {
+                sectionLabel("STATUS")
 
-                Text(readinessTrendLabel)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+                if let briefingText = mainBriefingText(for: readiness) {
+                    Text(briefingText)
+                        .font(mainBriefingFont)
+                        .foregroundStyle(.primary)
+                        .lineSpacing(3)
+                }
 
-            if viewModel.readinessHistory.count < 2 {
-                Text("Not enough history")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            } else {
-                HStack(alignment: .bottom, spacing: 8) {
-                    ForEach(viewModel.readinessHistory) { item in
-                        trendBar(item)
+                HStack(alignment: .bottom, spacing: 16) {
+                    Text(format(readiness.readinessScore))
+                        .font(scoreFont)
+                        .foregroundStyle(readinessColor(readiness.readinessScore))
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        if let secondaryStatusText = secondaryStatusText(for: readiness) {
+                            Text(secondaryStatusText)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Text("Prob: \(formatPercent(readiness.goodDayProbability))")
+                            .font(.subheadline.monospacedDigit())
+                            .foregroundStyle(.secondary)
                     }
                 }
             }
         }
     }
 
-    private func heroSection(_ readiness: ReadinessDailyResponse) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Today")
-                .font(.headline)
-                .foregroundStyle(.secondary)
+    private func recommendationPanel(_ readiness: ReadinessDailyResponse) -> some View {
+        terminalPanel {
+            VStack(alignment: .leading, spacing: 6) {
+                sectionLabel("RECOMMENDATION")
 
-            HStack(alignment: .firstTextBaseline, spacing: 16) {
-                Text(format(readiness.readinessScore))
-                    .font(.system(size: 56, weight: .bold))
-                    .foregroundStyle(readinessColor(readiness.readinessScore))
+                Text(recommendationLabel(from: readiness.recommendation) ?? recommendationText(readiness: readiness.readinessScore))
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+            }
+        }
+    }
 
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(readiness.statusText ?? "No status")
-                        .font(.title3)
-                        .fontWeight(.semibold)
-
-                    Text("Good day probability \(formatPercent(readiness.goodDayProbability))")
-                        .font(.subheadline)
+    private var trendPanel: some View {
+        terminalPanel {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    sectionLabel("TREND")
+                    Spacer()
+                    Text(readinessTrendLabel)
+                        .font(terminalLabelFont)
                         .foregroundStyle(.secondary)
+                }
+
+                if viewModel.readinessHistory.count < 2 {
+                    Text("Not enough history")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    VStack(spacing: 6) {
+                        HStack(spacing: 8) {
+                            ForEach(viewModel.readinessHistory) { item in
+                                Text(shortDateLabel(item.date))
+                                    .font(terminalLabelFont)
+                                    .foregroundStyle(.secondary)
+                                    .frame(maxWidth: .infinity)
+                            }
+                        }
+
+                        HStack(spacing: 8) {
+                            ForEach(viewModel.readinessHistory) { item in
+                                trendBar(item)
+                            }
+                        }
+
+                        HStack(spacing: 8) {
+                            ForEach(viewModel.readinessHistory) { item in
+                                Text(shortScore(item.readinessScore ?? 0))
+                                    .font(terminalLabelFont)
+                                    .monospacedDigit()
+                                    .foregroundStyle(.secondary)
+                                    .frame(maxWidth: .infinity)
+                            }
+                        }
+                    }
                 }
             }
         }
     }
 
-    private func recommendationSection(_ readiness: ReadinessDailyResponse) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Recommendation")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+    private func signalsPanel(_ readiness: ReadinessDailyResponse) -> some View {
+        terminalPanel {
+            VStack(alignment: .leading, spacing: 10) {
+                sectionLabel("SIGNALS")
 
-            Text(recommendationText(readiness: readiness.readinessScore))
-                .font(.headline)
-                .lineLimit(1)
+                compactValueRow(title: "Freshness", value: freshnessText(from: readiness.explanation?.freshness))
+                compactValueRow(title: "Recovery", value: format(readiness.explanation?.recoveryScoreSimple))
+            }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
-    private func whySection(_ readiness: ReadinessDailyResponse) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Why")
-                .font(.subheadline)
-                .fontWeight(.semibold)
-
-            HStack(spacing: 12) {
-                metricTile(
-                    title: "Freshness",
-                    value: freshnessText(from: readiness.explanation?.freshness)
-                )
-
-                metricTile(
-                    title: "Recovery",
-                    value: format(readiness.explanation?.recoveryScoreSimple)
-                )
-            }
-
-            if let explanationText = readinessExplanationText(for: readiness) {
-                Text(explanationText)
-                    .font(.subheadline)
-                    .foregroundStyle(.primary)
-                    .lineLimit(2)
-            }
+    private func recoveryPanel(_ readiness: ReadinessDailyResponse) -> some View {
+        terminalPanel {
+            recoveryBreakdownSection(readiness)
         }
     }
 
     @ViewBuilder
     private func recoveryBreakdownSection(_ readiness: ReadinessDailyResponse) -> some View {
         if let recovery = readiness.explanation?.recoveryExplanation {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Recovery breakdown")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
+            VStack(alignment: .leading, spacing: 10) {
+                sectionLabel("RECOVERY")
 
-                scoreRow(title: "Sleep", score: recovery.sleepScore)
-                scoreRow(title: "HRV", score: recovery.hrvScore)
-                scoreRow(title: "Resting HR", score: recovery.rhrScore)
+                recoveryRow(title: "Sleep", score: recovery.sleepScore)
+                recoveryRow(title: "HRV", score: recovery.hrvScore)
+                recoveryRow(title: "Resting HR", score: recovery.rhrScore)
             }
         }
     }
@@ -227,62 +227,86 @@ struct ContentView: View {
     // MARK: - Reusable blocks
 
     @ViewBuilder
-    private func metricTile(title: String, value: String) -> some View {
-        VStack(spacing: 4) {
+    private func compactValueRow(title: String, value: String) -> some View {
+        HStack(spacing: 12) {
             Text(title)
-                .font(.caption)
+                .font(bodyLabelFont)
                 .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .frame(width: 110, alignment: .leading)
+
+            Spacer(minLength: 0)
 
             Text(value)
-                .font(.headline)
-        }
-        .frame(maxWidth: .infinity)
-        .padding()
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-    }
-
-    @ViewBuilder
-    private func scoreRow(title: String, score: Double?) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(title)
-                    .font(.subheadline)
-
-                Spacer()
-
-                Text(format(score))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-
-            ProgressView(value: (score ?? 0) / 100.0)
-                .tint(readinessColor(score))
+                .font(terminalValueFont)
+                .monospacedDigit()
+                .foregroundStyle(.primary)
+                .lineLimit(1)
         }
     }
 
     @ViewBuilder
     private func trendBar(_ item: ReadinessHistoryItem) -> some View {
+        let scores = viewModel.readinessHistory.map { $0.readinessScore ?? 0 }
         let score = item.readinessScore ?? 0
-        let height = max(8, CGFloat(score / 100.0) * 40.0)
+        let minScore = scores.min() ?? 0
+        let maxScore = scores.max() ?? 100
+        let height = relativeTrendHeight(score: score, minScore: minScore, maxScore: maxScore)
 
-        VStack(spacing: 6) {
-            Text(shortScore(score))
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-
-            RoundedRectangle(cornerRadius: 4)
+        VStack(spacing: 0) {
+            RoundedRectangle(cornerRadius: 2)
                 .fill(readinessColor(item.readinessScore))
-                .frame(width: 22, height: height)
-
-            Text(shortDateLabel(item.date))
-                .font(.caption2)
-                .foregroundStyle(.secondary)
+                .frame(width: 16, height: height)
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+    }
+
+    @ViewBuilder
+    private func recoveryRow(title: String, score: Double?) -> some View {
+        HStack(spacing: 10) {
+            Text(title)
+                .font(bodyLabelFont)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .frame(width: 110, alignment: .leading)
+
+            Text(format(score))
+                .font(.system(size: 17, weight: .semibold, design: .monospaced))
+                .monospacedDigit()
+                .foregroundStyle(.primary)
+                .frame(width: 48, alignment: .trailing)
+
+            Text(terminalBar(value: score))
+                .font(.system(size: 17, weight: .regular, design: .monospaced))
+                .foregroundStyle(readinessColor(score))
+                .lineLimit(1)
+
+            Spacer(minLength: 0)
+        }
     }
 
     // MARK: - Helpers
+
+    private func terminalPanel<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            content()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(Color.white.opacity(0.05))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+        )
+    }
+
+    private func sectionLabel(_ text: String) -> some View {
+        Text("> \(text)")
+            .font(terminalLabelFont)
+            .textCase(.uppercase)
+            .foregroundStyle(.secondary)
+    }
 
     private func format(_ value: Double?) -> String {
         guard let value else { return "n/a" }
@@ -326,6 +350,49 @@ struct ContentView: View {
         return trimmed.isEmpty ? nil : trimmed
     }
 
+    private func mainBriefingText(for readiness: ReadinessDailyResponse) -> String? {
+        if let briefing = trimmedText(readiness.briefing) {
+            return briefing
+        }
+
+        if let briefingText = trimmedText(readiness.briefingText) {
+            return briefingText
+        }
+
+        return nil
+    }
+
+    private func secondaryStatusText(for readiness: ReadinessDailyResponse) -> String? {
+        let statusText = trimmedText(readiness.statusText)
+
+        return statusText
+    }
+
+    private func recommendationText(for readiness: ReadinessDailyResponse) -> String {
+        if let recommendation = trimmedText(readiness.recommendation) {
+            return recommendation
+        }
+
+        return recommendationText(readiness: readiness.readinessScore)
+    }
+
+    private func recommendationLabel(from value: String?) -> String? {
+        guard let value = trimmedText(value)?.lowercased() else { return nil }
+
+        switch value {
+        case "recovery":
+            return "Recovery day"
+        case "endurance":
+            return "Easy endurance"
+        case "moderate":
+            return "Moderate training"
+        case "high_intensity":
+            return "High intensity possible"
+        default:
+            return nil
+        }
+    }
+
     private func recommendationText(readiness: Double?) -> String {
         guard let readiness else { return "Not enough data" }
 
@@ -363,6 +430,21 @@ struct ContentView: View {
         String(format: "%.0f", score)
     }
 
+    private func terminalBar(value: Double?) -> String {
+        guard let value else { return "░░░░░░░░░░" }
+
+        let filled = max(0, min(10, Int(value / 10.0)))
+        return String(repeating: "█", count: filled) + String(repeating: "░", count: 10 - filled)
+    }
+
+    private func relativeTrendHeight(score: Double, minScore: Double, maxScore: Double) -> CGFloat {
+        let minHeight: CGFloat = 8
+        let maxHeight: CGFloat = 34
+        let range = max(maxScore - minScore, 1)
+        let normalized = (score - minScore) / range
+        return minHeight + CGFloat(normalized) * (maxHeight - minHeight)
+    }
+
     private func shortDateLabel(_ dateString: String) -> String {
         let parts = dateString.split(separator: "-")
         return String(parts.last ?? "")
@@ -373,11 +455,15 @@ struct ContentView: View {
             return "Sync failed, will retry"
         }
 
-        guard let lastSuccessfulSyncAt = viewModel.syncState.lastSuccessfulSyncAt else {
-            return "No data yet"
+        if let lastSuccessfulSyncAt = viewModel.syncState.lastSuccessfulSyncAt {
+            return "Updated \(relativeTimeString(from: lastSuccessfulSyncAt))"
         }
 
-        return "Updated \(relativeTimeString(from: lastSuccessfulSyncAt))"
+        if let lastSyncAttemptAt = viewModel.syncState.lastSyncAttemptAt {
+            return "Checked \(relativeTimeString(from: lastSyncAttemptAt))"
+        }
+
+        return "No data yet"
     }
 
     private func relativeTimeString(from date: Date) -> String {
