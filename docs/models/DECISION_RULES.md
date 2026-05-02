@@ -14,7 +14,7 @@ Output:
 
 - recommendation zone
 - reason string
-- explanation context
+- optional briefing text in downstream response
 
 This layer consumes readiness. It does not recompute load, recovery, freshness, HRV, sleep, or readiness.
 
@@ -141,34 +141,35 @@ High intensity is allowed only if it fits the training plan. Readiness permits i
 
 ## 5. Explanation rules
 
-The reason string should be assembled from deterministic components:
+The current reason string is assembled from deterministic components in `backend.services.decision_engine.build_recommendation`.
 
 ```text
-<zone summary>. <primary driver>. <training guidance>.
+Readiness score is <score>/100. <available inputs>. <fallback note>. Recommendation is <recommendation>.
 ```
 
-Where:
+Current components:
 
-- `zone summary` comes from the recommendation zone
-- `primary driver` explains whether load/freshness, recovery, or fallback data shaped the result
-- `training guidance` states the recommended training type
+- readiness score
+- freshness, when `freshness_norm` is available
+- recovery, when `recovery_score_simple` is available
+- fallback note for `recovery_only` or `load_only`
+- final recommendation label
 
-Examples:
+Example JSON:
 
-- `Low readiness. Recovery is the priority today. Choose rest or very easy aerobic work.`
-- `Moderate readiness. Freshness is acceptable, but recovery is not clearly high. Keep intensity controlled.`
-- `High readiness. Freshness and recovery are favorable. High intensity is available if planned.`
+```json
+{
+  "recommendation": "endurance",
+  "reason": "Readiness score is 55.7/100. Freshness is available at 54/100. Recovery is available at 58.2/100. Recommendation is endurance."
+}
+```
 
-Wording rules:
+Explainability requirement:
 
-- if recovery is low, mention recovery limitation first
-- if freshness is low, mention load/fatigue limitation first
-- if both are low, prefer recovery-oriented wording
-- if recovery is high but freshness is low, allow only endurance or recovery wording
-- if freshness is high but recovery is low, avoid intensity wording
-- if both are favorable, intensity wording is allowed for `high_intensity`
-
-The reason string should describe the deterministic rule result. It should not generate coaching advice beyond the selected zone.
+- every recommendation must be traceable to `readiness_score`
+- available load/recovery inputs should be visible in `reason`
+- fallback modes must be explicit
+- no ML or LLM-generated text is used
 
 ---
 
@@ -185,12 +186,12 @@ Decision behavior:
 
 - use the same readiness-to-zone mapping
 - reason string must state that load context is missing
-- avoid strong intensity wording unless future product rules explicitly allow it
+- keep the recommendation tied to the computed readiness score
 
-Recommended wording:
+Current wording:
 
 ```text
-Readiness is based on recovery data only. Load context is missing, so keep the recommendation conservative.
+Load context is missing, so the recommendation is conservative.
 ```
 
 ### 6.2 `fallback_mode = load_only`
@@ -206,10 +207,10 @@ Decision behavior:
 - reason string must state that recovery context is missing
 - avoid HRV/sleep-based claims
 
-Recommended wording:
+Current wording:
 
 ```text
-Readiness is based on load data only. Recovery context is missing, so avoid over-interpreting freshness.
+Recovery context is missing, so freshness should not be over-interpreted.
 ```
 
 ### 6.3 Missing HRV or sleep
@@ -222,27 +223,8 @@ Meaning:
 Decision behavior:
 
 - do not invent missing HRV or sleep interpretation
-- mention missing recovery inputs only if present in the explanation payload
-- keep wording conservative when recovery confidence is limited
-
-### 6.4 Long inactivity
-
-Meaning:
-
-- freshness may rise during a long break because fatigue decays
-- high readiness may not imply training capacity is fully preserved
-
-Decision behavior:
-
-- use the same readiness-to-zone mapping
-- reason string should mention long inactivity when detected upstream
-- cap wording to controlled return-to-training guidance if product rules expose inactivity context
-
-Recommended wording:
-
-```text
-Readiness is high, but recent training history is limited. Return with controlled endurance before adding intensity.
-```
+- use only the `recovery_score_simple` already produced by recovery layer
+- mention fallback only when the readiness explanation has `fallback_mode`
 
 ---
 

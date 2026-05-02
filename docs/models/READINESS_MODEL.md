@@ -153,7 +153,8 @@ freshness_norm = clamp(50 + freshness, 0, 100)
 Затем readiness считается так:
 
 ```text
-readiness_score_raw = 0.6 * freshness_norm + 0.4 * recovery_score_simple
+readiness = 0.6 * freshness_norm + 0.4 * recovery_score_simple
+readiness_score_raw = readiness
 ```
 
 Fallback behavior:
@@ -177,6 +178,9 @@ good_day_probability = readiness_score / 100
 - `readiness_score`
 - `good_day_probability`
 - `status_text`
+- `explanation_json`
+
+Readiness считается по дням и сохраняется в `readiness_daily` с `version = 'v2'`.
 
 ---
 
@@ -277,7 +281,18 @@ Readiness считается ежедневно и сохраняется в `re
 
 Это нужно для explainability и отладки.
 
-### 7.1 `readiness_daily.explanation_json`
+### 7.1 Missing recovery inputs
+
+Recovery layer обрабатывает частично неполные HealthKit данные до readiness:
+
+- если нет HRV за день или baseline HRV, `hrv_score = 50.0`
+- если нет resting HR за день или baseline resting HR, `rhr_score = 50.0`
+- если нет sleep, `sleep_score = 50.0`
+- если нет вообще health data, recovery recompute возвращает `404`
+
+Readiness не меняет эту логику. Она получает уже рассчитанный `recovery_score_simple`.
+
+### 7.2 `readiness_daily.explanation_json`
 
 Структура текущего explanation payload:
 
@@ -341,6 +356,8 @@ Source of truth:
 - `readiness_score`
 - `good_day_probability`
 - `status_text`
+- `recommendation`
+- deterministic readiness briefing
 - `explanation_json.freshness`
 - `explanation_json.recovery_score_simple`
 - `explanation_json.recovery_explanation`
@@ -361,8 +378,8 @@ Source of truth:
 
 - rule-based
 - короткий и explainable
-- использует recovery breakdown как основной источник интерпретации recovery contour
-- может дополнительно учитывать сильно отрицательный freshness
+- использует deterministic briefing из decision layer
+- не использует LLM
 
 ---
 
@@ -373,27 +390,11 @@ Source of truth:
 - использует агрегированный recovery score как вход readiness
 - пока не подает `hrv_dev`, `rhr_dev` и component scores в readiness formula напрямую
 - пока не имеет отдельной probability calibration
-- требует дальнейшей верификации на реальных данных
+- не пересчитывает decision внутри history endpoint
 
 ---
 
-## 10. Planned extensions
-
-Планируется:
-
-- калибровка весов `freshness_norm` и `recovery_score_simple`
-- возможное явное использование `sleep_score`, `hrv_dev`, `rhr_dev` в readiness formula
-- уточнение interpretation layer для `good_day_probability`
-- уточнение decision mapping
-
-Но:
-
-- без потери прозрачности
-- с явным versioning
-
----
-
-## 11. Debugging model
+## 10. Debugging model
 
 Если результат кажется неверным, проверять:
 
@@ -404,23 +405,23 @@ Source of truth:
 5. формирование `readiness_score_raw`
 6. status mapping и probability mapping
 7. `readiness_daily.explanation_json`
-8. daily notification payload, если вопрос относится к Telegram briefing
+8. decision layer output, если вопрос относится к `recommendation` или `briefing`
 
 ---
 
-## 12. Design constraint
+## 11. Design constraint
 
 Любое усложнение модели должно:
 
 - улучшать объяснимость
 - не нарушать deterministic поведение
-- быть отделено от planned layers
+- быть отделено от ingestion, recovery, load, readiness and decision boundaries
 
 Иначе его не нужно добавлять.
 
 ---
 
-## 13. E2E readiness pipeline definition of done
+## 12. E2E readiness pipeline definition of done
 
 Сценарий readiness считается завершенным для Model V2 baseline, когда:
 

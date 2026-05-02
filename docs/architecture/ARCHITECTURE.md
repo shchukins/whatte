@@ -22,19 +22,21 @@ Human Engine построен как pipeline:
 Высокоуровневый поток:
 
 ```text
-Data Sources
+HealthKit / Strava
 ↓
-Backend (Data Engine)
+ingestion
 ↓
-PostgreSQL (Storage)
+normalized storage
 ↓
-Raw / Normalized / Daily State
+load + recovery
 ↓
-LoadState + RecoveryState
+readiness
 ↓
-Readiness
+decision
 ↓
-Insight / Decision layer
+API
+↓
+iOS
 ```
 
 ---
@@ -193,7 +195,7 @@ Normalized health tables:
 - HealthKit normalized tables
 - recovery aggregation
 
-Этот слой больше не является только planned.
+Этот слой реализован в текущем backend.
 
 ---
 
@@ -218,25 +220,51 @@ Normalized health tables:
 
 ---
 
-### 6.4 Decision layer (partially implemented)
+### 6.4 Decision layer (implemented)
 
-Сейчас реализованы базовые decision outputs:
+Decision layer consumes `readiness_daily` output and produces deterministic user-facing guidance.
 
-- `readiness_score`
-- `good_day_probability`
-- `status_text`
-- `explanation_json`
-- Telegram daily readiness notification
+Implemented outputs:
 
-Следующий слой:
+- `recommendation`
+- `reason`
+- deterministic readiness briefing
 
-- recommendation
-- ride briefing
+Current mapping:
+
+- `< 40` -> `recovery`
+- `40 <= score < 60` -> `endurance`
+- `60 <= score <= 75` -> `moderate`
+- `> 75` -> `high_intensity`
+
+Current flow:
+
+```text
+HealthKit
+↓
+ingestion
+↓
+normalized health tables
+↓
+health_recovery_daily
+↓
+load_state_daily_v2
+↓
+readiness_daily
+↓
+decision_engine
+↓
+readiness API
+↓
+iOS Today screen
+```
 
 Важно:
 
+- decision layer не пересчитывает readiness formula
+- decision layer не использует ML или LLM
 - `notification_service` использует `readiness_daily`
-- notification layer не пересчитывает readiness formula, а читает уже materialized readiness state
+- notification layer использует deterministic readiness briefing как основной комментарий
 
 ---
 
@@ -350,13 +378,10 @@ LoadState + RecoveryState -> Readiness -> GoodDayProbability
 - recovery layer
 - load model v2 baseline
 - readiness baseline
-
-Следующие шаги:
-
-- feature layer expansion
-- readiness and probability calibration
-- recommendation layer
-- prediction
+- decision layer
+- readiness API
+- iOS Today screen
+- HealthKit auto sync
 
 ---
 
@@ -383,7 +408,7 @@ LoadState + RecoveryState -> Readiness -> GoodDayProbability
 
 - вписываться в pipeline
 - не ломать границы между слоями
-- явно отделять implemented от planned
+- явно отделять implemented behavior от несуществующего behavior
 
 Если компонент не вписывается:
 

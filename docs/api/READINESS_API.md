@@ -4,11 +4,11 @@
 
 Этот документ описывает текущие readiness endpoints в Human Engine.
 
-Оба endpoint работают только с уже сохраненным state layer.
+GET endpoints работают только с уже сохраненным state layer.
 
 ---
 
-## 2. Daily readiness
+## 2. Recompute daily readiness
 
 ### Endpoint
 
@@ -37,7 +37,74 @@ POST /api/v1/model/readiness-daily/{user_id}/{date}
 
 ---
 
-## 3. History
+## 3. Get daily readiness
+
+### Endpoint
+
+```text
+GET /api/v1/model/readiness-daily/{user_id}/{date}
+```
+
+### Purpose
+
+- прочитать readiness за конкретную дату
+- добавить decision layer output поверх сохраненного `readiness_daily`
+- не делать recomputation
+
+### Response shape
+
+```json
+{
+  "ok": true,
+  "user_id": "sergey",
+  "date": "2026-04-26",
+  "readiness_score": 55.7,
+  "good_day_probability": 0.557,
+  "status_text": "Нормальная готовность",
+  "explanation": {
+    "fallback_mode": null,
+    "freshness": 4.0,
+    "freshness_norm": 54.0,
+    "recovery_score_simple": 58.2,
+    "weights": {
+      "freshness_norm": 0.6,
+      "recovery_score_simple": 0.4
+    },
+    "formula": "0.6 * freshness_norm + 0.4 * recovery_score_simple",
+    "recovery_explanation": {
+      "sleep_score": 82.8,
+      "hrv_score": 42.1,
+      "rhr_score": 49.5
+    }
+  },
+  "recommendation": "endurance",
+  "reason": "Readiness score is 55.7/100. Freshness is available at 54/100. Recovery is available at 58.2/100. Recommendation is endurance.",
+  "briefing": "Сегодня нормальная готовность. Рекомендуется спокойная аэробная тренировка.",
+  "briefing_text": "Сегодня нормальная готовность. Рекомендуется спокойная аэробная тренировка."
+}
+```
+
+### Main fields
+
+- `readiness_score`
+- `good_day_probability`
+- `status_text`
+- `explanation`
+- `recommendation`
+- `reason`
+- `briefing`
+- `briefing_text`
+
+### Notes
+
+- source of truth is `readiness_daily`
+- `recommendation`, `reason` and `briefing` are derived by deterministic decision logic
+- `briefing_text` is kept for client compatibility
+- missing row returns `404`
+
+---
+
+## 4. History
 
 ### Endpoint
 
@@ -71,7 +138,9 @@ GET /api/v1/model/readiness-daily/{user_id}/history?days=7
       "good_day_probability": 0.598,
       "status_text": "Нормальная готовность",
       "explanation": {
-        "fallback_mode": null
+        "fallback_mode": null,
+        "freshness_norm": 55.0,
+        "recovery_score_simple": 67.0
       }
     }
   ]
@@ -83,3 +152,4 @@ GET /api/v1/model/readiness-daily/{user_id}/history?days=7
 - `days` валидируется как целое число в допустимом диапазоне
 - endpoint предназначен для history/trend UI
 - источник истины для history — `readiness_daily`
+- current history points do not include `recommendation`, `reason` or `briefing`
