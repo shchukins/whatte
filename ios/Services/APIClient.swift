@@ -38,6 +38,8 @@ final class APIClient {
             .appendingPathComponent("full-sync")
             .appendingPathComponent(userID)
 
+        print("health_sync_request url=\(url.absoluteString)")
+
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -55,6 +57,7 @@ final class APIClient {
         URLSession.shared.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
                 if let error {
+                    print("health_sync_request network_error=\(error.localizedDescription)")
                     completion(.failure(error))
                     return
                 }
@@ -63,6 +66,8 @@ final class APIClient {
                     completion(.failure(APIError.invalidResponse))
                     return
                 }
+
+                print("health_sync_response status=\(httpResponse.statusCode)")
 
                 guard let data else {
                     completion(.failure(APIError.emptyResponseBody))

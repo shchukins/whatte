@@ -13,6 +13,7 @@ enum SyncMode: String, Codable {
 }
 
 struct SyncState: Codable {
+    var lastSyncAttemptAt: Date?
     var lastSuccessfulSyncAt: Date?
     var lastPayloadGeneratedAt: Date?
     var lastErrorMessage: String?

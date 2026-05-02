@@ -14,6 +14,9 @@ struct ReadinessDailyResponse: Decodable {
     let readinessScore: Double?
     let goodDayProbability: Double?
     let statusText: String?
+    let recommendation: String?
+    let reason: String?
+    let briefing: String?
     let readinessComment: String?
     let briefingText: String?
     let explanation: ReadinessExplanation?
@@ -25,6 +28,9 @@ struct ReadinessDailyResponse: Decodable {
         case readinessScore = "readiness_score"
         case goodDayProbability = "good_day_probability"
         case statusText = "status_text"
+        case recommendation
+        case reason
+        case briefing
         case readinessComment = "readiness_comment"
         case briefingText = "briefing_text"
         case explanation
@@ -44,6 +50,9 @@ struct ReadinessDailyResponse: Decodable {
         readinessScore = try container.decodeIfPresent(Double.self, forKey: .readinessScore)
         goodDayProbability = try container.decodeIfPresent(Double.self, forKey: .goodDayProbability)
         statusText = try container.decodeIfPresent(String.self, forKey: .statusText)
+        recommendation = try container.decodeIfPresent(String.self, forKey: .recommendation)
+        reason = try container.decodeIfPresent(String.self, forKey: .reason)
+        briefing = try container.decodeIfPresent(String.self, forKey: .briefing)
         readinessComment = try container.decodeIfPresent(String.self, forKey: .readinessComment)
         briefingText = try container.decodeIfPresent(String.self, forKey: .briefingText)
 
