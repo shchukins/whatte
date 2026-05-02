@@ -6,6 +6,7 @@ from typing import Any
 
 from backend.config import settings
 from backend.db import get_conn
+from backend.services.decision_engine import build_readiness_briefing, build_recommendation
 
 
 def _format_duration(seconds: int | None) -> str:
@@ -330,6 +331,7 @@ def build_readiness_briefing_message(
     freshness: float | None,
     recovery_score_simple: float | None,
     recovery_explanation: dict[str, Any] | None,
+    briefing: str | None = None,
 ) -> str:
     recovery_explanation = recovery_explanation or {}
 
@@ -351,7 +353,8 @@ def build_readiness_briefing_message(
         f"• Пульс покоя: {_fmt(_float_or_none(recovery_explanation.get('rhr_score')), 1)}",
         "",
         "Комментарий:",
-        build_readiness_comment(
+        briefing
+        or build_readiness_comment(
             freshness=freshness,
             recovery_score_simple=recovery_score_simple,
             recovery_explanation=recovery_explanation,
@@ -553,10 +556,29 @@ def build_daily_readiness_message(user_id: str) -> str:
                 recovery_explanation = _as_dict(
                     explanation.get("recovery_explanation")
                 )
+                score = _float_or_none(readiness_score)
+                decision = (
+                    build_recommendation(
+                        readiness_score=score,
+                        explanation=explanation,
+                    )
+                    if score is not None
+                    else {
+                        "recommendation": "insufficient_data",
+                        "reason": "Readiness data is missing, so the recommendation is conservative.",
+                    }
+                )
+                readiness_briefing = build_readiness_briefing(
+                    readiness_score=score,
+                    status_text=status_text,
+                    recommendation=decision["recommendation"],
+                    reason=decision["reason"],
+                    explanation=explanation,
+                )
 
                 return build_readiness_briefing_message(
                     target_date=readiness_date,
-                    readiness_score=_float_or_none(readiness_score),
+                    readiness_score=score,
                     status_text=status_text,
                     good_day_probability=_float_or_none(good_day_probability),
                     freshness=_float_or_none(explanation.get("freshness")),
@@ -564,6 +586,7 @@ def build_daily_readiness_message(user_id: str) -> str:
                         explanation.get("recovery_score_simple")
                     ),
                     recovery_explanation=recovery_explanation,
+                    briefing=readiness_briefing["briefing"],
                 )
 
             cur.execute(

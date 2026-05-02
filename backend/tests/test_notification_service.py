@@ -359,7 +359,7 @@ def test_build_daily_readiness_message_prefers_readiness_daily_v2(monkeypatch):
         "• HRV: 42.1\n"
         "• Пульс покоя: 49.5\n\n"
         "Комментарий:\n"
-        "HRV ниже baseline, восстановление выглядит неполным."
+        "Сегодня нормальная готовность. Рекомендуется спокойная аэробная тренировка."
     )
 
     assert len(fake_cursor.execute_calls) == 1

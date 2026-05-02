@@ -45,6 +45,7 @@ from backend.services.readiness_query import (
     get_readiness_daily_for_date,
     get_readiness_daily_history,
 )
+from backend.services.decision_engine import build_readiness_briefing
 
 configure_logging()
 logger = logging.getLogger(__name__)
@@ -72,6 +73,11 @@ class StravaWebhookChallengeResponse(BaseModel):
 
 class AIRideBriefingRequest(BaseModel):
     readiness: str
+    readiness_score: float | None = None
+    status_text: str | None = None
+    recommendation: str | None = None
+    reason: str | None = None
+    explanation: dict[str, Any] | None = None
     readiness_context: str | None = None
     weather_summary: str | None = None
     training_suggestion: str | None = None
@@ -82,6 +88,11 @@ class AIRideBriefingRequest(BaseModel):
 class AIRideBriefingData(BaseModel):
     title: str
     summary: str
+    readiness_score: float | None = None
+    status_text: str | None = None
+    briefing: str | None = None
+    recommendation: str | None = None
+    reason: str | None = None
     weather_note: str
     training_note: str
     checklist: list[str]
@@ -299,11 +310,26 @@ def build_ride_briefing_data(payload: AIRideBriefingRequest) -> AIRideBriefingDa
     weather_text = f"Погода: {localized_weather}."
     training_text = f"Тренировка: {localized_training}."
 
-    summary = f"{readiness_text} {weather_text} {training_text}"
+    briefing: dict[str, str] | None = None
+    if payload.readiness_score is not None or payload.recommendation is not None:
+        briefing = build_readiness_briefing(
+            readiness_score=payload.readiness_score,
+            status_text=payload.status_text or payload.readiness,
+            recommendation=payload.recommendation,
+            reason=payload.reason,
+            explanation=payload.explanation,
+        )
+
+    summary = briefing["briefing"] if briefing else f"{readiness_text} {weather_text} {training_text}"
 
     return AIRideBriefingData(
         title="Брифинг перед поездкой",
         summary=summary,
+        readiness_score=payload.readiness_score,
+        status_text=payload.status_text or payload.readiness,
+        briefing=briefing["briefing"] if briefing else summary,
+        recommendation=briefing["recommendation"] if briefing else payload.recommendation,
+        reason=briefing["reason"] if briefing else payload.reason,
         weather_note=localized_weather,
         training_note=localized_training,
         checklist=checklist,

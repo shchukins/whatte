@@ -52,13 +52,14 @@ Ride briefing должен быть:
 Практический вход для ride briefing:
 
 - `readiness_score`
-- `good_day_probability`
 - `status_text`
-- `freshness`
-- `recovery_score_simple`
+- `recommendation`
+- `reason`
 - `explanation_json`
 
-Дополнительные rule-based inputs могут использоваться позже, но их нужно отделять от уже реализованного backend baseline.
+`recommendation` и `reason` приходят из deterministic decision layer. Ride briefing не пересчитывает readiness, load, recovery, freshness, HRV или sleep.
+
+`good_day_probability`, `freshness` и `recovery_score_simple` могут отображаться рядом в UI или notification, но не являются отдельным источником текстовой рекомендации.
 
 ---
 
@@ -66,35 +67,38 @@ Ride briefing должен быть:
 
 Ride briefing должен содержать:
 
-### 5.1 Readiness status
+### 5.1 Briefing
 
-Краткий статус состояния, основанный на `status_text`.
+Короткий пользовательский текст:
+
+```json
+{
+  "briefing": "Сегодня нормальная готовность. Рекомендуется спокойная аэробная тренировка.",
+  "recommendation": "endurance",
+  "reason": "Readiness score is 56.5/100. Recommendation is endurance."
+}
+```
+
+`briefing` предназначен для Today screen, Telegram и ride briefing endpoint. Это не raw JSON для пользователя; JSON является транспортным форматом API.
 
 ---
 
-### 5.2 Load recommendation
+### 5.2 Recommendation
 
-Рекомендация по уровню нагрузки:
+Рекомендация берется из decision layer:
 
-- rest
-- easy
-- moderate
-- hard
+- `recovery`
+- `endurance`
+- `moderate`
+- `high_intensity`
 
 ---
 
-### 5.3 Short explanation
+### 5.3 Reason
 
-Краткое объяснение, связывающее вывод с двумя контурами:
+`reason` берется из decision layer без генерации свободного текста.
 
-- load contour
-- recovery contour
-
-Примеры формулировок:
-
-- высокая усталость по load contour при слабом recovery signal
-- нормальная готовность: load и recovery не конфликтуют
-- хорошая готовность: recovery поддерживает благоприятный load state
+Он нужен для explainability и debugging, но основной user-facing комментарий должен быть `briefing`.
 
 ---
 
@@ -114,17 +118,28 @@ Ride briefing должен содержать:
 
 Текущее требование к mapping:
 
-- опираться на `readiness_score` и `good_day_probability`
+- опираться на `readiness_score`
+- использовать `recommendation` и `reason` из decision layer
 - не сводить решение только к `freshness`
 - сохранять объяснимую связь с recovery layer
 
-Пример минимального baseline mapping:
+Текущий baseline mapping:
 
-- низкий readiness -> `rest` или `easy`
-- средний readiness -> `moderate`
-- высокий readiness -> `hard`
+- `< 40` -> `recovery`
+- `40 <= score < 60` -> `endurance`
+- `60 <= score <= 75` -> `moderate`
+- `> 75` -> `high_intensity`
 
-Точный mapping еще требует продуктовой фиксации.
+Текстовые шаблоны:
+
+| Recommendation | Briefing guidance |
+| --- | --- |
+| `recovery` | восстановление или очень легкая нагрузка |
+| `endurance` | спокойная аэробная тренировка |
+| `moderate` | умеренная аэробная тренировка |
+| `high_intensity` | интенсивная работа допустима, если она есть в плане |
+
+При missing readiness используется conservative fallback: легкая нагрузка или отдых.
 
 ---
 
@@ -152,7 +167,7 @@ Ride briefing должен содержать:
 - одинаковая категория нагрузки
 - одинаковое объяснение по шаблону
 
-Допускается только шаблонная вариативность без изменения логики.
+Briefing не использует LLM, ML или AI generation. Он является rule-based formatting layer поверх уже рассчитанных readiness и decision outputs.
 
 ---
 

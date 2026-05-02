@@ -60,3 +60,5 @@ def test_get_readiness_daily_for_date_includes_recommendation(monkeypatch):
     assert "Readiness score is 69.2/100" in result["reason"]
     assert "Freshness is available at 70/100" in result["reason"]
     assert "Recovery is available at 68/100" in result["reason"]
+    assert result["briefing"] == "Сегодня хорошая готовность. Рекомендуется умеренная аэробная тренировка."
+    assert result["briefing_text"] == result["briefing"]
