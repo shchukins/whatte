@@ -9,6 +9,7 @@ from fastapi import HTTPException
 
 from backend.core.logging import log_event
 from backend.db import get_conn
+from backend.services.decision_engine import build_recommendation
 
 logger = logging.getLogger(__name__)
 
@@ -186,6 +187,11 @@ def recompute_readiness_daily_for_date(user_id: str, target_date: str) -> dict[s
                 )
                 conn.commit()
 
+        decision = build_recommendation(
+            readiness_score=readiness_score,
+            explanation=explanation_json,
+        )
+
         result = {
             "ok": True,
             "user_id": user_id,
@@ -199,6 +205,7 @@ def recompute_readiness_daily_for_date(user_id: str, target_date: str) -> dict[s
             "status_text": status_text,
             "fallback_mode": fallback_mode,
             "explanation_json": explanation_json,
+            **decision,
         }
         log_event(
             logger,

@@ -5,6 +5,7 @@ from typing import Any
 from fastapi import HTTPException
 
 from backend.db import get_conn
+from backend.services.decision_engine import build_recommendation
 
 
 def get_readiness_daily_for_date(user_id: str, target_date: str) -> dict[str, Any]:
@@ -36,6 +37,11 @@ def get_readiness_daily_for_date(user_id: str, target_date: str) -> dict[str, An
 
             db_user_id, db_date, readiness_score, good_day_probability, status_text, explanation_json = row
 
+    decision = build_recommendation(
+        readiness_score=readiness_score,
+        explanation=explanation_json,
+    )
+
     return {
         "ok": True,
         "user_id": db_user_id,
@@ -44,6 +50,7 @@ def get_readiness_daily_for_date(user_id: str, target_date: str) -> dict[str, An
         "good_day_probability": good_day_probability,
         "status_text": status_text,
         "explanation": explanation_json,
+        **decision,
     }
 
 
