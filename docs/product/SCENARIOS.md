@@ -23,8 +23,8 @@
 ### Flow
 
 1. Пользователь открывает систему
-2. Система анализирует последние данные
-3. Рассчитывается readiness
+2. Auto sync обновляет последние HealthKit данные
+3. Пересчитываются recovery, load state и readiness
 4. Система возвращает status / score / probability и explanation
 5. Пользователь принимает решение
 
@@ -40,11 +40,34 @@
 Комментарий:
 
 - readiness output уже реализован в backend
-- recommendation / ride briefing layer пока остается planned
+- history endpoint отдает последние daily points для trend UI
 
 ---
 
-## 3. Scenario: After hard training block
+## 3. Daily usage (MVP)
+
+### Flow
+
+1. Пользователь открывает iOS app
+2. `SyncCoordinator` запускает auto sync
+3. Backend сохраняет payload и выполняет deterministic recompute
+4. Today screen читает актуальный readiness state
+5. Пользователь видит:
+
+- readiness
+- explanation
+- recommendation
+- 7-day trend
+
+### Notes
+
+- trend строится из `readiness_daily` history
+- history endpoint не делает recompute
+- readiness должен быть доступен по непрерывной daily history без gaps
+
+---
+
+## 4. Scenario: After hard training block
 
 ### Context
 
@@ -59,7 +82,7 @@
 
 ---
 
-## 4. Scenario: After recovery
+## 5. Scenario: After recovery
 
 ### Context
 
@@ -73,7 +96,7 @@
 
 ---
 
-## 5. Scenario: Stable training
+## 6. Scenario: Stable training
 
 ### Context
 
@@ -87,7 +110,7 @@
 
 ---
 
-## 6. Scenario: Load spike
+## 7. Scenario: Load spike
 
 ### Context
 
@@ -100,7 +123,7 @@
 
 ---
 
-## 7. Scenario: No recent data
+## 8. Scenario: No recent data
 
 ### Context
 
@@ -114,7 +137,7 @@
 
 ---
 
-## 8. Scenario: Incomplete data
+## 9. Scenario: Incomplete data
 
 ### Context
 
@@ -129,7 +152,7 @@
 
 ---
 
-## 9. Scenario: Long break
+## 10. Scenario: Long break
 
 ### Context
 
@@ -142,7 +165,7 @@
 
 ---
 
-## 10. System behavior expectations
+## 11. System behavior expectations
 
 Во всех сценариях система должна:
 
@@ -152,7 +175,7 @@
 
 ---
 
-## 11. Not in scope
+## 12. Not in scope
 
 Система пока не делает:
 
@@ -163,7 +186,7 @@
 
 ---
 
-## 12. Future scenarios
+## 13. Future scenarios
 
 Планируется:
 
@@ -175,7 +198,7 @@
 
 ---
 
-## 13. Usage
+## 14. Usage
 
 Этот документ используется для:
 
@@ -186,7 +209,7 @@
 
 ---
 
-## 14. Validation
+## 15. Validation
 
 Сценарии должны:
 

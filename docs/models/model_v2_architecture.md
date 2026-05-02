@@ -226,6 +226,14 @@ raw ingest
 -> recompute health_recovery_daily
 -> recompute load_state_daily_v2
 -> recompute readiness_daily
+-> readiness history endpoint
+-> iOS Today screen
+```
+
+В текущем продукте этот путь выглядит так:
+
+```text
+HealthKit -> normalized -> recovery -> load_state_v2 -> readiness_daily -> history endpoint -> iOS Today screen
 ```
 
 Фактический orchestration contract:
@@ -233,8 +241,12 @@ raw ingest
 - сначала пересчитывается `health_recovery_daily` для affected dates
 - затем `load_state_daily_v2` пересчитывается до latest recovery date
 - затем `readiness_daily` создается или обновляется для affected dates
+- `readiness_daily` ведется непрерывно по календарным дням
+- history endpoint читает уже сохраненные rows без recompute
+- readiness history не должен иметь дыр на последних дневных датах
 - pipeline валидирует, что `readiness_daily.explanation_json` содержит `recovery_explanation`
 - pipeline валидирует, что при доступном load-контуре `freshness` не равен `null`
+- recompute остается deterministic
 
 ---
 
@@ -326,6 +338,8 @@ Readiness хранится отдельно в `readiness_daily`.
 
 - readiness не является просто полем load state
 - readiness — отдельный daily layer поверх двух контуров
+- readiness history читается из уже materialized `readiness_daily`
+- текущий history API возвращает точки в ascending date order для UI trend
 
 ---
 
