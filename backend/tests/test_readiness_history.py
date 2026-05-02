@@ -109,3 +109,37 @@ def test_readiness_history_endpoint_returns_ascending_points(monkeypatch):
         "2026-05-01",
         "2026-05-02",
     ]
+
+
+def test_latest_readiness_endpoint_returns_latest_row(monkeypatch):
+    def fake_get_latest_readiness_daily(*, user_id):
+        assert user_id == "sergey"
+        return {
+            "ok": True,
+            "user_id": user_id,
+            "date": "2026-05-02",
+            "readiness_score": 61.5,
+            "good_day_probability": 0.615,
+            "status_text": "Хорошая готовность",
+            "explanation": {"fallback_mode": None},
+            "recommendation": "moderate",
+            "reason": "Readiness score is 61.5/100. Recommendation is moderate.",
+            "briefing": "Сегодня хорошая готовность. Рекомендуется умеренная аэробная тренировка.",
+            "briefing_text": "Сегодня хорошая готовность. Рекомендуется умеренная аэробная тренировка.",
+        }
+
+    monkeypatch.setattr(
+        app_module,
+        "get_latest_readiness_daily",
+        fake_get_latest_readiness_daily,
+    )
+
+    client = TestClient(app_module.app)
+    response = client.get("/api/v1/model/readiness-daily/sergey/latest")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["ok"] is True
+    assert data["date"] == "2026-05-02"
+    assert data["recommendation"] == "moderate"
+    assert data["briefing"] == data["briefing_text"]

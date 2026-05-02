@@ -8,35 +8,8 @@ from backend.db import get_conn
 from backend.services.decision_engine import build_readiness_briefing, build_recommendation
 
 
-def get_readiness_daily_for_date(user_id: str, target_date: str) -> dict[str, Any]:
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                select
-                    user_id,
-                    date,
-                    readiness_score,
-                    good_day_probability,
-                    status_text,
-                    explanation_json
-                from readiness_daily
-                where user_id = %s
-                  and date = %s
-                  and version = 'v2';
-                """,
-                (user_id, target_date),
-            )
-            row = cur.fetchone()
-
-            if not row:
-                raise HTTPException(
-                    status_code=404,
-                    detail=f"readiness not found for user_id={user_id} date={target_date}",
-                )
-
-            db_user_id, db_date, readiness_score, good_day_probability, status_text, explanation_json = row
-
+def _build_readiness_daily_response(row: tuple[Any, ...]) -> dict[str, Any]:
+    db_user_id, db_date, readiness_score, good_day_probability, status_text, explanation_json = row
     decision = build_recommendation(
         readiness_score=readiness_score,
         explanation=explanation_json,
@@ -61,6 +34,67 @@ def get_readiness_daily_for_date(user_id: str, target_date: str) -> dict[str, An
         **briefing,
         "briefing_text": briefing["briefing"],
     }
+
+
+def get_readiness_daily_for_date(user_id: str, target_date: str) -> dict[str, Any]:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                select
+                    user_id,
+                    date,
+                    readiness_score,
+                    good_day_probability,
+                    status_text,
+                    explanation_json
+                from readiness_daily
+                where user_id = %s
+                  and date = %s
+                  and version = 'v2';
+                """,
+                (user_id, target_date),
+            )
+            row = cur.fetchone()
+
+    if not row:
+        raise HTTPException(
+            status_code=404,
+            detail=f"readiness not found for user_id={user_id} date={target_date}",
+        )
+
+    return _build_readiness_daily_response(row)
+
+
+def get_latest_readiness_daily(user_id: str) -> dict[str, Any]:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                select
+                    user_id,
+                    date,
+                    readiness_score,
+                    good_day_probability,
+                    status_text,
+                    explanation_json
+                from readiness_daily
+                where user_id = %s
+                  and version = 'v2'
+                order by date desc
+                limit 1;
+                """,
+                (user_id,),
+            )
+            row = cur.fetchone()
+
+    if not row:
+        raise HTTPException(
+            status_code=404,
+            detail=f"latest readiness not found for user_id={user_id}",
+        )
+
+    return _build_readiness_daily_response(row)
 
 
 def get_readiness_daily_history(user_id: str, days: int) -> dict[str, Any]:

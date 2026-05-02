@@ -42,6 +42,7 @@ from backend.services.load_state_v2 import recompute_load_state_daily_v2
 from backend.services.readiness_daily import recompute_readiness_daily_for_date
 from backend.services.healthkit_pipeline import ingest_and_process_healthkit_payload
 from backend.services.readiness_query import (
+    get_latest_readiness_daily,
     get_readiness_daily_for_date,
     get_readiness_daily_history,
 )
@@ -1422,6 +1423,11 @@ def get_readiness_daily_history_endpoint(
         user_id=user_id,
         days=days,
     )
+
+
+@app.get("/api/v1/model/readiness-daily/{user_id}/latest")
+def get_latest_readiness_daily_endpoint(user_id: str):
+    return get_latest_readiness_daily(user_id=user_id)
 
 
 @app.get("/api/v1/model/readiness-daily/{user_id}/{target_date}")
