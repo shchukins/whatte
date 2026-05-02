@@ -27,6 +27,7 @@ final class ContentViewModel {
     // MARK: - Readiness
 
     var todayReadiness: ReadinessDailyResponse?
+    var readinessHistory: [ReadinessHistoryItem] = []
     var readinessErrorMessage: String?
 
     // MARK: - UI / runtime state
@@ -204,6 +205,23 @@ final class ContentViewModel {
             case .failure(let error):
                 self.todayReadiness = nil
                 self.readinessErrorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    func loadReadinessHistory(days: Int = 7) {
+        APIClient.shared.fetchReadinessHistory(
+            userID: backendUserID,
+            days: days
+        ) { [weak self] result in
+            guard let self else { return }
+
+            switch result {
+            case .success(let response):
+                self.readinessHistory = response.points
+
+            case .failure:
+                self.readinessHistory = []
             }
         }
     }

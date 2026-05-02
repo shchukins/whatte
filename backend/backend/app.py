@@ -41,7 +41,10 @@ from backend.services.health_recovery_daily import recompute_health_recovery_dai
 from backend.services.load_state_v2 import recompute_load_state_daily_v2
 from backend.services.readiness_daily import recompute_readiness_daily_for_date
 from backend.services.healthkit_pipeline import ingest_and_process_healthkit_payload
-from backend.services.readiness_query import get_readiness_daily_for_date
+from backend.services.readiness_query import (
+    get_readiness_daily_for_date,
+    get_readiness_daily_history,
+)
 
 configure_logging()
 logger = logging.getLogger(__name__)
@@ -1382,6 +1385,17 @@ def full_sync_healthkit_payload_endpoint(user_id: str, payload: HealthSyncPayloa
             status_code=500,
             detail=f"failed to run healthkit full sync: {str(e)[:300]}",
         ) from e
+
+
+@app.get("/api/v1/model/readiness-daily/{user_id}/history")
+def get_readiness_daily_history_endpoint(
+    user_id: str,
+    days: int = Query(default=7, ge=1, le=90),
+):
+    return get_readiness_daily_history(
+        user_id=user_id,
+        days=days,
+    )
 
 
 @app.get("/api/v1/model/readiness-daily/{user_id}/{target_date}")

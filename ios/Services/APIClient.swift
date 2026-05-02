@@ -104,9 +104,12 @@ final class APIClient {
         request.httpMethod = "GET"
         request.timeoutInterval = 30
 
+        print("readiness_request url=\(url.absoluteString)")
+
         URLSession.shared.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
                 if let error {
+                    print("readiness_request network_error=\(error.localizedDescription)")
                     completion(.failure(error))
                     return
                 }
@@ -116,6 +119,8 @@ final class APIClient {
                     return
                 }
 
+                print("readiness_response status=\(httpResponse.statusCode)")
+
                 guard let data else {
                     completion(.failure(APIError.emptyResponseBody))
                     return
@@ -124,10 +129,83 @@ final class APIClient {
                 if (200...299).contains(httpResponse.statusCode) {
                     do {
                         let decoder = JSONDecoder()
-                        decoder.keyDecodingStrategy = .convertFromSnakeCase
                         let result = try decoder.decode(ReadinessDailyResponse.self, from: data)
+                        print("readiness_decode success score=\(result.readinessScore.map { String($0) } ?? "nil")")
                         completion(.success(result))
                     } catch {
+                        let body = String(data: data, encoding: .utf8) ?? "n/a"
+                        print("readiness_decode error=\(error.localizedDescription)")
+                        print("readiness_decode body=\(body)")
+                        completion(.failure(error))
+                    }
+                } else {
+                    let body = String(data: data, encoding: .utf8) ?? "n/a"
+                    completion(.failure(APIError.serverError(code: httpResponse.statusCode, body: body)))
+                }
+            }
+        }.resume()
+    }
+
+    func fetchReadinessHistory(
+        userID: String,
+        days: Int,
+        completion: @escaping (Result<ReadinessHistoryResponse, Error>) -> Void
+    ) {
+        var components = URLComponents(
+            url: baseURL
+                .appendingPathComponent("api")
+                .appendingPathComponent("v1")
+                .appendingPathComponent("model")
+                .appendingPathComponent("readiness-daily")
+                .appendingPathComponent(userID)
+                .appendingPathComponent("history"),
+            resolvingAgainstBaseURL: false
+        )
+        components?.queryItems = [
+            URLQueryItem(name: "days", value: String(days))
+        ]
+
+        guard let url = components?.url else {
+            completion(.failure(APIError.invalidResponse))
+            return
+        }
+
+        print("readiness_history_request url=\(url.absoluteString)")
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.timeoutInterval = 30
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            DispatchQueue.main.async {
+                if let error {
+                    print("readiness_history_request network_error=\(error.localizedDescription)")
+                    completion(.failure(error))
+                    return
+                }
+
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    completion(.failure(APIError.invalidResponse))
+                    return
+                }
+
+                print("readiness_history_response status=\(httpResponse.statusCode)")
+
+                guard let data else {
+                    completion(.failure(APIError.emptyResponseBody))
+                    return
+                }
+
+                if (200...299).contains(httpResponse.statusCode) {
+                    do {
+                        let decoder = JSONDecoder()
+                        let result = try decoder.decode(ReadinessHistoryResponse.self, from: data)
+                        print("readiness_history_decode points_count=\(result.points.count)")
+                        completion(.success(result))
+                    } catch {
+                        let body = String(data: data, encoding: .utf8) ?? "n/a"
+                        print("readiness_history_decode error=\(error.localizedDescription)")
+                        print("readiness_history_decode body=\(body)")
                         completion(.failure(error))
                     }
                 } else {
