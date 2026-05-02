@@ -1,5 +1,7 @@
 # Human Engine
 
+[English version](README.en.md)
+
 <p align="center">
   <img src="https://img.shields.io/badge/status-experimental-blue" />
   <img src="https://img.shields.io/badge/license-MIT-yellow" />
@@ -11,220 +13,146 @@
 </p>
 
 <p align="center">
-  A system for analyzing training load, recovery, readiness, and decision support.
+  Детерминированная система для расчета тренировочной нагрузки, восстановления и readiness.
 </p>
 
 <p align="center">
-  <code>signal → load state + recovery state → readiness → decision</code>
+  <code>signal → load state + recovery state → readiness → decision support</code>
 </p>
 
-## Core Idea
+## Идея
 
-**The right training on the right day.**
+Human Engine не является ни тренировочным дневником, ни AI-коучем.
+Это инженерная система, которая принимает source data, строит state layers и выдает воспроизводимые readiness outputs.
 
-Human Engine is not a training log and not an AI coach.  
-It is an engineering system designed to support decisions through explicit, reproducible, and deterministic logic.
-
-## What Human Engine Does
-
-- Collects training and recovery data
-- Stores raw source payloads for reproducibility
-- Builds daily load and recovery state
-- Calculates readiness and good-day probability
-- Provides deterministic outputs for downstream decision support
-
-## What the System Is
-
-- A training data processing system
-- A physiology-driven load and recovery model
-- A readiness evaluation engine
-- A deterministic foundation for training decisions
-
-## What the System Is Not
-
-- Not just a dashboard
-- Not black-box AI
-- Not a generative coach
-- Not a system where an LLM makes product decisions
-
-See: [docs/ai/PRODUCT_CONTEXT.md](docs/ai/PRODUCT_CONTEXT.md)
-
-## Current State
-
-The current backend already includes:
+## Что уже реализовано
 
 - FastAPI backend
 - PostgreSQL
-- Strava ingestion pipeline
-- HealthKit raw ingestion and full-sync orchestration
-- Raw data storage for Strava and HealthKit payloads
+- Strava ingestion
+- HealthKit raw ingest и full sync orchestration
+- raw storage для Strava и HealthKit payloads
 - HealthKit normalized tables
-- Recovery layer via `health_recovery_daily`
-- Load model v2 via `load_state_daily_v2`
-- Readiness layer via `readiness_daily`
-- Probability layer via `good_day_probability`
-- Docker deployment
-- Public API exposed through a VPS
+- `daily_training_load`
+- `health_recovery_daily`
+- `load_state_daily_v2`
+- `readiness_daily`
+- readiness history endpoint
+- structured JSON logging
+- Grafana + Loki observability
+- iOS auto sync через `SyncCoordinator`
+- iOS Today screen с readiness, explanation, recommendation и 7-day trend
 
-Implemented model baseline:
+## Текущий baseline
 
-- `LoadState + RecoveryState -> Readiness -> GoodDayProbability`
-- HealthKit full-sync endpoint `POST /api/v1/healthkit/full-sync/{user_id}`
-- baseline-aware recovery scoring stored in `health_recovery_daily`
-- explanation payloads for recovery and readiness
-- deterministic storage-backed daily layers for load, recovery, and readiness
+- модель: `LoadState + RecoveryState -> Readiness -> GoodDayProbability`
+- readiness считается ежедневно и хранится в `readiness_daily`
+- readiness history читается из уже сохраненных rows
+- readiness history должен быть непрерывным, без gaps на последних датах
+- `good_day_probability = readiness_score / 100`
+- readiness не равен freshness
 
-### Current Focus
+Fallback modes:
 
-- Deterministic core
-- Transparent logic
-- Reproducible results
-- Stabilization of model v2 baseline and downstream decision outputs
+- full: есть load и recovery
+- `recovery_only`: есть только recovery
+- `load_only`: есть только load
+- `no_data`: `404`, row не создается
 
-See: [docs/ai/CURRENT_PRIORITIES.md](docs/ai/CURRENT_PRIORITIES.md)
-
-## System Overview
-
-### Data Flow
-
-```text
-Strava ---------------------------> daily_training_load ----------+
-                                                                 |
-HealthKit -> raw ingest -> normalized health tables -> recovery -+-> readiness
-                                                                 |
-                                                                 v
-                                                     load_state_daily_v2
-```
-
-### Current End-to-End Pipeline
+## Текущий pipeline
 
 ```text
-Strava + HealthKit
+HealthKit / Strava
         |
         v
-     Backend
+raw ingest
         |
         v
-   PostgreSQL
+normalized tables
         |
         v
-Raw / Normalized / Daily State
+health_recovery_daily
         |
         v
-LoadState + RecoveryState
+load_state_daily_v2
         |
         v
-Readiness + GoodDayProbability
+readiness_daily
+        |
+        v
+history endpoint
+        |
+        v
+iOS Today screen
 ```
 
-### Infrastructure
+Ключевые свойства:
 
-```text
-Internet
-   |
-   v
-VPS (Caddy)
-   |
-   v
-Tailscale
-   |
-   v
-Home server
-   |
-   v
-Backend + DB
-```
+- recompute deterministic
+- readiness history endpoint не делает recompute
+- trend UI читает последние readiness points в ascending date order
+
+## API
+
+Основные readiness endpoints:
+
+- `POST /api/v1/model/readiness-daily/{user_id}/{date}`
+- `GET /api/v1/model/readiness-daily/{user_id}/history?days=7`
+- `POST /api/v1/healthkit/full-sync/{user_id}`
+
+History endpoint:
+
+- читает `readiness_daily`
+- не пересчитывает readiness
+- возвращает последние `N` точек в порядке возрастания даты
+
+Подробнее: [docs/api/READINESS_API.md](docs/api/READINESS_API.md)
 
 ## Observability
 
-Human Engine includes a minimal observability layer for backend logs:
+Backend пишет structured JSON logs.
 
-- structured JSON logging in the FastAPI backend
-- Promtail pipeline with docker log parsing and JSON extraction
-- Loki for log storage
-- Grafana dashboard for API requests, HealthKit sync, readiness recompute, errors, and pipeline trace
+Основные события:
 
-See: [docs/architecture/OBSERVABILITY.md](docs/architecture/OBSERVABILITY.md)
+- `api_request_started`
+- `api_request_finished`
+- `healthkit_full_sync_started`
+- `healthkit_full_sync_finished`
+- `readiness_recompute_started`
+- `readiness_recompute_finished`
 
-## Architecture Principles
+Подробнее: [docs/architecture/OBSERVABILITY.md](docs/architecture/OBSERVABILITY.md)
 
-- Simplicity over complexity
-- Deterministic logic over AI
-- Calculations remain transparent
-- Data and outputs remain reproducible
-- Load and recovery remain separate physiological contours
-- AI is an auxiliary layer, not the product core
+## Принципы
 
-## Repository Structure
+- deterministic core first
+- простая и явная логика
+- воспроизводимость расчетов
+- load и recovery остаются раздельными контурами
+- AI является вспомогательным слоем, а не ядром продукта
+
+## Структура репозитория
 
 ```text
-backend/        main service
+backend/        backend service
 backend/infra/  local infrastructure
 db-init/        database initialization
 compose.yaml    deployment
-docs/           system documentation
+docs/           documentation
 ```
 
-## Documentation
+## Основные документы
 
-### Core Docs
-
-- [backend/README.md](backend/README.md)
+- [docs/models/READINESS_MODEL.md](docs/models/READINESS_MODEL.md)
+- [docs/models/model_v2_architecture.md](docs/models/model_v2_architecture.md)
+- [docs/api/READINESS_API.md](docs/api/READINESS_API.md)
 - [docs/architecture/ARCHITECTURE.md](docs/architecture/ARCHITECTURE.md)
 - [docs/architecture/OBSERVABILITY.md](docs/architecture/OBSERVABILITY.md)
-- [backend/ROADMAP.md](backend/ROADMAP.md)
-- [docs/models/model_v2_architecture.md](docs/models/model_v2_architecture.md)
+- [docs/product/SCENARIOS.md](docs/product/SCENARIOS.md)
 - [docs/product/CURRENT_STATE.md](docs/product/CURRENT_STATE.md)
-
-### Product and AI Context
-
-- [docs/ai/PRODUCT_CONTEXT.md](docs/ai/PRODUCT_CONTEXT.md)
-- [docs/ai/CURRENT_PRIORITIES.md](docs/ai/CURRENT_PRIORITIES.md)
-- [docs/ai/GLOSSARY.md](docs/ai/GLOSSARY.md)
+- [backend/README.md](backend/README.md)
 - [AGENTS.md](AGENTS.md)
 
-## Current Model V2 Baseline
+## Статус
 
-- Load contour: `daily_training_load -> load_state_daily_v2`
-- Recovery contour: HealthKit normalized tables -> `health_recovery_daily`
-- Readiness contour: `load_state_daily_v2 + health_recovery_daily -> readiness_daily`
-- `freshness = fitness - fatigue_total`
-- `fatigue_total` is a weighted mixture of `fatigue_fast` and `fatigue_slow`
-- `recovery_score_simple` is currently produced by a baseline-aware recovery scoring layer
-- Readiness is not equal to freshness
-- `good_day_probability` is stored as a separate probability-like output
-- `good_day_probability` is currently `readiness_score / 100`, not a statistically calibrated probability
-
-## Short Roadmap
-
-Already implemented:
-
-- HealthKit ingestion and normalization
-- HealthKit full-sync orchestration
-- Recovery daily aggregation
-- Recovery explanation payload
-- Load model v2
-- Readiness model v2 baseline
-- Good day probability baseline
-
-Next:
-
-- activity streams ingestion
-- feature extraction expansion
-- readiness / probability calibration
-- decision layer / recommendation layer
-- prediction engine
-- iOS client integration polish
-
-## Documentation Map
-
-- `docs/ai/` — AI context and system language
-- `docs/architecture/` — architecture and decisions
-- `docs/data/` — data model
-- `docs/models/` — features, metrics, readiness and ride briefing
-- `docs/dev/` — workflow and testing strategy
-- `docs/product/` — user scenarios
-
-## Status
-
-Experimental engineering project with a deterministic product core and an implemented Model V2 baseline in backend.
+Экспериментальный проект с детерминированным product core, стабилизированным readiness v2 baseline и работающим auto-sync MVP.
