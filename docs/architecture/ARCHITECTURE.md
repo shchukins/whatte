@@ -168,6 +168,13 @@ Normalized health tables:
 - `health_hrv_sample`
 - `health_weight_measurement`
 
+Свойства:
+
+- recompute deterministic
+- `readiness_daily` materialized как daily layer
+- readiness history читается из `readiness_daily` без отдельного пересчета
+- на последних датах readiness должен быть непрерывным, без gaps
+
 ---
 
 ## 6. Architectural layers
@@ -233,7 +240,27 @@ Normalized health tables:
 
 ---
 
-## 7. Core vs AI boundary
+## 7. Observability
+
+Текущий backend использует structured JSON logging.
+
+Ключевые события:
+
+- `api_request_started`
+- `api_request_finished`
+- `healthkit_full_sync_started`
+- `healthkit_full_sync_finished`
+- `readiness_recompute_started`
+- `readiness_recompute_finished`
+
+Для наблюдаемости используются Grafana и Loki:
+
+- Loki хранит и индексирует JSON logs
+- Grafana используется для поиска событий, таймлайнов и operational checks
+
+---
+
+## 8. Core vs AI boundary
 
 ### Core
 
@@ -266,7 +293,7 @@ Normalized health tables:
 
 ---
 
-## 8. Architecture principles
+## 9. Architecture principles
 
 ### Deterministic first
 
@@ -297,7 +324,7 @@ Normalized health tables:
 
 ---
 
-## 9. Current model v2 baseline
+## 10. Current model v2 baseline
 
 Текущая product-level схема:
 
@@ -313,7 +340,7 @@ LoadState + RecoveryState -> Readiness -> GoodDayProbability
 
 ---
 
-## 10. Evolution path
+## 11. Evolution path
 
 Текущее состояние:
 
@@ -333,7 +360,7 @@ LoadState + RecoveryState -> Readiness -> GoodDayProbability
 
 ---
 
-## 11. Constraints
+## 12. Constraints
 
 Нельзя:
 
@@ -350,7 +377,7 @@ LoadState + RecoveryState -> Readiness -> GoodDayProbability
 
 ---
 
-## 12. Consistency rule
+## 13. Consistency rule
 
 Любое изменение должно:
 

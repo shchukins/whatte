@@ -218,6 +218,8 @@ good_day_probability = readiness_score / 100
 
 `readiness_daily` является отдельным storage layer для этих outputs.
 
+Readiness считается ежедневно и сохраняется в `readiness_daily`.
+
 Основной backend response / query layer для readiness опирается на:
 
 - `readiness_daily.readiness_score`
@@ -229,15 +231,34 @@ good_day_probability = readiness_score / 100
 
 ## 7. Explanation payload
 
+### 7.0 Fallback modes
+
+Текущий backend фиксирует четыре режима:
+
+- full:
+  - есть `LoadState` и `RecoveryState`
+  - используется формула `0.6 * freshness_norm + 0.4 * recovery_score_simple`
+  - `fallback_mode = null`
+- `recovery_only`:
+  - есть только `RecoveryState`
+  - `readiness_score_raw = recovery_score_simple`
+- `load_only`:
+  - есть только `LoadState`
+  - `readiness_score_raw = freshness_norm`
+- `no_data`:
+  - нет ни load, ни recovery
+  - backend возвращает `404`
+  - row в `readiness_daily` не создается
+
 Текущий `explanation_json` хранит:
 
 - `fallback_mode`
 - `freshness`
 - `freshness_norm`
 - `recovery_score_simple`
-- веса формулы
-- строку формулы
 - `recovery_explanation`
+- `weights`
+- `formula`
 
 Где:
 
@@ -299,6 +320,9 @@ good_day_probability = readiness_score / 100
 - full formula path:
   - `fallback_mode = null`
   - `recovery_explanation` протягивается из `health_recovery_daily.recovery_explanation_json`
+- `no_data`:
+  - backend возвращает `404`
+  - readiness не пересчитывается и row не создается
 
 Это:
 
