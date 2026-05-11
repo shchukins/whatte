@@ -6,6 +6,7 @@ from typing import Any
 
 from backend.config import settings
 from backend.db import get_conn
+from backend.services.activity_load_service import resolve_activity_load
 from backend.services.decision_engine import build_readiness_briefing, build_recommendation
 
 
@@ -389,6 +390,7 @@ def build_training_processed_message(user_id: str, activity_id: int) -> str:
                 select
                     r.name,
                     r.start_date,
+                    r.activity_type,
                     m.duration_s,
                     m.tss,
                     m.normalized_power,
@@ -441,6 +443,7 @@ def build_training_processed_message(user_id: str, activity_id: int) -> str:
     (
         name,
         start_date,
+        activity_type,
         duration_s,
         tss,
         normalized_power,
@@ -448,6 +451,13 @@ def build_training_processed_message(user_id: str, activity_id: int) -> str:
         avg_power,
         avg_heartrate,
     ) = activity_row
+
+    load_info = resolve_activity_load(
+        activity_type=activity_type,
+        tss=tss,
+        normalized_power=normalized_power,
+        intensity_factor=intensity_factor,
+    )
 
     fitness = None
     fatigue = None
@@ -463,6 +473,33 @@ def build_training_processed_message(user_id: str, activity_id: int) -> str:
         # предыдущее состояние
         if len(state_rows) > 1:
             _, prev_fatigue, prev_freshness = state_rows[1]
+
+    if not load_info["load_model_included"]:
+        lines = [
+            "Human Engine",
+            "",
+            "✅ Тренировка обработана",
+            f"{name or 'Без названия'}",
+            "",
+            f"Дата: {start_date}",
+            f"Длительность: {_format_duration(duration_s)}",
+            f"TSS: {_fmt(tss, 1)}",
+            f"NP: {_fmt(normalized_power, 1)} W",
+            f"IF: {_fmt(intensity_factor, 2)}",
+            f"Avg Power: {_fmt(avg_power, 1)} W",
+            f"Avg HR: {_fmt(avg_heartrate, 1)}",
+            "",
+            "Type: unsupported",
+            f"Load model: {load_info['load_source']}",
+            "Comment: Activity stored, but excluded from daily load aggregation and readiness impact because reliable load estimate is not available.",
+            "",
+            "Impact:",
+            "Unsupported and excluded",
+            "",
+            f"activity_id: {activity_id}",
+        ]
+
+        return "\n".join(lines)
 
     readiness_score = compute_readiness_score(freshness)
     readiness_text = describe_readiness(readiness_score)
@@ -501,6 +538,7 @@ def build_training_processed_message(user_id: str, activity_id: int) -> str:
         f"Avg HR: {_fmt(avg_heartrate, 1)}",
         "",
         f"Type: {workout_type}",
+        f"Load model: {load_info['load_source']}",
         f"Comment: {workout_comment}",
         "",
         "Impact",

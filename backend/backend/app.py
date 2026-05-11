@@ -47,6 +47,7 @@ from backend.services.readiness_query import (
     get_readiness_daily_history,
 )
 from backend.services.decision_engine import build_readiness_briefing
+from backend.services.activity_load_service import resolve_activity_load
 
 configure_logging()
 logger = logging.getLogger(__name__)
@@ -942,68 +943,108 @@ def debug_compute_daily_load(user_id: str, date_str: str):
     try:
         with get_conn() as conn:
             with conn.cursor() as cur:
-
                 cur.execute(
                     """
                     select
-                        count(*),
-                        coalesce(sum(duration_s),0),
-                        coalesce(sum(distance_m),0),
-                        coalesce(sum(elevation_gain_m),0),
-                        coalesce(sum(work_kj),0),
-                        coalesce(sum(tss),0)
-                    from activity_metrics
-                    where user_id = %s
-                      and date(computed_at) = %s::date;
+                        r.activity_type,
+                        m.duration_s,
+                        m.distance_m,
+                        m.elevation_gain_m,
+                        m.work_kj,
+                        m.tss,
+                        m.normalized_power,
+                        m.intensity_factor
+                    from activity_metrics m
+                    join strava_activity_raw r
+                      on r.strava_activity_id = m.strava_activity_id
+                    where m.user_id = %s
+                      and date(r.start_date) = %s::date
+                      and m.version = 'v1';
                     """,
                     (user_id, date_str),
                 )
 
-                row = cur.fetchone()
+                rows = cur.fetchall()
 
-                (
-                    activities_count,
-                    duration_s,
-                    distance_m,
-                    elevation_gain_m,
-                    work_kj,
-                    tss,
-                ) = row
+                activities_count = 0
+                duration_s = 0.0
+                distance_m = 0.0
+                elevation_gain_m = 0.0
+                work_kj = 0.0
+                tss = 0.0
+
+                for row in rows:
+                    (
+                        activity_type,
+                        row_duration_s,
+                        row_distance_m,
+                        row_elevation_gain_m,
+                        row_work_kj,
+                        row_tss,
+                        normalized_power,
+                        intensity_factor,
+                    ) = row
+
+                    load_info = resolve_activity_load(
+                        activity_type=activity_type,
+                        tss=row_tss,
+                        normalized_power=normalized_power,
+                        intensity_factor=intensity_factor,
+                    )
+                    if not load_info["load_model_included"]:
+                        continue
+
+                    activities_count += 1
+                    duration_s += float(row_duration_s or 0)
+                    distance_m += float(row_distance_m or 0)
+                    elevation_gain_m += float(row_elevation_gain_m or 0)
+                    work_kj += float(row_work_kj or 0)
+                    tss += float(row_tss or 0)
 
                 cur.execute(
                     """
-                    insert into daily_training_load (
-                        user_id,
-                        date,
-                        activities_count,
-                        duration_s,
-                        distance_m,
-                        elevation_gain_m,
-                        work_kj,
-                        tss,
-                        computed_at
-                    )
-                    values (%s,%s,%s,%s,%s,%s,%s,%s,now())
-                    on conflict (user_id, date) do update set
-                        activities_count = excluded.activities_count,
-                        duration_s = excluded.duration_s,
-                        distance_m = excluded.distance_m,
-                        elevation_gain_m = excluded.elevation_gain_m,
-                        work_kj = excluded.work_kj,
-                        tss = excluded.tss,
-                        computed_at = now();
+                    delete from daily_training_load
+                    where user_id = %s
+                      and date = %s::date;
                     """,
-                    (
-                        user_id,
-                        date_str,
-                        activities_count,
-                        duration_s,
-                        distance_m,
-                        elevation_gain_m,
-                        work_kj,
-                        tss,
-                    ),
+                    (user_id, date_str),
                 )
+
+                if activities_count > 0:
+                    cur.execute(
+                        """
+                        insert into daily_training_load (
+                            user_id,
+                            date,
+                            activities_count,
+                            duration_s,
+                            distance_m,
+                            elevation_gain_m,
+                            work_kj,
+                            tss,
+                            computed_at
+                        )
+                        values (%s,%s,%s,%s,%s,%s,%s,%s,now())
+                        on conflict (user_id, date) do update set
+                            activities_count = excluded.activities_count,
+                            duration_s = excluded.duration_s,
+                            distance_m = excluded.distance_m,
+                            elevation_gain_m = excluded.elevation_gain_m,
+                            work_kj = excluded.work_kj,
+                            tss = excluded.tss,
+                            computed_at = now();
+                        """,
+                        (
+                            user_id,
+                            date_str,
+                            activities_count,
+                            duration_s,
+                            distance_m,
+                            elevation_gain_m,
+                            work_kj,
+                            tss,
+                        ),
+                    )
 
                 conn.commit()
 
