@@ -57,6 +57,7 @@ struct ContentView: View {
                     recommendationPanel(readiness)
                     trendPanel
                     signalsPanel(readiness)
+                    dataQualityPanel(readiness)
                     recoveryPanel(readiness)
                     footerView
                 }
@@ -205,6 +206,22 @@ struct ContentView: View {
         }
     }
 
+    @ViewBuilder
+    private func dataQualityPanel(_ readiness: ReadinessDailyResponse) -> some View {
+        if let dataQuality = readiness.dataQuality {
+            terminalPanel {
+                VStack(alignment: .leading, spacing: 10) {
+                    sectionLabel("DATA")
+
+                    dataQualityRow(title: "Sleep", value: dataQuality.sleep)
+                    dataQualityRow(title: "HRV", value: dataQuality.hrv)
+                    dataQualityRow(title: "Rest HR", value: dataQuality.restingHR)
+                    dataQualityRow(title: "Training", value: dataQuality.training)
+                }
+            }
+        }
+    }
+
     private func recoveryPanel(_ readiness: ReadinessDailyResponse) -> some View {
         terminalPanel {
             recoveryBreakdownSection(readiness)
@@ -241,6 +258,24 @@ struct ContentView: View {
                 .font(terminalValueFont)
                 .monospacedDigit()
                 .foregroundStyle(.primary)
+            .lineLimit(1)
+        }
+    }
+
+    @ViewBuilder
+    private func dataQualityRow(title: String, value: String?) -> some View {
+        HStack(spacing: 12) {
+            Text(title)
+                .font(bodyLabelFont)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .frame(width: 110, alignment: .leading)
+
+            Spacer(minLength: 0)
+
+            Text(dataQualityLabel(value))
+                .font(terminalValueFont)
+                .foregroundStyle(dataQualityColor(value))
                 .lineLimit(1)
         }
     }
@@ -321,6 +356,34 @@ struct ContentView: View {
     private func freshnessText(from value: Double?) -> String {
         guard let value else { return "No load data" }
         return String(format: "%.1f", value)
+    }
+
+    private func dataQualityLabel(_ value: String?) -> String {
+        guard let value = trimmedText(value) else { return "n/a" }
+
+        switch value.lowercased() {
+        case "ok":
+            return "OK"
+        case "partial":
+            return "Partial"
+        case "missing":
+            return "Missing"
+        default:
+            return value
+        }
+    }
+
+    private func dataQualityColor(_ value: String?) -> Color {
+        switch trimmedText(value)?.lowercased() {
+        case "ok":
+            return .green
+        case "partial":
+            return .yellow
+        case "missing":
+            return .secondary
+        default:
+            return .primary
+        }
     }
 
     private func readinessExplanationText(for readiness: ReadinessDailyResponse) -> String? {

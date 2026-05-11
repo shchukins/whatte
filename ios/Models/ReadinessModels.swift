@@ -20,6 +20,7 @@ struct ReadinessDailyResponse: Decodable {
     let readinessComment: String?
     let briefingText: String?
     let explanation: ReadinessExplanation?
+    let dataQuality: ReadinessDataQuality?
 
     private enum CodingKeys: String, CodingKey {
         case ok
@@ -35,6 +36,7 @@ struct ReadinessDailyResponse: Decodable {
         case briefingText = "briefing_text"
         case explanation
         case explanationJSON = "explanation_json"
+        case dataQuality = "data_quality"
         case freshness
         case freshnessNorm = "freshness_norm"
         case recoveryScoreSimple = "recovery_score_simple"
@@ -55,6 +57,7 @@ struct ReadinessDailyResponse: Decodable {
         briefing = try container.decodeIfPresent(String.self, forKey: .briefing)
         readinessComment = try container.decodeIfPresent(String.self, forKey: .readinessComment)
         briefingText = try container.decodeIfPresent(String.self, forKey: .briefingText)
+        dataQuality = try container.decodeIfPresent(ReadinessDataQuality.self, forKey: .dataQuality)
 
         if let explanation = try container.decodeIfPresent(ReadinessExplanation.self, forKey: .explanation) {
             self.explanation = explanation
@@ -78,6 +81,20 @@ struct ReadinessDailyResponse: Decodable {
                 self.explanation = nil
             }
         }
+    }
+}
+
+struct ReadinessDataQuality: Decodable {
+    let sleep: String?
+    let hrv: String?
+    let restingHR: String?
+    let training: String?
+
+    enum CodingKeys: String, CodingKey {
+        case sleep
+        case hrv
+        case restingHR = "resting_hr"
+        case training
     }
 }
 
