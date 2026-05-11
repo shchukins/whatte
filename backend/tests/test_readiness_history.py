@@ -121,6 +121,12 @@ def test_latest_readiness_endpoint_returns_latest_row(monkeypatch):
             "readiness_score": 61.5,
             "good_day_probability": 0.615,
             "status_text": "Хорошая готовность",
+            "data_quality": {
+                "sleep": "ok",
+                "hrv": "ok",
+                "resting_hr": "ok",
+                "training": "ok",
+            },
             "explanation": {"fallback_mode": None},
             "recommendation": "moderate",
             "reason": "Readiness score is 61.5/100. Recommendation is moderate.",
@@ -141,5 +147,6 @@ def test_latest_readiness_endpoint_returns_latest_row(monkeypatch):
     data = response.json()
     assert data["ok"] is True
     assert data["date"] == "2026-05-02"
+    assert data["data_quality"]["training"] == "ok"
     assert data["recommendation"] == "moderate"
     assert data["briefing"] == data["briefing_text"]

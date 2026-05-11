@@ -343,6 +343,38 @@ Readiness не меняет эту логику. Она получает уже 
 
 - explainability слой
 - способ показать breakdown readiness без изменения самой readiness formula
+
+### 7.3 Input data quality indicators
+
+Readiness GET endpoints additionally expose a read-only `data_quality` block derived from the already stored `readiness_daily.explanation_json`.
+
+Current response shape:
+
+```json
+{
+  "data_quality": {
+    "sleep": "ok",
+    "hrv": "ok",
+    "resting_hr": "ok",
+    "training": "ok"
+  }
+}
+```
+
+Derivation rules in MVP:
+
+- `sleep = "ok"` if `explanation_json.recovery_explanation.sleep_minutes` is not `null`, else `"missing"`
+- `hrv = "ok"` if `explanation_json.recovery_explanation.hrv_today` is not `null`, else `"missing"`
+- `resting_hr = "ok"` if `explanation_json.recovery_explanation.rhr_today` is not `null`, else `"missing"`
+- `training = "missing"` if `explanation_json.freshness_norm` is `null` or `fallback_mode = "recovery_only"`
+- `training = "ok"` otherwise
+
+Important constraints:
+
+- this is not a confidence score
+- readiness formula does not change
+- no health-condition inference is added
+- `training = "partial"` is reserved for future explicit unsupported / continuity-only load detection
 - payload, который используется UI и Telegram notification layer
 
 ---

@@ -74,6 +74,11 @@ def test_get_readiness_daily_for_date_includes_recommendation(monkeypatch):
         "fallback_mode": None,
         "freshness_norm": 70.0,
         "recovery_score_simple": 68.0,
+        "recovery_explanation": {
+            "sleep_minutes": 460.0,
+            "hrv_today": 58.0,
+            "rhr_today": 50.0,
+        },
     }
     row = (
         "user-1",
@@ -95,6 +100,12 @@ def test_get_readiness_daily_for_date_includes_recommendation(monkeypatch):
     assert "Readiness score is 69.2/100" in result["reason"]
     assert "Freshness is available at 70/100" in result["reason"]
     assert "Recovery is available at 68/100" in result["reason"]
+    assert result["data_quality"] == {
+        "sleep": "ok",
+        "hrv": "ok",
+        "resting_hr": "ok",
+        "training": "ok",
+    }
     assert result["briefing"] == "Сегодня хорошая готовность. Рекомендуется умеренная аэробная тренировка."
     assert result["briefing_text"] == result["briefing"]
 
@@ -104,6 +115,11 @@ def test_get_latest_readiness_daily_returns_newest_row_with_guidance(monkeypatch
         "fallback_mode": None,
         "freshness_norm": 62.0,
         "recovery_score_simple": 65.0,
+        "recovery_explanation": {
+            "sleep_minutes": 430.0,
+            "hrv_today": 54.0,
+            "rhr_today": 49.0,
+        },
     }
     row = (
         "sergey",
@@ -124,6 +140,12 @@ def test_get_latest_readiness_daily_returns_newest_row_with_guidance(monkeypatch
     assert result["user_id"] == "sergey"
     assert result["date"] == "2026-05-02"
     assert result["recommendation"] == "moderate"
+    assert result["data_quality"] == {
+        "sleep": "ok",
+        "hrv": "ok",
+        "resting_hr": "ok",
+        "training": "ok",
+    }
     assert result["reason"] == (
         "Readiness score is 63.8/100. "
         "Freshness is available at 62/100. "
@@ -151,3 +173,134 @@ def test_get_latest_readiness_daily_returns_404_when_no_rows(monkeypatch):
 
     assert exc.value.status_code == 404
     assert exc.value.detail == "latest readiness not found for user_id=sergey"
+
+
+def test_get_readiness_daily_for_date_marks_missing_hrv(monkeypatch):
+    explanation = {
+        "fallback_mode": None,
+        "freshness_norm": 60.0,
+        "recovery_score_simple": 64.0,
+        "recovery_explanation": {
+            "sleep_minutes": 440.0,
+            "hrv_today": None,
+            "rhr_today": 51.0,
+        },
+    }
+    row = (
+        "user-1",
+        date(2026, 4, 17),
+        62.4,
+        0.624,
+        "Нормальная готовность",
+        explanation,
+    )
+
+    monkeypatch.setattr(readiness_query, "get_conn", lambda: _FakeConn(row))
+
+    result = readiness_query.get_readiness_daily_for_date(
+        user_id="user-1",
+        target_date="2026-04-17",
+    )
+
+    assert result["data_quality"]["sleep"] == "ok"
+    assert result["data_quality"]["hrv"] == "missing"
+    assert result["data_quality"]["resting_hr"] == "ok"
+    assert result["data_quality"]["training"] == "ok"
+
+
+def test_get_readiness_daily_for_date_marks_missing_sleep(monkeypatch):
+    explanation = {
+        "fallback_mode": None,
+        "freshness_norm": 59.0,
+        "recovery_score_simple": 63.0,
+        "recovery_explanation": {
+            "sleep_minutes": None,
+            "hrv_today": 57.0,
+            "rhr_today": 52.0,
+        },
+    }
+    row = (
+        "user-1",
+        date(2026, 4, 18),
+        61.4,
+        0.614,
+        "Нормальная готовность",
+        explanation,
+    )
+
+    monkeypatch.setattr(readiness_query, "get_conn", lambda: _FakeConn(row))
+
+    result = readiness_query.get_readiness_daily_for_date(
+        user_id="user-1",
+        target_date="2026-04-18",
+    )
+
+    assert result["data_quality"]["sleep"] == "missing"
+    assert result["data_quality"]["hrv"] == "ok"
+    assert result["data_quality"]["resting_hr"] == "ok"
+    assert result["data_quality"]["training"] == "ok"
+
+
+def test_get_readiness_daily_for_date_marks_training_missing_for_recovery_only(monkeypatch):
+    explanation = {
+        "fallback_mode": "recovery_only",
+        "freshness_norm": None,
+        "recovery_score_simple": 66.4,
+        "recovery_explanation": {
+            "sleep_minutes": 455.0,
+            "hrv_today": 61.0,
+            "rhr_today": 50.0,
+        },
+    }
+    row = (
+        "user-1",
+        date(2026, 4, 19),
+        66.4,
+        0.664,
+        "Хорошая готовность",
+        explanation,
+    )
+
+    monkeypatch.setattr(readiness_query, "get_conn", lambda: _FakeConn(row))
+
+    result = readiness_query.get_readiness_daily_for_date(
+        user_id="user-1",
+        target_date="2026-04-19",
+    )
+
+    assert result["data_quality"] == {
+        "sleep": "ok",
+        "hrv": "ok",
+        "resting_hr": "ok",
+        "training": "missing",
+    }
+
+
+def test_get_readiness_daily_for_date_marks_training_ok_for_load_and_recovery(monkeypatch):
+    explanation = {
+        "fallback_mode": None,
+        "freshness_norm": 55.0,
+        "recovery_score_simple": 70.0,
+        "recovery_explanation": {
+            "sleep_minutes": 470.0,
+            "hrv_today": 59.0,
+            "rhr_today": 49.0,
+        },
+    }
+    row = (
+        "user-1",
+        date(2026, 4, 20),
+        61.0,
+        0.61,
+        "Нормальная готовность",
+        explanation,
+    )
+
+    monkeypatch.setattr(readiness_query, "get_conn", lambda: _FakeConn(row))
+
+    result = readiness_query.get_readiness_daily_for_date(
+        user_id="user-1",
+        target_date="2026-04-20",
+    )
+
+    assert result["data_quality"]["training"] == "ok"

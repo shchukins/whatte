@@ -61,6 +61,12 @@ GET /api/v1/model/readiness-daily/{user_id}/{date}
   "readiness_score": 55.7,
   "good_day_probability": 0.557,
   "status_text": "Нормальная готовность",
+  "data_quality": {
+    "sleep": "ok",
+    "hrv": "ok",
+    "resting_hr": "ok",
+    "training": "ok"
+  },
   "explanation": {
     "fallback_mode": null,
     "freshness": 4.0,
@@ -89,6 +95,7 @@ GET /api/v1/model/readiness-daily/{user_id}/{date}
 - `readiness_score`
 - `good_day_probability`
 - `status_text`
+- `data_quality`
 - `explanation`
 - `recommendation`
 - `reason`
@@ -99,6 +106,8 @@ GET /api/v1/model/readiness-daily/{user_id}/{date}
 
 - source of truth is `readiness_daily`
 - `recommendation`, `reason` and `briefing` are derived by deterministic decision logic
+- `data_quality` shows which input families were actually available; it is not a confidence score
+- current MVP returns `training = ok|missing`; `partial` is reserved for future unsupported/continuity-only load detection
 - `briefing_text` is kept for client compatibility
 - missing row returns `404`
 
@@ -136,6 +145,12 @@ GET /api/v1/model/readiness-daily/{user_id}/latest
   "readiness_score": 55.7,
   "good_day_probability": 0.557,
   "status_text": "Нормальная готовность",
+  "data_quality": {
+    "sleep": "ok",
+    "hrv": "ok",
+    "resting_hr": "ok",
+    "training": "ok"
+  },
   "explanation": {
     "fallback_mode": null,
     "freshness": 4.0,
@@ -163,6 +178,7 @@ GET /api/v1/model/readiness-daily/{user_id}/latest
 
 - source of truth is `readiness_daily`
 - endpoint read-only и не создает новые rows
+- response includes `data_quality` derived from stored explanation payloads
 - если rows отсутствуют, возвращается `404`
 - рекомендован для iOS Today screen вместо optimistic request на local today
 
