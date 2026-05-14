@@ -137,14 +137,17 @@ Avoid trivial comments that restate the code.
 
 Bad:
 
-```python
+```
 # increment counter
 count += 1
+```
 
 Good:
+```
 # Fast fatigue reacts to acute load spikes,
 # while slow fatigue represents accumulated systemic strain.
 fatigue_total = 0.65 * fatigue_fast + 0.35 * fatigue_slow
+```
 
 Public functions, API endpoints, model calculations, and SQL transformations should have concise docstrings or comments when their intent is not obvious
 
