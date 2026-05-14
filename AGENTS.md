@@ -240,3 +240,14 @@ When changing backend behavior, data flow, endpoints, database schema, or model 
 - docs/data/*
 
 If documentation is not updated, state why.
+
+## Skills
+
+Project skills are stored in:
+
+- docs/ai/skills/
+
+When user says "use <skill-name> skill":
+- open docs/ai/skills/<skill-name>.md
+- follow its instructions
+- if the file does not exist, say so explicitly
