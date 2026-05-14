@@ -121,7 +121,34 @@ Avoid:
 
 ---
 
-## 8. Verification
+## 8. Code comments and documentation
+
+Prefer comments that explain WHY, not WHAT.
+
+Add comments for:
+
+- formulas and coefficients
+- physiology assumptions
+- data pipeline decisions
+- non-obvious transformations
+- edge cases and fallback behavior
+
+Avoid trivial comments that restate the code.
+
+Bad:
+
+```python
+# increment counter
+count += 1
+
+Good:
+# Fast fatigue reacts to acute load spikes,
+# while slow fatigue represents accumulated systemic strain.
+fatigue_total = 0.65 * fatigue_fast + 0.35 * fatigue_slow
+
+Public functions, API endpoints, model calculations, and SQL transformations should have concise docstrings or comments when their intent is not obvious
+
+## 9. Verification
 
 Before finishing:
 
@@ -135,7 +162,7 @@ If verification is not possible:
 
 ---
 
-## 9. Safety constraints
+## 10. Safety constraints
 
 Never:
 
@@ -146,7 +173,7 @@ Never:
 
 ---
 
-## 10. Context sources
+## 11. Context sources
 
 When relevant, consult:
 
@@ -157,7 +184,7 @@ When relevant, consult:
 
 ---
 
-## 11. Conflict resolution
+## 12. Conflict resolution
 
 If rules conflict:
 
@@ -170,12 +197,43 @@ priority order:
 
 ---
 
-## 12. Definition of done
+## 13. Definition of done
 
 A task is complete when:
 
-- change is implemented  
-- architecture is preserved  
-- behavior remains predictable  
-- verification is performed  
-- risks are stated  
+- change is implemented
+- architecture boundaries are preserved
+- deterministic behavior is preserved
+- affected tests are added or updated
+- related documentation is updated when needed
+- non-obvious logic is commented
+- verification is performed
+- risks and assumptions are stated
+- suggested commit scope is clear
+
+---
+
+## 14. Tests
+
+For every non-trivial increment:
+
+- add or update tests for changed behavior
+- cover positive and negative paths where applicable
+- test deterministic model logic with explicit expected values
+- do not rely on LLM output in tests
+
+If tests are not added, explain why.
+
+---
+
+## 15. Documentation sync
+
+When changing backend behavior, data flow, endpoints, database schema, or model logic, check whether the following docs must be updated:
+
+- README.md
+- docs/ai/CURRENT_STATE.md
+- docs/architecture/*
+- docs/models/*
+- docs/data/*
+
+If documentation is not updated, state why.
