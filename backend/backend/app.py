@@ -48,6 +48,7 @@ from backend.services.readiness_query import (
 )
 from backend.services.decision_engine import build_readiness_briefing
 from backend.services.activity_load_service import resolve_activity_load
+from backend.services.subjective_feedback_service import handle_telegram_feedback_callback
 
 configure_logging()
 logger = logging.getLogger(__name__)
@@ -1350,6 +1351,17 @@ def strava_callback(
         "strava_athlete_id": strava_athlete_id,
         "scope": sorted(list(accepted_scopes)),
     }
+
+
+@app.post("/telegram/webhook")
+async def telegram_webhook_receive(request: Request):
+    payload = await request.json()
+
+    if payload.get("callback_query"):
+        return handle_telegram_feedback_callback(payload)
+
+    return {"ok": True, "ignored": True}
+
 
 @app.post("/debug/daily-readiness/{user_id}")
 def debug_daily_readiness(user_id: str):

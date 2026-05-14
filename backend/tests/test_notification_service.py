@@ -12,6 +12,7 @@ from backend.services.notification_service import (
     describe_freshness_trend,
     describe_training_impact,
     recommend_training,
+    notify_training_processed,
 )
 
 def test_compute_readiness_score_none():
@@ -575,3 +576,26 @@ def test_build_training_processed_message_for_supported_cycling_activity(monkeyp
     assert "Load model: power_tss" in message
     assert "Fatigue Δ: 5.00" in message
     assert "Freshness Δ: -4.50" in message
+
+
+def test_notify_training_processed_sends_feedback_prompt(monkeypatch):
+    sent_messages: list[str] = []
+    feedback_prompts: list[int] = []
+
+    monkeypatch.setattr(
+        "backend.services.notification_service.build_training_processed_message",
+        lambda user_id, activity_id: f"processed:{user_id}:{activity_id}",
+    )
+    monkeypatch.setattr(
+        "backend.services.notification_service.send_telegram_message",
+        lambda text: sent_messages.append(text),
+    )
+    monkeypatch.setattr(
+        "backend.services.notification_service.send_post_ride_rpe_request",
+        lambda activity_id: feedback_prompts.append(activity_id),
+    )
+
+    notify_training_processed(user_id="user-1", activity_id=43)
+
+    assert sent_messages == ["processed:user-1:43"]
+    assert feedback_prompts == [43]

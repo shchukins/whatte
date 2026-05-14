@@ -281,6 +281,32 @@ Load model v2.
 
 ---
 
+### 5.9 `activity_subjective_feedback`
+
+Субъективная обратная связь по конкретной активности.
+
+Источник:
+
+- Telegram callback после activity notification
+
+Ключевые поля:
+
+- `strava_activity_id`
+- `feedback_type`
+- `feedback_value`
+- `feedback_score`
+- `source`
+- `context_json`
+
+Особенности:
+
+- текущий feedback type: `post_ride_rpe`
+- текущий source: `telegram`
+- `context_json` хранит historical snapshot readiness context
+- уникальность обеспечивается по `(strava_activity_id, feedback_type)`
+
+---
+
 ## 6. Relationships
 
 Текущие связи:
@@ -299,6 +325,7 @@ Load model v2.
 - `health_weight_measurement -> health_recovery_daily` (N:1)
 - `health_recovery_daily -> readiness_daily` (N:1)
 - `load_state_daily_v2 -> readiness_daily` (N:1)
+- `strava_activity_raw -> activity_subjective_feedback` (1:N by feedback type)
 
 ---
 
@@ -350,6 +377,22 @@ readiness_daily
 
 - readiness хранится отдельно от load layer
 - `good_day_probability` является отдельным output внутри `readiness_daily`
+
+### 7.4 Subjective feedback contour
+
+```text
+Strava activity notification
+↓
+Telegram inline callback
+↓
+activity_subjective_feedback
+```
+
+Комментарий:
+
+- субъективный feedback хранится отдельно от deterministic model state
+- snapshot в `context_json` фиксирует состояние модели на момент ответа
+- feedback не меняет upstream readiness или load tables
 
 ---
 

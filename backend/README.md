@@ -57,6 +57,7 @@ FastAPI + PostgreSQL
 ### 1. Strava ingestion
 
 - webhook endpoint
+- Telegram callback endpoint for inline post-ride feedback
 - raw storage
 - ingest jobs
 - загрузка активностей
@@ -176,6 +177,24 @@ Recovery breakdown внутри `explanation_json.recovery_explanation`:
 - `hrv_dev`
 - `rhr_dev`
 
+### 7. Subjective feedback layer
+
+Реализована таблица:
+
+- `activity_subjective_feedback`
+
+Текущий scope:
+
+- post-ride RPE feedback из Telegram
+- idempotent upsert по `(strava_activity_id, feedback_type)`
+- historical readiness snapshot в `context_json`
+
+Важно:
+
+- это не ML layer
+- feedback не влияет на core calculations
+- feedback хранится как отдельный evaluation dataset
+
 ## HealthKit full sync pipeline
 
 Текущий orchestration pipeline:
@@ -227,6 +246,22 @@ Daily Telegram briefing в текущем backend использует `readines
 Fallback:
 
 - если `readiness_daily` для пользователя недоступен, backend может использовать старый fallback summary
+
+## Telegram post-ride feedback
+
+После `notify_training_processed` backend отправляет второе Telegram message с inline RPE buttons.
+
+Текущий callback format:
+
+- `rpe:{activity_id}:{score}`
+
+После callback backend:
+
+- валидирует activity
+- upsert-ит row в `activity_subjective_feedback`
+- сохраняет `source = telegram`
+- сохраняет snapshot readiness context
+- редактирует сообщение в краткое подтверждение
 
 ## Технологический стек
 

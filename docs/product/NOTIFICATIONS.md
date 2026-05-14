@@ -7,6 +7,8 @@
 На текущем этапе основной реализованный notification flow:
 
 - Daily Readiness Notification
+- Activity Processed Notification
+- Post-ride Telegram RPE request
 
 ---
 
@@ -126,3 +128,45 @@ Notification message должен быть:
 Основной path:
 
 - `readiness_daily` -> `explanation_json` -> Telegram message
+
+---
+
+## 3. Activity Processed Notification
+
+После успешной ingestion обработки Strava activity backend отправляет:
+
+1. обычное сообщение об обработанной тренировке
+2. отдельное Telegram message с inline RPE buttons
+
+Callback payload:
+
+- `rpe:{activity_id}:{score}`
+
+Пример:
+
+- `rpe:18403528422:4`
+
+Принципы:
+
+- one-tap
+- asynchronous
+- idempotent
+- linked to `strava_activity_id`
+
+---
+
+## 4. Post-ride feedback persistence
+
+После callback backend:
+
+- валидирует activity
+- upsert-ит row в `activity_subjective_feedback`
+- сохраняет `source = telegram`
+- сохраняет historical readiness snapshot в `context_json`
+- редактирует Telegram message в краткое подтверждение
+
+Важно:
+
+- repeated button presses обновляют existing row
+- duplicate callbacks не создают дубликаты
+- feedback collection не меняет readiness calculation logic

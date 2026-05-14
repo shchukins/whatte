@@ -1,13 +1,13 @@
 import math
-import requests
 import json
 from datetime import date, datetime, timezone
 from typing import Any
 
-from backend.config import settings
 from backend.db import get_conn
 from backend.services.activity_load_service import resolve_activity_load
 from backend.services.decision_engine import build_readiness_briefing, build_recommendation
+from backend.services.subjective_feedback_service import send_post_ride_rpe_request
+from backend.services.telegram_service import send_telegram_message
 
 
 def _format_duration(seconds: int | None) -> str:
@@ -762,24 +762,10 @@ def build_daily_readiness_message(user_id: str) -> str:
     return "\n".join(lines)
 
 
-def send_telegram_message(text: str) -> None:
-    if not settings.telegram_bot_token or not settings.telegram_chat_id:
-        return
-
-    response = requests.post(
-        f"https://api.telegram.org/bot{settings.telegram_bot_token}/sendMessage",
-        json={
-            "chat_id": settings.telegram_chat_id,
-            "text": text,
-        },
-        timeout=30,
-    )
-    response.raise_for_status()
-
-
 def notify_training_processed(user_id: str, activity_id: int) -> None:
     text = build_training_processed_message(user_id=user_id, activity_id=activity_id)
     send_telegram_message(text)
+    send_post_ride_rpe_request(activity_id)
 
 def was_daily_readiness_sent(user_id: str, for_date: date) -> bool:
     with get_conn() as conn:
