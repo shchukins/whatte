@@ -4,6 +4,8 @@ import json
 import logging
 from typing import Any
 
+import requests
+
 from backend.core.logging import log_event
 from backend.db import get_conn
 from backend.services.decision_engine import build_recommendation
@@ -18,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 FEEDBACK_TYPE_POST_RIDE_RPE = "post_ride_rpe"
 FEEDBACK_SOURCE_TELEGRAM = "telegram"
+FEEDBACK_SCHEMA_VERSION_EXTENSIBLE = "v1_extensible"
 RPE_CALLBACK_PREFIX = "rpe"
 RPE_CONFIRMATION_TEXT = "Feedback recorded ✓"
 
@@ -194,17 +197,58 @@ def build_feedback_context_snapshot(user_id: str) -> dict[str, Any]:
     }
 
 
+def _normalize_feedback_payload(payload: dict[str, Any] | None) -> dict[str, Any]:
+    if payload is None:
+        return {}
+    if not isinstance(payload, dict):
+        raise ValueError("feedback payload must be a json object")
+    return payload
+
+
+def _safe_answer_telegram_callback(callback_query_id: str, text: str, **log_context: Any) -> None:
+    try:
+        answer_telegram_callback(callback_query_id, text=text)
+    except requests.HTTPError:
+        log_event(
+            logger,
+            "telegram_callback_ack_failed",
+            level=logging.WARNING,
+            callback_query_id=callback_query_id,
+            ack_text=text,
+            **log_context,
+        )
+
+
+def _safe_edit_telegram_message(chat_id: int | str, message_id: int, text: str, **log_context: Any) -> None:
+    try:
+        edit_telegram_message(chat_id, message_id, text)
+    except requests.HTTPError:
+        log_event(
+            logger,
+            "telegram_feedback_message_edit_failed",
+            level=logging.WARNING,
+            chat_id=chat_id,
+            message_id=message_id,
+            message_text=text,
+            **log_context,
+        )
+
+
 def upsert_activity_subjective_feedback(
     *,
     activity_id: int,
     score: int,
     source: str = FEEDBACK_SOURCE_TELEGRAM,
+    payload: dict[str, Any] | None = None,
+    feedback_schema_version: str = FEEDBACK_SCHEMA_VERSION_EXTENSIBLE,
+    activity_date: str | None = None,
 ) -> dict[str, Any]:
     user_id = _load_activity_user_id(activity_id)
     if not user_id:
         raise ValueError(f"activity not found: {activity_id}")
 
     feedback_value = map_rpe_score_to_value(score)
+    feedback_payload = _normalize_feedback_payload(payload)
     context = build_feedback_context_snapshot(user_id)
 
     with get_conn() as conn:
@@ -227,10 +271,13 @@ def upsert_activity_subjective_feedback(
                 insert into activity_subjective_feedback (
                     user_id,
                     strava_activity_id,
+                    activity_date,
                     feedback_type,
                     feedback_value,
                     feedback_score,
                     source,
+                    feedback_schema_version,
+                    feedback_payload,
                     context_json
                 )
                 values (
@@ -240,23 +287,32 @@ def upsert_activity_subjective_feedback(
                     %s,
                     %s,
                     %s,
+                    %s,
+                    %s,
+                    %s::jsonb,
                     %s::jsonb
                 )
                 on conflict (strava_activity_id, feedback_type) do update set
                     user_id = excluded.user_id,
+                    activity_date = coalesce(excluded.activity_date, activity_subjective_feedback.activity_date),
                     feedback_value = excluded.feedback_value,
                     feedback_score = excluded.feedback_score,
                     source = excluded.source,
+                    feedback_schema_version = excluded.feedback_schema_version,
+                    feedback_payload = excluded.feedback_payload,
                     context_json = excluded.context_json,
                     updated_at = now()
                 returning
                     id,
                     user_id,
                     strava_activity_id,
+                    activity_date,
                     feedback_type,
                     feedback_value,
                     feedback_score,
                     source,
+                    feedback_schema_version,
+                    feedback_payload,
                     context_json,
                     created_at,
                     updated_at;
@@ -264,10 +320,13 @@ def upsert_activity_subjective_feedback(
                 (
                     user_id,
                     activity_id,
+                    activity_date,
                     FEEDBACK_TYPE_POST_RIDE_RPE,
                     feedback_value,
                     score,
                     source,
+                    feedback_schema_version,
+                    json.dumps(feedback_payload),
                     json.dumps(context),
                 ),
             )
@@ -278,13 +337,16 @@ def upsert_activity_subjective_feedback(
         "id": row[0],
         "user_id": row[1],
         "activity_id": row[2],
-        "feedback_type": row[3],
-        "feedback_value": row[4],
-        "feedback_score": row[5],
-        "source": row[6],
-        "context": row[7],
-        "created_at": row[8],
-        "updated_at": row[9],
+        "activity_date": row[3],
+        "feedback_type": row[4],
+        "feedback_value": row[5],
+        "feedback_score": row[6],
+        "source": row[7],
+        "feedback_schema_version": row[8],
+        "feedback_payload": row[9],
+        "context": row[10],
+        "created_at": row[11],
+        "updated_at": row[12],
         "was_update": was_update,
     }
 
@@ -296,6 +358,7 @@ def upsert_activity_subjective_feedback(
         score=score,
         feedback_type=FEEDBACK_TYPE_POST_RIDE_RPE,
         source=source,
+        feedback_schema_version=feedback_schema_version,
     )
 
     return result
@@ -319,7 +382,12 @@ def handle_telegram_feedback_callback(payload: dict[str, Any]) -> dict[str, Any]
             raw_callback_data=callback_data,
         )
         if callback_query_id:
-            answer_telegram_callback(callback_query_id, text="Invalid feedback payload.")
+            _safe_answer_telegram_callback(
+                callback_query_id,
+                text="Invalid feedback payload.",
+                source=FEEDBACK_SOURCE_TELEGRAM,
+                raw_callback_data=callback_data,
+            )
         return {"ok": False, "reason": "invalid_callback"}
 
     try:
@@ -338,12 +406,32 @@ def handle_telegram_feedback_callback(payload: dict[str, Any]) -> dict[str, Any]
             source=parsed["source"],
         )
         if callback_query_id:
-            answer_telegram_callback(callback_query_id, text="Activity not found.")
+            _safe_answer_telegram_callback(
+                callback_query_id,
+                text="Activity not found.",
+                activity_id=parsed["activity_id"],
+                score=parsed["score"],
+                feedback_type=parsed["feedback_type"],
+                source=parsed["source"],
+            )
         return {"ok": False, "reason": "activity_not_found"}
 
     if callback_query_id:
-        answer_telegram_callback(callback_query_id, text="Feedback recorded.")
+        _safe_answer_telegram_callback(
+            callback_query_id,
+            text="Feedback recorded.",
+            activity_id=result["activity_id"],
+            feedback_type=result["feedback_type"],
+            source=result["source"],
+        )
     if chat_id is not None and message_id is not None:
-        edit_telegram_message(chat_id, message_id, RPE_CONFIRMATION_TEXT)
+        _safe_edit_telegram_message(
+            chat_id,
+            message_id,
+            RPE_CONFIRMATION_TEXT,
+            activity_id=result["activity_id"],
+            feedback_type=result["feedback_type"],
+            source=result["source"],
+        )
 
     return {"ok": True, **result}

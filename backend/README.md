@@ -188,6 +188,7 @@ Recovery breakdown внутри `explanation_json.recovery_explanation`:
 - post-ride RPE feedback из Telegram
 - idempotent upsert по `(strava_activity_id, feedback_type)`
 - historical readiness snapshot в `context_json`
+- extensible additive payload в `feedback_payload` с версией `feedback_schema_version`
 
 Важно:
 
@@ -260,6 +261,8 @@ Fallback:
 - валидирует activity
 - upsert-ит row в `activity_subjective_feedback`
 - сохраняет `source = telegram`
+- сохраняет `feedback_schema_version = v1_extensible`
+- сохраняет optional `feedback_payload` (для текущего RPE обычно `{}`)
 - сохраняет snapshot readiness context
 - редактирует сообщение в краткое подтверждение
 

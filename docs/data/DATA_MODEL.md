@@ -292,14 +292,21 @@ Load model v2.
 Ключевые поля:
 
 - `strava_activity_id`
+- `activity_date`
 - `feedback_type`
 - `feedback_value`
 - `feedback_score`
 - `source`
+- `feedback_schema_version`
+- `feedback_payload`
 - `context_json`
 
 Особенности:
 
+- normalized fields (`feedback_type`, `feedback_value`, `feedback_score`, `source`) остаются основным query surface
+- `feedback_payload` добавляет extensible JSON-слой и не заменяет нормализованную модель
+- новые записи пишутся с `feedback_schema_version = v1_extensible`
+- исторические записи backfill-ятся как `feedback_schema_version = v1`
 - текущий feedback type: `post_ride_rpe`
 - текущий source: `telegram`
 - `context_json` хранит historical snapshot readiness context
