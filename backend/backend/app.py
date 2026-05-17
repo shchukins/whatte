@@ -48,7 +48,10 @@ from backend.services.readiness_query import (
 )
 from backend.services.decision_engine import build_readiness_briefing
 from backend.services.activity_load_service import resolve_activity_load
-from backend.services.subjective_feedback_service import handle_telegram_feedback_callback
+from backend.services.subjective_feedback_service import (
+    handle_telegram_feedback_callback,
+    send_next_day_recovery_prompt,
+)
 
 configure_logging()
 logger = logging.getLogger(__name__)
@@ -1368,6 +1371,18 @@ def debug_daily_readiness(user_id: str):
     try:
         sent = send_daily_readiness(user_id)
         return {"ok": True, "user_id": user_id, "sent": sent}
+    except requests.RequestException as e:
+        raise HTTPException(status_code=502, detail=f"telegram error: {e}")
+    except psycopg.Error as e:
+        raise HTTPException(status_code=500, detail=f"db error: {e}")
+
+
+@app.post("/debug/feedback/recovery-prompt/{user_id}/{target_date}")
+def debug_send_recovery_prompt(user_id: str, target_date: str):
+    try:
+        return send_next_day_recovery_prompt(user_id=user_id, recovery_date=target_date)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"invalid date: {e}")
     except requests.RequestException as e:
         raise HTTPException(status_code=502, detail=f"telegram error: {e}")
     except psycopg.Error as e:

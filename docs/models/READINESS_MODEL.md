@@ -415,13 +415,39 @@ Source of truth:
 
 ---
 
+## 8.5 Relationship with subjective feedback
+
+`readiness_daily` remains a deterministic derived-state layer.
+
+`activity_subjective_feedback` is a separate ground truth layer used for later evaluation.
+
+The intended comparison is:
+
+- readiness / recommendation at time `t`
+- subjective outcome reported by the athlete at time `t` or `t+1 day`
+
+This separation matters because:
+
+- readiness is a model output
+- subjective feedback is an observed outcome
+- calibration requires comparing prediction and outcome without rewriting either layer
+
+Current state:
+
+- subjective feedback does not change readiness formula
+- subjective feedback does not change recommendation logic
+- `good_day_probability` still has no statistical calibration
+- the feedback dataset is being accumulated for future validation and calibration work
+
+---
+
 ## 9. Limitations
 
 Текущая модель:
 
 - использует агрегированный recovery score как вход readiness
 - пока не подает `hrv_dev`, `rhr_dev` и component scores в readiness formula напрямую
-- пока не имеет отдельной probability calibration
+- пока не имеет отдельной probability calibration against accumulated subjective feedback
 - не пересчитывает decision внутри history endpoint
 
 ---

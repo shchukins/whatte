@@ -204,6 +204,24 @@ Features должны:
 
 ---
 
+## 11.5 What subjective feedback is not
+
+`activity_subjective_feedback` is not a feature layer.
+
+It is:
+
+- an observed outcome layer
+- a calibration / evaluation dataset
+- a user-reported signal collected after the deterministic pipeline has already produced state
+
+This distinction matters because:
+
+- features are derived from raw inputs
+- subjective feedback is reported by the athlete
+- future models may train or calibrate against subjective feedback, but should not redefine feedback itself as a feature source of truth
+
+---
+
 ## 12. Constraints
 
 Нельзя:

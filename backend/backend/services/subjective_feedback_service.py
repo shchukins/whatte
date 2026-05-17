@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+from datetime import date, datetime, timedelta
 from typing import Any
 
 import requests
@@ -19,10 +20,13 @@ from backend.services.telegram_service import (
 logger = logging.getLogger(__name__)
 
 FEEDBACK_TYPE_POST_RIDE_RPE = "post_ride_rpe"
+FEEDBACK_TYPE_NEXT_DAY_RECOVERY = "next_day_recovery"
 FEEDBACK_SOURCE_TELEGRAM = "telegram"
 FEEDBACK_SCHEMA_VERSION_EXTENSIBLE = "v1_extensible"
 RPE_CALLBACK_PREFIX = "rpe"
+RECOVERY_CALLBACK_PREFIX = "recovery"
 RPE_CONFIRMATION_TEXT = "Feedback recorded ✓"
+RECOVERY_CONFIRMATION_TEXT = "Recovery feedback recorded ✓"
 
 RPE_SCORE_TO_VALUE = {
     1: "very_easy",
@@ -40,11 +44,50 @@ RPE_BUTTON_LABELS = {
     5: "☠️ Very hard",
 }
 
+RECOVERY_SCORE_TO_VALUE = {
+    1: "exhausted",
+    2: "tired",
+    3: "okay",
+    4: "fresh",
+    5: "very_fresh",
+}
+
+RECOVERY_BUTTON_LABELS = {
+    1: "😴 Exhausted",
+    2: "😐 Tired",
+    3: "🙂 Okay",
+    4: "⚡ Fresh",
+    5: "🚀 Very fresh",
+}
+
+
+def _coerce_iso_date(value: str | date) -> date:
+    if isinstance(value, date):
+        return value
+    return datetime.strptime(value, "%Y-%m-%d").date()
+
+
+def _parse_feedback_date(value: str | None) -> date | None:
+    if value is None:
+        return None
+
+    try:
+        return _coerce_iso_date(value)
+    except ValueError:
+        return None
+
 
 def map_rpe_score_to_value(score: int) -> str:
     value = RPE_SCORE_TO_VALUE.get(score)
     if value is None:
         raise ValueError(f"unsupported rpe score: {score}")
+    return value
+
+
+def map_recovery_score_to_value(score: int) -> str:
+    value = RECOVERY_SCORE_TO_VALUE.get(score)
+    if value is None:
+        raise ValueError(f"unsupported recovery score: {score}")
     return value
 
 
@@ -74,6 +117,40 @@ def parse_rpe_callback_data(data: str | None) -> dict[str, Any] | None:
         "activity_id": activity_id,
         "score": score,
         "value": map_rpe_score_to_value(score),
+        "source": FEEDBACK_SOURCE_TELEGRAM,
+    }
+
+
+def build_recovery_callback_data(user_id: str, target_date: str | date, score: int) -> str:
+    target_day = _coerce_iso_date(target_date)
+    return f"{RECOVERY_CALLBACK_PREFIX}:{user_id}:{target_day.isoformat()}:{score}"
+
+
+def parse_recovery_callback_data(data: str | None) -> dict[str, Any] | None:
+    if not data:
+        return None
+
+    parts = data.split(":")
+    if len(parts) != 4 or parts[0] != RECOVERY_CALLBACK_PREFIX:
+        return None
+
+    user_id = parts[1].strip()
+    target_day = _parse_feedback_date(parts[2])
+    try:
+        score = int(parts[3])
+    except ValueError:
+        return None
+
+    if not user_id or target_day is None or score not in RECOVERY_SCORE_TO_VALUE:
+        return None
+
+    return {
+        "feedback_type": FEEDBACK_TYPE_NEXT_DAY_RECOVERY,
+        "user_id": user_id,
+        "activity_id": None,
+        "target_date": target_day.isoformat(),
+        "score": score,
+        "value": map_recovery_score_to_value(score),
         "source": FEEDBACK_SOURCE_TELEGRAM,
     }
 
@@ -117,6 +194,14 @@ def build_post_ride_rpe_message(activity_id: int) -> str:
     )
 
 
+def build_next_day_recovery_message() -> str:
+    return (
+        "Human Engine\n\n"
+        "How recovered do you feel today?\n\n"
+        "This helps calibrate readiness after yesterday's training."
+    )
+
+
 def build_post_ride_rpe_keyboard(activity_id: int) -> dict[str, Any]:
     return {
         "inline_keyboard": [
@@ -127,6 +212,20 @@ def build_post_ride_rpe_keyboard(activity_id: int) -> dict[str, Any]:
                 }
             ]
             for score in sorted(RPE_BUTTON_LABELS)
+        ]
+    }
+
+
+def build_next_day_recovery_keyboard(user_id: str, target_date: str | date) -> dict[str, Any]:
+    return {
+        "inline_keyboard": [
+            [
+                {
+                    "text": RECOVERY_BUTTON_LABELS[score],
+                    "callback_data": build_recovery_callback_data(user_id, target_date, score),
+                }
+            ]
+            for score in sorted(RECOVERY_BUTTON_LABELS)
         ]
     }
 
@@ -154,33 +253,106 @@ def _load_activity_user_id(activity_id: int) -> str | None:
     return row[0] if row else None
 
 
-def build_feedback_context_snapshot(user_id: str) -> dict[str, Any]:
+def _load_recovery_prompt_context(user_id: str, recovery_date: str | date) -> dict[str, Any]:
+    recovery_day = _coerce_iso_date(recovery_date)
+    previous_day = recovery_day - timedelta(days=1)
+
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute(
                 """
                 select
-                    readiness_score,
-                    explanation_json
-                from readiness_daily
+                    activities_count,
+                    tss
+                from daily_training_load
                 where user_id = %s
-                  and version = 'v2'
-                order by date desc
-                limit 1;
+                  and date = %s;
                 """,
-                (user_id,),
+                (user_id, previous_day),
             )
+            load_row = cur.fetchone()
+
+            cur.execute(
+                """
+                select
+                    strava_activity_id
+                from strava_activity_raw
+                where user_id = %s
+                  and date(start_date) = %s
+                order by start_date asc;
+                """,
+                (user_id, previous_day),
+            )
+            activity_rows = cur.fetchall()
+
+    linked_activity_ids = [int(row[0]) for row in activity_rows]
+    activities_count = int(load_row[0]) if load_row and load_row[0] is not None else len(linked_activity_ids)
+    previous_training_load = float(load_row[1]) if load_row and load_row[1] is not None else 0.0
+    has_training = activities_count > 0 or len(linked_activity_ids) > 0 or previous_training_load > 0
+
+    return {
+        "user_id": user_id,
+        "target_date": recovery_day.isoformat(),
+        "previous_date": previous_day.isoformat(),
+        "activities_count": activities_count,
+        "previous_training_load": previous_training_load,
+        "linked_activity_ids": linked_activity_ids,
+        "has_training": has_training,
+    }
+
+
+def build_feedback_context_snapshot(user_id: str, *, target_date: str | date | None = None) -> dict[str, Any]:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            if target_date is not None:
+                cur.execute(
+                    """
+                    select
+                        date,
+                        readiness_score,
+                        good_day_probability,
+                        status_text,
+                        explanation_json
+                    from readiness_daily
+                    where user_id = %s
+                      and date = %s
+                      and version = 'v2'
+                    limit 1;
+                    """,
+                    (user_id, _coerce_iso_date(target_date)),
+                )
+            else:
+                cur.execute(
+                    """
+                    select
+                        date,
+                        readiness_score,
+                        good_day_probability,
+                        status_text,
+                        explanation_json
+                    from readiness_daily
+                    where user_id = %s
+                      and version = 'v2'
+                    order by date desc
+                    limit 1;
+                    """,
+                    (user_id,),
+                )
             row = cur.fetchone()
 
     if not row:
         return {
+            "snapshot_date": target_date.isoformat() if isinstance(target_date, date) else target_date,
             "readiness_score": None,
+            "good_day_probability": None,
+            "status_text": None,
             "recommendation": None,
             "freshness": None,
             "recovery_score": None,
+            "recovery_explanation": None,
         }
 
-    readiness_score, explanation_json = row
+    snapshot_date, readiness_score, good_day_probability, status_text, explanation_json = row
     explanation = explanation_json if isinstance(explanation_json, dict) else {}
     recommendation = None
     if readiness_score is not None:
@@ -190,10 +362,14 @@ def build_feedback_context_snapshot(user_id: str) -> dict[str, Any]:
         )["recommendation"]
 
     return {
+        "snapshot_date": str(snapshot_date),
         "readiness_score": readiness_score,
+        "good_day_probability": good_day_probability,
+        "status_text": status_text,
         "recommendation": recommendation,
         "freshness": explanation.get("freshness"),
         "recovery_score": explanation.get("recovery_score_simple"),
+        "recovery_explanation": explanation.get("recovery_explanation"),
     }
 
 
@@ -234,106 +410,8 @@ def _safe_edit_telegram_message(chat_id: int | str, message_id: int, text: str, 
         )
 
 
-def upsert_activity_subjective_feedback(
-    *,
-    activity_id: int,
-    score: int,
-    source: str = FEEDBACK_SOURCE_TELEGRAM,
-    payload: dict[str, Any] | None = None,
-    feedback_schema_version: str = FEEDBACK_SCHEMA_VERSION_EXTENSIBLE,
-    activity_date: str | None = None,
-) -> dict[str, Any]:
-    user_id = _load_activity_user_id(activity_id)
-    if not user_id:
-        raise ValueError(f"activity not found: {activity_id}")
-
-    feedback_value = map_rpe_score_to_value(score)
-    feedback_payload = _normalize_feedback_payload(payload)
-    context = build_feedback_context_snapshot(user_id)
-
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                select id
-                from activity_subjective_feedback
-                where strava_activity_id = %s
-                  and feedback_type = %s
-                limit 1;
-                """,
-                (activity_id, FEEDBACK_TYPE_POST_RIDE_RPE),
-            )
-            existing_row = cur.fetchone()
-            was_update = existing_row is not None
-
-            cur.execute(
-                """
-                insert into activity_subjective_feedback (
-                    user_id,
-                    strava_activity_id,
-                    activity_date,
-                    feedback_type,
-                    feedback_value,
-                    feedback_score,
-                    source,
-                    feedback_schema_version,
-                    feedback_payload,
-                    context_json
-                )
-                values (
-                    %s,
-                    %s,
-                    %s,
-                    %s,
-                    %s,
-                    %s,
-                    %s,
-                    %s,
-                    %s::jsonb,
-                    %s::jsonb
-                )
-                on conflict (strava_activity_id, feedback_type) do update set
-                    user_id = excluded.user_id,
-                    activity_date = coalesce(excluded.activity_date, activity_subjective_feedback.activity_date),
-                    feedback_value = excluded.feedback_value,
-                    feedback_score = excluded.feedback_score,
-                    source = excluded.source,
-                    feedback_schema_version = excluded.feedback_schema_version,
-                    feedback_payload = excluded.feedback_payload,
-                    context_json = excluded.context_json,
-                    updated_at = now()
-                returning
-                    id,
-                    user_id,
-                    strava_activity_id,
-                    activity_date,
-                    feedback_type,
-                    feedback_value,
-                    feedback_score,
-                    source,
-                    feedback_schema_version,
-                    feedback_payload,
-                    context_json,
-                    created_at,
-                    updated_at;
-                """,
-                (
-                    user_id,
-                    activity_id,
-                    activity_date,
-                    FEEDBACK_TYPE_POST_RIDE_RPE,
-                    feedback_value,
-                    score,
-                    source,
-                    feedback_schema_version,
-                    json.dumps(feedback_payload),
-                    json.dumps(context),
-                ),
-            )
-            row = cur.fetchone()
-            conn.commit()
-
-    result = {
+def _build_feedback_row_result(row: tuple[Any, ...], *, was_update: bool) -> dict[str, Any]:
+    return {
         "id": row[0],
         "user_id": row[1],
         "activity_id": row[2],
@@ -350,18 +428,286 @@ def upsert_activity_subjective_feedback(
         "was_update": was_update,
     }
 
+
+def upsert_subjective_feedback(
+    *,
+    user_id: str,
+    feedback_type: str,
+    feedback_value: str,
+    score: int,
+    activity_id: int | None = None,
+    activity_date: str | date | None = None,
+    source: str = FEEDBACK_SOURCE_TELEGRAM,
+    payload: dict[str, Any] | None = None,
+    context: dict[str, Any] | None = None,
+    feedback_schema_version: str = FEEDBACK_SCHEMA_VERSION_EXTENSIBLE,
+) -> dict[str, Any]:
+    feedback_payload = _normalize_feedback_payload(payload)
+    context_payload = _normalize_feedback_payload(context)
+    normalized_activity_date = (
+        _coerce_iso_date(activity_date).isoformat() if activity_date is not None else None
+    )
+
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            if activity_id is not None:
+                cur.execute(
+                    """
+                    select id
+                    from activity_subjective_feedback
+                    where strava_activity_id = %s
+                      and feedback_type = %s
+                    limit 1;
+                    """,
+                    (activity_id, feedback_type),
+                )
+            else:
+                cur.execute(
+                    """
+                    select id
+                    from activity_subjective_feedback
+                    where user_id = %s
+                      and activity_date = %s
+                      and feedback_type = %s
+                      and strava_activity_id is null
+                    limit 1;
+                    """,
+                    (user_id, normalized_activity_date, feedback_type),
+                )
+            existing_row = cur.fetchone()
+            was_update = existing_row is not None
+
+            if activity_id is not None:
+                cur.execute(
+                    """
+                    insert into activity_subjective_feedback (
+                        user_id,
+                        strava_activity_id,
+                        activity_date,
+                        feedback_type,
+                        feedback_value,
+                        feedback_score,
+                        source,
+                        feedback_schema_version,
+                        feedback_payload,
+                        context_json
+                    )
+                    values (
+                        %s,
+                        %s,
+                        %s,
+                        %s,
+                        %s,
+                        %s,
+                        %s,
+                        %s,
+                        %s::jsonb,
+                        %s::jsonb
+                    )
+                    on conflict (strava_activity_id, feedback_type) where strava_activity_id is not null do update set
+                        user_id = excluded.user_id,
+                        activity_date = coalesce(excluded.activity_date, activity_subjective_feedback.activity_date),
+                        feedback_value = excluded.feedback_value,
+                        feedback_score = excluded.feedback_score,
+                        source = excluded.source,
+                        feedback_schema_version = excluded.feedback_schema_version,
+                        feedback_payload = excluded.feedback_payload,
+                        context_json = excluded.context_json,
+                        updated_at = now()
+                    returning
+                        id,
+                        user_id,
+                        strava_activity_id,
+                        activity_date,
+                        feedback_type,
+                        feedback_value,
+                        feedback_score,
+                        source,
+                        feedback_schema_version,
+                        feedback_payload,
+                        context_json,
+                        created_at,
+                        updated_at;
+                    """,
+                    (
+                        user_id,
+                        activity_id,
+                        normalized_activity_date,
+                        feedback_type,
+                        feedback_value,
+                        score,
+                        source,
+                        feedback_schema_version,
+                        json.dumps(feedback_payload),
+                        json.dumps(context_payload),
+                    ),
+                )
+            else:
+                cur.execute(
+                    """
+                    insert into activity_subjective_feedback (
+                        user_id,
+                        strava_activity_id,
+                        activity_date,
+                        feedback_type,
+                        feedback_value,
+                        feedback_score,
+                        source,
+                        feedback_schema_version,
+                        feedback_payload,
+                        context_json
+                    )
+                    values (
+                        %s,
+                        null,
+                        %s,
+                        %s,
+                        %s,
+                        %s,
+                        %s,
+                        %s,
+                        %s::jsonb,
+                        %s::jsonb
+                    )
+                    on conflict (user_id, activity_date, feedback_type) where strava_activity_id is null do update set
+                        feedback_value = excluded.feedback_value,
+                        feedback_score = excluded.feedback_score,
+                        source = excluded.source,
+                        feedback_schema_version = excluded.feedback_schema_version,
+                        feedback_payload = excluded.feedback_payload,
+                        context_json = excluded.context_json,
+                        updated_at = now()
+                    returning
+                        id,
+                        user_id,
+                        strava_activity_id,
+                        activity_date,
+                        feedback_type,
+                        feedback_value,
+                        feedback_score,
+                        source,
+                        feedback_schema_version,
+                        feedback_payload,
+                        context_json,
+                        created_at,
+                        updated_at;
+                    """,
+                    (
+                        user_id,
+                        normalized_activity_date,
+                        feedback_type,
+                        feedback_value,
+                        score,
+                        source,
+                        feedback_schema_version,
+                        json.dumps(feedback_payload),
+                        json.dumps(context_payload),
+                    ),
+                )
+            row = cur.fetchone()
+            conn.commit()
+
+    result = _build_feedback_row_result(row, was_update=was_update)
+
     log_event(
         logger,
         "feedback_updated" if was_update else "feedback_received",
         user_id=user_id,
         activity_id=activity_id,
+        activity_date=normalized_activity_date,
         score=score,
-        feedback_type=FEEDBACK_TYPE_POST_RIDE_RPE,
+        feedback_type=feedback_type,
         source=source,
         feedback_schema_version=feedback_schema_version,
     )
 
     return result
+
+
+def upsert_activity_subjective_feedback(
+    *,
+    activity_id: int,
+    score: int,
+    source: str = FEEDBACK_SOURCE_TELEGRAM,
+    payload: dict[str, Any] | None = None,
+    feedback_schema_version: str = FEEDBACK_SCHEMA_VERSION_EXTENSIBLE,
+    activity_date: str | None = None,
+) -> dict[str, Any]:
+    user_id = _load_activity_user_id(activity_id)
+    if not user_id:
+        raise ValueError(f"activity not found: {activity_id}")
+
+    return upsert_subjective_feedback(
+        user_id=user_id,
+        activity_id=activity_id,
+        activity_date=activity_date,
+        feedback_type=FEEDBACK_TYPE_POST_RIDE_RPE,
+        feedback_value=map_rpe_score_to_value(score),
+        score=score,
+        source=source,
+        payload=payload,
+        context=build_feedback_context_snapshot(user_id),
+        feedback_schema_version=feedback_schema_version,
+    )
+
+
+def upsert_next_day_recovery_feedback(
+    *,
+    user_id: str,
+    target_date: str | date,
+    score: int,
+    source: str = FEEDBACK_SOURCE_TELEGRAM,
+    feedback_schema_version: str = FEEDBACK_SCHEMA_VERSION_EXTENSIBLE,
+) -> dict[str, Any]:
+    recovery_context = _load_recovery_prompt_context(user_id, target_date)
+    feedback_payload = {
+        "target_date": recovery_context["target_date"],
+        "previous_date": recovery_context["previous_date"],
+        "previous_training_load": recovery_context["previous_training_load"],
+        "previous_activities_count": recovery_context["activities_count"],
+        "linked_activity_ids": recovery_context["linked_activity_ids"],
+    }
+    context_snapshot = build_feedback_context_snapshot(
+        user_id,
+        target_date=recovery_context["target_date"],
+    )
+    context_snapshot.update(feedback_payload)
+
+    return upsert_subjective_feedback(
+        user_id=user_id,
+        activity_date=recovery_context["target_date"],
+        feedback_type=FEEDBACK_TYPE_NEXT_DAY_RECOVERY,
+        feedback_value=map_recovery_score_to_value(score),
+        score=score,
+        source=source,
+        payload=feedback_payload,
+        context=context_snapshot,
+        feedback_schema_version=feedback_schema_version,
+    )
+
+
+def send_next_day_recovery_prompt(user_id: str, recovery_date: str | date) -> dict[str, Any]:
+    recovery_context = _load_recovery_prompt_context(user_id, recovery_date)
+
+    if not recovery_context["has_training"]:
+        return {
+            "ok": True,
+            "skipped": True,
+            "reason": "no_previous_training_day",
+            **recovery_context,
+        }
+
+    send_telegram_message(
+        build_next_day_recovery_message(),
+        reply_markup=build_next_day_recovery_keyboard(user_id, recovery_context["target_date"]),
+    )
+
+    return {
+        "ok": True,
+        "skipped": False,
+        "reason": None,
+        **recovery_context,
+    }
 
 
 def handle_telegram_feedback_callback(payload: dict[str, Any]) -> dict[str, Any]:
@@ -373,7 +719,7 @@ def handle_telegram_feedback_callback(payload: dict[str, Any]) -> dict[str, Any]
     chat_id = chat.get("id")
     message_id = callback_message.get("message_id")
 
-    parsed = parse_rpe_callback_data(callback_data)
+    parsed = parse_rpe_callback_data(callback_data) or parse_recovery_callback_data(callback_data)
     if not parsed:
         log_event(
             logger,
@@ -391,16 +737,26 @@ def handle_telegram_feedback_callback(payload: dict[str, Any]) -> dict[str, Any]
         return {"ok": False, "reason": "invalid_callback"}
 
     try:
-        result = upsert_activity_subjective_feedback(
-            activity_id=parsed["activity_id"],
-            score=parsed["score"],
-            source=parsed["source"],
-        )
+        if parsed["feedback_type"] == FEEDBACK_TYPE_POST_RIDE_RPE:
+            result = upsert_activity_subjective_feedback(
+                activity_id=parsed["activity_id"],
+                score=parsed["score"],
+                source=parsed["source"],
+            )
+        else:
+            result = upsert_next_day_recovery_feedback(
+                user_id=parsed["user_id"],
+                target_date=parsed["target_date"],
+                score=parsed["score"],
+                source=parsed["source"],
+            )
     except ValueError:
         log_event(
             logger,
             "feedback_invalid_callback",
-            activity_id=parsed["activity_id"],
+            activity_id=parsed.get("activity_id"),
+            user_id=parsed.get("user_id"),
+            target_date=parsed.get("target_date"),
             score=parsed["score"],
             feedback_type=parsed["feedback_type"],
             source=parsed["source"],
@@ -408,28 +764,39 @@ def handle_telegram_feedback_callback(payload: dict[str, Any]) -> dict[str, Any]
         if callback_query_id:
             _safe_answer_telegram_callback(
                 callback_query_id,
-                text="Activity not found.",
-                activity_id=parsed["activity_id"],
+                text="Feedback target not found.",
+                activity_id=parsed.get("activity_id"),
+                user_id=parsed.get("user_id"),
+                target_date=parsed.get("target_date"),
                 score=parsed["score"],
                 feedback_type=parsed["feedback_type"],
                 source=parsed["source"],
             )
-        return {"ok": False, "reason": "activity_not_found"}
+        return {"ok": False, "reason": "feedback_target_not_found"}
 
     if callback_query_id:
         _safe_answer_telegram_callback(
             callback_query_id,
             text="Feedback recorded.",
             activity_id=result["activity_id"],
+            user_id=result["user_id"],
+            activity_date=result["activity_date"],
             feedback_type=result["feedback_type"],
             source=result["source"],
         )
     if chat_id is not None and message_id is not None:
+        confirmation_text = (
+            RPE_CONFIRMATION_TEXT
+            if result["feedback_type"] == FEEDBACK_TYPE_POST_RIDE_RPE
+            else RECOVERY_CONFIRMATION_TEXT
+        )
         _safe_edit_telegram_message(
             chat_id,
             message_id,
-            RPE_CONFIRMATION_TEXT,
+            confirmation_text,
             activity_id=result["activity_id"],
+            user_id=result["user_id"],
+            activity_date=result["activity_date"],
             feedback_type=result["feedback_type"],
             source=result["source"],
         )

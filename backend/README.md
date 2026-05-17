@@ -57,7 +57,7 @@ FastAPI + PostgreSQL
 ### 1. Strava ingestion
 
 - webhook endpoint
-- Telegram callback endpoint for inline post-ride feedback
+- Telegram callback endpoint for inline post-ride and next-day recovery feedback
 - raw storage
 - ingest jobs
 - загрузка активностей
@@ -186,15 +186,24 @@ Recovery breakdown внутри `explanation_json.recovery_explanation`:
 Текущий scope:
 
 - post-ride RPE feedback из Telegram
-- idempotent upsert по `(strava_activity_id, feedback_type)`
-- historical readiness snapshot в `context_json`
-- extensible additive payload в `feedback_payload` с версией `feedback_schema_version`
+- next-day recovery feedback из Telegram
+- activity-level и date-level subjective feedback
+- normalized queryable fields + extensible payload + historical context snapshot
+- activity-level idempotent upsert по `(strava_activity_id, feedback_type)` when `strava_activity_id is not null`
+- date-level idempotent upsert по `(user_id, activity_date, feedback_type)` when `strava_activity_id is null`
+
+Архитектурный смысл:
+
+- normalized fields нужны для stable queries и analytics
+- `feedback_payload` хранит feedback-type-specific детали без раздувания core schema
+- `context_json` хранит readiness / recommendation snapshot на момент ответа
+- snapshot сохраняется исторически для later calibration, а не пересчитывается на чтении
 
 Важно:
 
 - это не ML layer
 - feedback не влияет на core calculations
-- feedback хранится как отдельный evaluation dataset
+- feedback хранится как отдельный evaluation / calibration dataset
 
 ## HealthKit full sync pipeline
 
@@ -263,8 +272,46 @@ Fallback:
 - сохраняет `source = telegram`
 - сохраняет `feedback_schema_version = v1_extensible`
 - сохраняет optional `feedback_payload` (для текущего RPE обычно `{}`)
-- сохраняет snapshot readiness context
-- редактирует сообщение в краткое подтверждение
+- сохраняет snapshot readiness / recommendation context
+- best-effort подтверждает callback и редактирует сообщение
+
+## Telegram next-day recovery feedback
+
+Backend может отправить next-day recovery prompt для конкретной даты, если предыдущий день выглядел как тренировочный.
+
+Prompt usefulness:
+
+- `daily_training_load.tss > 0`
+- или `daily_training_load.activities_count > 0`
+- или есть activities в `strava_activity_raw` за предыдущую дату
+
+Текущий callback format:
+
+- `recovery:{user_id}:{target_date}:{score}`
+
+После callback backend:
+
+- валидирует `target_date` и `score`
+- upsert-ит row в `activity_subjective_feedback`
+- пишет `feedback_type = next_day_recovery`
+- пишет `activity_date = target_date`
+- оставляет `strava_activity_id = null` для date-level semantics
+- сохраняет previous-day linkage в `feedback_payload`
+- сохраняет historical readiness / recommendation context, если доступно
+- best-effort подтверждает callback
+- best-effort редактирует сообщение в `Recovery feedback recorded ✓`
+
+Telegram UX philosophy:
+
+- feedback optional
+- low-friction longitudinal collection
+- one-tap answer в текущем MVP
+- максимум три taps как потолок для будущих flows
+
+Debug endpoint для ручной проверки:
+
+- `POST /debug/feedback/recovery-prompt/{user_id}/{target_date}`
+
 
 ## Технологический стек
 

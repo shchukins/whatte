@@ -2,41 +2,69 @@
 
 ## 1. Purpose
 
-`activity_subjective_feedback` stores lightweight subjective feedback linked to completed activities.
+`activity_subjective_feedback` stores lightweight subjective feedback that acts as a user-reported ground truth layer.
+
+It captures how training felt and how recovery felt, while keeping the deterministic readiness pipeline unchanged.
 
 Current scope:
 
-- immediate post-ride RPE collection
-- one-tap Telegram input
-- historical context snapshot persistence
-- extensible payload storage for future subjective dimensions
+- post-ride RPE feedback
+- next-day recovery feedback
+- Telegram-based low-friction collection
+- normalized queryable fields plus extensible payloads
+- historical context snapshots for later calibration work
 
-This is a data collection layer, not an ML layer.
+This is an evaluation and calibration dataset layer, not an ML decision layer.
 
 ---
 
 ## 2. Why it exists
 
-Human Engine already stores deterministic load, recovery and readiness outputs.
-What is still missing is user-reported ground truth about how a ride actually felt.
+Human Engine already stores deterministic inputs and derived state:
 
-This dataset is intended to support future:
+- raw physiological inputs
+- daily training load
+- recovery state
+- readiness state
+- recommendation output
 
-- readiness calibration
+What those layers do not provide is user-reported outcome data.
+
+Subjective feedback fills that gap by recording:
+
+- how hard a session felt immediately after training
+- how recovered the athlete felt the next day
+- what readiness and recommendation looked like at feedback time
+
+This supports future work in:
+
+- readiness validation
 - recommendation validation
-- prediction error estimation
-- personalization
+- prediction vs outcome calibration
 - adaptation modeling
+- ML dataset generation for offline research
 
-No recommendation learning or model adaptation is implemented here yet.
+Important:
+
+- no model adaptation is implemented here
+- no recommendation changes are driven by feedback yet
+- deterministic calculations stay separate from the feedback layer
 
 ---
 
-## 3. Current feedback type
+## 3. Feedback types
 
-Implemented now:
+### 3.1 `post_ride_rpe`
 
-- `post_ride_rpe`
+Purpose:
+
+- capture immediate perceived exertion for a completed activity
+
+Semantics:
+
+- activity-level feedback
+- linked to `strava_activity_id`
+- one canonical row per `(strava_activity_id, feedback_type)`
 
 Scale:
 
@@ -54,153 +82,351 @@ Telegram labels:
 - `🥵 Hard`
 - `☠️ Very hard`
 
+Callback format:
+
+- `rpe:{activity_id}:{score}`
+
+### 3.2 `next_day_recovery`
+
+Purpose:
+
+- capture delayed recovery state after the previous training day
+
+Semantics:
+
+- date-level feedback
+- linked to `user_id + activity_date`
+- `strava_activity_id` is intentionally nullable
+- one canonical row per `(user_id, activity_date, feedback_type)` when `strava_activity_id is null`
+
+Scale:
+
+- `1` → `exhausted`
+- `2` → `tired`
+- `3` → `okay`
+- `4` → `fresh`
+- `5` → `very_fresh`
+
+Telegram labels:
+
+- `😴 Exhausted`
+- `😐 Tired`
+- `🙂 Okay`
+- `⚡ Fresh`
+- `🚀 Very fresh`
+
+Callback format:
+
+- `recovery:{user_id}:{target_date}:{score}`
+
+Why delayed recovery matters:
+
+- immediate RPE reflects session perception
+- next-day recovery reflects accumulated effect of the previous load
+- for readiness validation, delayed recovery is often the more informative target
+
 ---
 
-## 4. Schema
+## 4. Data model
 
 Table:
 
 - `activity_subjective_feedback`
 
-Fields:
+Core fields:
 
-- `id`
 - `user_id`
 - `strava_activity_id`
-- `activity_date` nullable helper field for future date-based feedback flows
+- `activity_date`
 - `feedback_type`
 - `feedback_value`
 - `feedback_score`
 - `source`
+
+Extensible fields:
+
 - `feedback_schema_version`
 - `feedback_payload`
 - `context_json`
+
+Operational fields:
+
 - `created_at`
 - `updated_at`
 
-Normalized core fields remain the primary query surface:
+### 4.1 Activity-level vs date-level semantics
 
-- `feedback_type` identifies the feedback family
-- `feedback_value` stores the canonical categorical value
-- `feedback_score` stores the canonical numeric score
-- `source` stores ingestion origin
+Activity-level feedback:
 
-Extensible fields are additive:
+- uses `strava_activity_id`
+- may optionally also carry `activity_date`
+- currently used by `post_ride_rpe`
 
-- `feedback_schema_version` tracks how payload semantics should be interpreted
-- `feedback_payload` stores optional extra dimensions as JSON
-- `activity_date` can support future feedback that is day-linked rather than activity-only
+Date-level feedback:
 
-Current semantics:
+- uses `activity_date` as the canonical target date
+- leaves `strava_activity_id = null`
+- currently used by `next_day_recovery`
 
-- current Telegram RPE writes use `feedback_type = post_ride_rpe`
-- current Telegram RPE writes use `source = telegram`
-- new writes use `feedback_schema_version = v1_extensible`
-- pre-migration rows are backfilled as `feedback_schema_version = v1`
-- plain RPE rows may keep `feedback_payload = {}` when no extra fields are captured
+Nullable `strava_activity_id` does not mean “missing linkage by mistake”.
+It means the feedback is about a day-level recovery state rather than one exact activity.
 
-Constraint:
+### 4.2 Partial unique indexes
 
-- unique (`strava_activity_id`, `feedback_type`)
+The table supports two idempotency rules:
 
-This makes repeated button presses safe and keeps one canonical subjective record per activity and feedback type.
+- activity-level uniqueness: unique (`strava_activity_id`, `feedback_type`) where `strava_activity_id is not null`
+- date-level uniqueness: unique (`user_id`, `activity_date`, `feedback_type`) where `strava_activity_id is null`
+
+Why partial indexes are used:
+
+- activity-level and date-level feedback need different natural keys
+- a single global unique constraint would overfit one shape and break the other
+- repeated Telegram taps should update the canonical row instead of creating duplicates
 
 ---
 
-## 5. Context Snapshot
+## 5. Normalized fields vs payload vs context
 
-`context_json` stores the model state snapshot that existed at feedback time.
+### 5.1 Normalized fields
 
-Current snapshot fields:
+Normalized fields are the primary query surface.
+
+They answer questions like:
+
+- what feedback type is this
+- what score did the athlete choose
+- what canonical label corresponds to that score
+- what source produced the row
+
+These fields are stable, explicit, and suitable for filtering, grouping, and analytics.
+
+### 5.2 `feedback_payload`
+
+`feedback_payload` stores additive, feedback-type-specific details.
+
+It does not replace normalized fields.
+
+Example `next_day_recovery` payload:
 
 ```json
 {
-  "readiness_score": 63.5,
-  "recommendation": "moderate",
-  "freshness": 4.2,
-  "recovery_score": 71.0
+  "target_date": "2026-05-15",
+  "previous_date": "2026-05-14",
+  "previous_training_load": 85.0,
+  "previous_activities_count": 2,
+  "linked_activity_ids": [17855535922, 17855535923]
 }
 ```
 
-Important:
+Why payload exists:
 
-- values are persisted as historical facts
-- they are not recomputed later from current state
-- this preserves reproducibility for later evaluation work
+- different feedback families need different supporting context
+- not every dimension deserves a dedicated normalized column yet
+- extensibility should remain additive and explicit
+
+Rules:
+
+- canonical score stays in `feedback_score`
+- canonical categorical value stays in `feedback_value`
+- payload stores only supporting dimensions or linkage details
+
+### 5.3 `context_json`
+
+`context_json` stores a historical snapshot of derived state at feedback time.
+
+Typical fields:
+
+```json
+{
+  "snapshot_date": "2026-05-15",
+  "readiness_score": 63.5,
+  "good_day_probability": 0.72,
+  "status_text": "Good",
+  "recommendation": "moderate",
+  "freshness": 4.2,
+  "recovery_score": 71.0,
+  "recovery_explanation": {
+    "sleep_score": 74.0
+  }
+}
+```
+
+Why snapshots are persisted historically:
+
+- readiness and recommendation at feedback time are part of the observed event
+- later recomputes or model changes should not rewrite history
+- calibration requires comparing what the system predicted then versus what the athlete reported then
+
+This is why `context_json` is intentionally historical rather than recomputed on read.
 
 ---
 
-## 6. Flow
+## 6. Schema versioning philosophy
+
+`feedback_schema_version` exists to version payload semantics, not to replace the normalized model.
+
+Current philosophy:
+
+- normalized columns remain the stable contract
+- payload meaning may expand over time
+- incompatible payload changes should bump `feedback_schema_version`
+- old rows remain valid historical records
+
+Practical rule:
+
+- if a change only adds optional payload keys, the current version may remain valid
+- if a change reinterprets existing payload keys, bump the version
+
+---
+
+## 7. Telegram UX philosophy
+
+Current Telegram collection is intentionally lightweight.
+
+Principles:
+
+- optional feedback
+- low-friction longitudinal collection
+- one message per prompt
+- one-tap answer in the current MVP
+- maximum three taps as a design ceiling for future flows
+- best-effort acknowledgements and message edits after persistence
+
+Why this matters:
+
+- calibration data quality depends on repeated participation
+- repeated participation depends on low user friction
+- the system needs longitudinal consistency more than questionnaire depth
+
+Current confirmation behavior:
+
+- persistence happens first
+- Telegram callback acknowledgement is best-effort
+- Telegram message edit is best-effort
+- Telegram failure after persistence must not invalidate the recorded feedback
+
+---
+
+## 8. Current flows
+
+### 8.1 Post-ride RPE flow
 
 ```text
 activity ingestion
 ↓
-training processed Telegram notification
+training processed notification
 ↓
-second Telegram message with inline RPE buttons
+Telegram RPE prompt
 ↓
-callback payload: rpe:{activity_id}:{score}
+callback: rpe:{activity_id}:{score}
 ↓
-idempotent upsert into activity_subjective_feedback
+upsert activity-level row
 ↓
-Telegram confirmation message edit
+best-effort Telegram confirmation
 ```
 
----
-
-## 7. Architectural rationale
-
-This layer intentionally stays outside the deterministic calculation core:
-
-- it does not alter load calculations
-- it does not alter readiness calculations
-- it does not introduce probabilistic behavior
-- it only records user feedback plus contemporaneous deterministic context
-
-That separation keeps Human Engine explainable while creating future evaluation data.
-
----
-
-## 8. Payload usage
-
-`feedback_payload` is optional and additive.
-It must not replace the normalized fields above.
-
-Example future payload:
+Example row shape:
 
 ```json
 {
-  "legs_fatigue": 2,
-  "motivation": 4
+  "strava_activity_id": 17855535922,
+  "activity_date": "2026-05-14",
+  "feedback_type": "post_ride_rpe",
+  "feedback_value": "hard",
+  "feedback_score": 4,
+  "source": "telegram",
+  "feedback_schema_version": "v1_extensible",
+  "feedback_payload": {},
+  "context_json": {
+    "readiness_score": 63.5,
+    "recommendation": "moderate"
+  }
 }
 ```
 
-Rules:
+### 8.2 Next-day recovery flow
 
-- keep the canonical score in `feedback_score`
-- keep the canonical label in `feedback_value`
-- store only extra dimensions in `feedback_payload`
-- bump `feedback_schema_version` when payload semantics change incompatibly
+```text
+previous day has training signal
+↓
+Telegram recovery prompt for target date
+↓
+callback: recovery:{user_id}:{target_date}:{score}
+↓
+upsert date-level row
+↓
+best-effort Telegram confirmation
+```
 
-## 9. Backward compatibility
+Prompt usefulness rules in MVP:
 
-The Telegram RPE flow remains unchanged:
+- previous day has `daily_training_load.tss > 0`
+- or previous day has `daily_training_load.activities_count > 0`
+- or activities exist in `strava_activity_raw` for that date
 
-- same inline buttons
-- same callback payload format: `rpe:{activity_id}:{score}`
-- same idempotent upsert key: (`strava_activity_id`, `feedback_type`)
-- same message edit confirmation behavior
+Example row shape:
 
-Older rows remain valid historical records.
-They receive additive defaults during migration and continue to satisfy existing queries against normalized fields.
+```json
+{
+  "strava_activity_id": null,
+  "activity_date": "2026-05-15",
+  "feedback_type": "next_day_recovery",
+  "feedback_value": "fresh",
+  "feedback_score": 4,
+  "source": "telegram",
+  "feedback_schema_version": "v1_extensible",
+  "feedback_payload": {
+    "target_date": "2026-05-15",
+    "previous_date": "2026-05-14",
+    "previous_training_load": 85.0,
+    "previous_activities_count": 2,
+    "linked_activity_ids": [17855535922, 17855535923]
+  },
+  "context_json": {
+    "snapshot_date": "2026-05-15",
+    "readiness_score": 58.0,
+    "recommendation": "endurance"
+  }
+}
+```
 
-## 10. Future extensibility
+MVP note:
 
-The schema and service layer are designed so additional feedback types can be added later, for example:
+- there is no morning scheduler yet
+- manual/debug prompt sending exists
+- scheduler design remains future work
 
-- `next_day_recovery`
-- `legs_freshness`
-- sport-specific post-session questions
-- source-aware ingestion beyond Telegram
+---
 
-These are not implemented yet.
+## 9. Architectural boundary
+
+The subjective feedback layer does not:
+
+- change load calculations
+- change recovery calculations
+- change readiness calculations
+- change recommendation logic in production
+
+It does:
+
+- record user-reported outcomes
+- preserve historical system context
+- create an evaluation dataset for future calibration work
+
+This boundary keeps Human Engine deterministic while making later validation possible.
+
+---
+
+## 10. Roadmap
+
+Possible next steps:
+
+- sport-specific second-tap feedback
+- morning recovery scheduler
+- iOS-native feedback collection
+- Strava subjective import if available
+- recommendation calibration
+- offline ML experiments using accumulated subjective feedback
+
+These are roadmap items, not current behavior.

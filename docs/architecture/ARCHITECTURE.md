@@ -268,6 +268,42 @@ iOS Today screen
 
 ---
 
+### 6.5 Evaluation / calibration layer (implemented as storage, not as model loop)
+
+Current table:
+
+- `activity_subjective_feedback`
+
+Role:
+
+- collect user-reported outcomes after training and recovery
+- preserve historical recommendation/readiness context at feedback time
+- support later validation and calibration work
+
+Properties:
+
+- does not modify deterministic load / recovery / readiness logic
+- supports both activity-level and date-level feedback
+- uses normalized fields for queries, extensible payload for type-specific context, and `context_json` for historical model snapshots
+- remains outside the core state calculation path
+
+High-level relationship:
+
+```text
+raw inputs -> derived state -> readiness -> recommendation
+                                  |
+                                  v
+                    subjective feedback / ground truth capture
+```
+
+This layer is intentionally append-only in meaning:
+
+- the system predicts first
+- the athlete reports outcome later
+- future calibration compares the two without rewriting the original state
+
+---
+
 ## 7. Observability
 
 Текущий backend использует structured JSON logging.

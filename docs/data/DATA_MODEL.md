@@ -283,15 +283,23 @@ Load model v2.
 
 ### 5.9 `activity_subjective_feedback`
 
-Субъективная обратная связь по конкретной активности.
+Слой user-reported subjective feedback.
 
-Источник:
+Назначение:
+
+- сохранить ground truth о том, как ощущалась тренировка
+- сохранить ground truth о том, как ощущалось восстановление на следующий день
+- отделить evaluation / calibration dataset от deterministic core calculations
+
+Источники:
 
 - Telegram callback после activity notification
+- Telegram callback после next-day recovery prompt
 
 Ключевые поля:
 
-- `strava_activity_id`
+- `user_id`
+- `strava_activity_id` nullable для date-level feedback
 - `activity_date`
 - `feedback_type`
 - `feedback_value`
@@ -301,17 +309,93 @@ Load model v2.
 - `feedback_payload`
 - `context_json`
 
+Feedback types:
+
+- `post_ride_rpe`
+- `next_day_recovery`
+
+Архитектурные слои внутри row:
+
+- normalized queryable fields:
+  - `feedback_type`
+  - `feedback_value`
+  - `feedback_score`
+  - `source`
+- extensible payload:
+  - `feedback_payload`
+- historical derived-state snapshot:
+  - `context_json`
+
+Семантика linkage:
+
+- activity-level feedback использует `strava_activity_id`
+- date-level feedback использует `activity_date` как canonical target
+- `strava_activity_id = null` для recovery feedback является intentional, а не missing reference
+
 Особенности:
 
-- normalized fields (`feedback_type`, `feedback_value`, `feedback_score`, `source`) остаются основным query surface
+- normalized fields остаются основным query surface
 - `feedback_payload` добавляет extensible JSON-слой и не заменяет нормализованную модель
 - новые записи пишутся с `feedback_schema_version = v1_extensible`
-- исторические записи backfill-ятся как `feedback_schema_version = v1`
-- текущий feedback type: `post_ride_rpe`
-- текущий source: `telegram`
-- `context_json` хранит historical snapshot readiness context
-- уникальность обеспечивается по `(strava_activity_id, feedback_type)`
+- `feedback_schema_version` version-ит payload semantics, а не базовые normalized поля
+- `context_json` хранит historical readiness / recommendation snapshot на момент feedback
+- snapshot хранится исторически, чтобы будущие model changes не переписывали observed past state
 
+Идемпотентность и уникальность:
+
+- activity-level уникальность обеспечивается partial unique index по `(strava_activity_id, feedback_type)` при `strava_activity_id is not null`
+- date-level уникальность обеспечивается partial unique index по `(user_id, activity_date, feedback_type)` при `strava_activity_id is null`
+
+Почему partial indexes:
+
+- activity-level и date-level feedback имеют разные natural keys
+- одна общая уникальность не покрывает обе модели безопасно
+- repeated Telegram taps должны обновлять canonical row, а не создавать дубликаты
+
+Пример activity-level row:
+
+```json
+{
+  "strava_activity_id": 17855535922,
+  "activity_date": "2026-05-14",
+  "feedback_type": "post_ride_rpe",
+  "feedback_value": "hard",
+  "feedback_score": 4,
+  "source": "telegram",
+  "feedback_schema_version": "v1_extensible",
+  "feedback_payload": {},
+  "context_json": {
+    "readiness_score": 63.5,
+    "recommendation": "moderate"
+  }
+}
+```
+
+Пример date-level row:
+
+```json
+{
+  "strava_activity_id": null,
+  "activity_date": "2026-05-15",
+  "feedback_type": "next_day_recovery",
+  "feedback_value": "fresh",
+  "feedback_score": 4,
+  "source": "telegram",
+  "feedback_schema_version": "v1_extensible",
+  "feedback_payload": {
+    "target_date": "2026-05-15",
+    "previous_date": "2026-05-14",
+    "previous_training_load": 85.0,
+    "previous_activities_count": 2,
+    "linked_activity_ids": [17855535922, 17855535923]
+  },
+  "context_json": {
+    "snapshot_date": "2026-05-15",
+    "readiness_score": 58.0,
+    "recommendation": "endurance"
+  }
+}
+```
 ---
 
 ## 6. Relationships

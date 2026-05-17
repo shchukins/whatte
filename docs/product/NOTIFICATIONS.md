@@ -2,24 +2,58 @@
 
 ## 1. Purpose
 
-Этот документ описывает текущие product-facing уведомления в Human Engine.
+Этот документ описывает текущую notification architecture в Human Engine.
 
-На текущем этапе основной реализованный notification flow:
+Цель notification layer:
+
+- доставить уже рассчитанное состояние пользователю
+- собрать low-friction subjective feedback
+- не вмешиваться в deterministic core calculations
+
+Текущие notification flows:
 
 - Daily Readiness Notification
 - Activity Processed Notification
-- Post-ride Telegram RPE request
+- Post-ride RPE prompt
+- Next-day recovery prompt
 
 ---
 
-## 2. Daily Readiness Notification
+## 2. Architectural role
 
-Daily Telegram notification строится на базе текущей Model V2 readiness architecture.
+Notification layer находится после deterministic state layers.
 
-Источник данных:
+Он:
 
-- `readiness_daily`
+- читает уже materialized readiness state
+- отправляет user-facing сообщения
+- собирает subjective feedback через Telegram callbacks
+
+Он не:
+
+- пересчитывает readiness
+- меняет recommendation logic
+- использует LLM для core messaging decisions
+
+High-level flow:
+
+```text
+raw inputs -> derived state -> readiness -> recommendation -> notification / feedback collection
+```
+
+---
+
+## 3. Daily readiness notification
+
+Daily Telegram notification строится на базе текущей readiness architecture.
+
+Source of truth:
+
+- `readiness_daily.readiness_score`
+- `readiness_daily.good_day_probability`
+- `readiness_daily.status_text`
 - `readiness_daily.explanation_json`
+- deterministic recommendation / briefing output
 
 Важно:
 
@@ -29,28 +63,16 @@ Daily Telegram notification строится на базе текущей Model 
 
 ---
 
-## 3. Message structure
+## 4. Daily readiness message style
 
-```text
-Human Engine · Today
+Текущее daily message должно быть:
 
-Готовность: X
-Статус: ...
-Вероятность хорошего дня: X%
+- коротким
+- explainable
+- rule-based
+- без перегрузки
 
-Свежесть: X
-Восстановление: X
-
-Восстановление:
-• Сон: X
-• HRV: X
-• Пульс покоя: X
-
-Комментарий:
-...
-```
-
-Сообщение включает:
+Сообщение обычно включает:
 
 - readiness score
 - status text
@@ -58,115 +80,189 @@ Human Engine · Today
 - freshness
 - recovery score
 - recovery breakdown
-- короткий комментарий
-
----
-
-## 4. Data source
-
-Основной источник:
-
-- `readiness_daily.readiness_score`
-- `readiness_daily.good_day_probability`
-- `readiness_daily.status_text`
-- `readiness_daily.explanation_json`
-
-Из `explanation_json` используются:
-
-- `freshness`
-- `recovery_score_simple`
-- `recovery_explanation.sleep_score`
-- `recovery_explanation.hrv_score`
-- `recovery_explanation.rhr_score`
-
----
-
-## 5. Comment style
-
-Комментарий в текущем backend:
-
-- короткий
-- rule-based
-- explainable
-- не использует LLM или скрытую логику
-
-Типовые случаи:
-
-- если breakdown недоступен, комментарий остается нейтральным
-- если самый слабый компонент recovery — сон, акцент делается на сне
-- если самый слабый компонент — HRV, акцент делается на incomplete recovery
-- если самый слабый компонент — resting HR, акцент делается на elevated resting HR
-- если freshness сильно отрицательный, отдельно отмечается накопленная усталость
-- если freshness и recovery оба хорошие, отдельно отмечается хороший день по состоянию
-
----
-
-## 6. Principles
-
-Notification message должен быть:
-
-- коротким
-- объяснимым
-- без перегрузки
-- ориентированным на пользователя
+- короткий deterministic комментарий
 
 Нельзя:
 
 - превращать сообщение в dump внутренних формул
-- показывать raw health data как основной текст, если уже есть score-level summary
+- показывать raw health data как основной текст
 - подменять readiness text генеративным слоем
 
 ---
 
-## 7. Fallback
+## 5. Subjective feedback collection philosophy
 
-Если `readiness_daily` недоступен:
+Telegram feedback prompts нужны для longitudinal subjective feedback collection.
 
-- backend может использовать более старый fallback summary
-- это fallback path, а не основной source of truth
+Принципы UX:
 
-Основной path:
+- feedback optional
+- low-friction
+- asynchronous
+- one message per prompt
+- one-tap answer в текущем MVP
+- максимум три taps как потолок для будущих flows
 
-- `readiness_daily` -> `explanation_json` -> Telegram message
+Почему это важно:
+
+- calibration требует много repeated observations
+- repeated observations требуют минимального friction
+- более короткий flow обычно ценнее, чем более богатая анкета
+
+Best-effort behavior:
+
+- feedback persistence приоритетнее Telegram UX confirmation
+- callback acknowledgement best-effort
+- message edit best-effort
+- Telegram error после DB write не должен ломать feedback persistence
 
 ---
 
-## 3. Activity Processed Notification
+## 6. Post-ride RPE prompt
 
-После успешной ingestion обработки Strava activity backend отправляет:
+После успешной обработки Strava activity backend отправляет:
 
-1. обычное сообщение об обработанной тренировке
-2. отдельное Telegram message с inline RPE buttons
+1. activity processed message
+2. отдельный Telegram prompt с inline RPE buttons
 
-Callback payload:
+Callback format:
 
 - `rpe:{activity_id}:{score}`
 
-Пример:
+Example:
 
 - `rpe:18403528422:4`
 
-Принципы:
+Semantics:
 
-- one-tap
-- asynchronous
-- idempotent
-- linked to `strava_activity_id`
-
----
-
-## 4. Post-ride feedback persistence
+- feedback type: `post_ride_rpe`
+- activity-level feedback
+- natural key: `strava_activity_id + feedback_type`
 
 После callback backend:
 
-- валидирует activity
+- валидирует activity и score
 - upsert-ит row в `activity_subjective_feedback`
-- сохраняет `source = telegram`
-- сохраняет historical readiness snapshot в `context_json`
-- редактирует Telegram message в краткое подтверждение
+- сохраняет normalized fields
+- сохраняет `feedback_schema_version = v1_extensible`
+- сохраняет optional `feedback_payload`
+- сохраняет historical context snapshot в `context_json`
+- best-effort подтверждает callback
+- best-effort редактирует message в краткое подтверждение
 
 Важно:
 
-- repeated button presses обновляют existing row
+- repeated taps обновляют canonical row
 - duplicate callbacks не создают дубликаты
-- feedback collection не меняет readiness calculation logic
+- feedback collection не меняет readiness logic
+
+---
+
+## 7. Next-day recovery prompt
+
+Next-day recovery prompt собирает delayed outcome после предыдущего training day.
+
+Почему этот signal важен:
+
+- immediate RPE описывает восприятие самой сессии
+- next-day recovery лучше отражает накопленный recovery effect
+- для readiness validation delayed recovery often provides stronger calibration signal
+
+Current MVP behavior:
+
+- prompt отправляется отдельно от post-ride RPE
+- scheduler пока не реализован
+- prompt можно отправить через backend service / debug endpoint
+
+Prompt usefulness conditions:
+
+- предыдущий день имеет `daily_training_load.tss > 0`
+- или предыдущий день имеет `daily_training_load.activities_count > 0`
+- или есть activities в `strava_activity_raw` за предыдущую дату
+
+Callback format:
+
+- `recovery:{user_id}:{target_date}:{score}`
+
+Semantics:
+
+- feedback type: `next_day_recovery`
+- date-level feedback
+- natural key: `user_id + activity_date + feedback_type` when `strava_activity_id is null`
+
+После callback backend:
+
+- валидирует `target_date` и score
+- upsert-ит row в `activity_subjective_feedback`
+- пишет `activity_date = target_date`
+- сохраняет previous-day linkage в `feedback_payload`
+- сохраняет historical readiness / recommendation snapshot в `context_json`, если доступно
+- best-effort подтверждает callback
+- best-effort редактирует message в `Recovery feedback recorded ✓`
+
+---
+
+## 8. Data rationale inside feedback flows
+
+Feedback rows intentionally separate three layers of information:
+
+Normalized fields:
+
+- `feedback_type`
+- `feedback_value`
+- `feedback_score`
+- `source`
+
+These support filtering, analytics, and stable queries.
+
+Extensible payload:
+
+- feedback-family-specific details
+- previous-day linkage
+- future optional dimensions
+
+Historical context snapshot:
+
+- readiness at feedback time
+- recommendation at feedback time
+- recovery breakdown at feedback time when available
+
+Почему snapshot важен:
+
+- later model changes should not rewrite past observations
+- calibration compares what the system predicted then versus what the athlete reported then
+- recommendation evaluation requires historical recommendation context, not current recomputed state
+
+---
+
+## 9. Manual testing / debug path
+
+Для ручной проверки recovery prompt используется:
+
+- `POST /debug/feedback/recovery-prompt/{user_id}/{target_date}`
+
+Expected response includes:
+
+- `ok`
+- `skipped`
+- `reason`
+- `user_id`
+- `target_date`
+- `previous_date`
+- `activities_count`
+- `previous_training_load`
+- `linked_activity_ids`
+
+---
+
+## 10. Future notification roadmap
+
+Возможные дальнейшие шаги:
+
+- morning recovery scheduler
+- sport-specific second-tap feedback
+- iOS-native subjective feedback collection
+- richer reminder policies
+- recommendation calibration loops based on accumulated feedback
+
+Это roadmap, а не текущая backend behavior.

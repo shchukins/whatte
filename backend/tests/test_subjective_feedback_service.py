@@ -6,8 +6,9 @@ from backend.services import subjective_feedback_service as feedback_service
 
 
 class _FakeCursor:
-    def __init__(self, fetchone_values=None) -> None:
+    def __init__(self, fetchone_values=None, fetchall_values=None) -> None:
         self.fetchone_values = list(fetchone_values or [])
+        self.fetchall_values = list(fetchall_values or [])
         self.execute_calls: list[tuple[str, tuple | None]] = []
 
     def __enter__(self):
@@ -23,6 +24,11 @@ class _FakeCursor:
         if not self.fetchone_values:
             return None
         return self.fetchone_values.pop(0)
+
+    def fetchall(self):
+        if not self.fetchall_values:
+            return []
+        return self.fetchall_values.pop(0)
 
 
 class _FakeConn:
@@ -49,6 +55,12 @@ def test_map_rpe_score_to_value():
     assert feedback_service.map_rpe_score_to_value(5) == "very_hard"
 
 
+def test_map_recovery_score_to_value():
+    assert feedback_service.map_recovery_score_to_value(1) == "exhausted"
+    assert feedback_service.map_recovery_score_to_value(3) == "okay"
+    assert feedback_service.map_recovery_score_to_value(5) == "very_fresh"
+
+
 def test_parse_rpe_callback_data_valid():
     parsed = feedback_service.parse_rpe_callback_data("rpe:18403528422:4")
 
@@ -67,6 +79,27 @@ def test_parse_rpe_callback_data_invalid_payload():
     assert feedback_service.parse_rpe_callback_data("oops") is None
 
 
+def test_parse_recovery_callback_data_valid():
+    parsed = feedback_service.parse_recovery_callback_data("recovery:user-1:2026-05-15:4")
+
+    assert parsed == {
+        "feedback_type": "next_day_recovery",
+        "user_id": "user-1",
+        "activity_id": None,
+        "target_date": "2026-05-15",
+        "score": 4,
+        "value": "fresh",
+        "source": "telegram",
+    }
+
+
+def test_parse_recovery_callback_data_invalid_payload():
+    assert feedback_service.parse_recovery_callback_data("recovery:user-1:2026-05-15:9") is None
+    assert feedback_service.parse_recovery_callback_data("recovery:user-1:not-a-date:3") is None
+    assert feedback_service.parse_recovery_callback_data("recovery::2026-05-15:3") is None
+    assert feedback_service.parse_recovery_callback_data("oops") is None
+
+
 def test_build_post_ride_rpe_keyboard_uses_expected_score_mapping():
     keyboard = feedback_service.build_post_ride_rpe_keyboard(42)
 
@@ -76,15 +109,28 @@ def test_build_post_ride_rpe_keyboard_uses_expected_score_mapping():
     assert keyboard["inline_keyboard"][-1][0]["callback_data"] == "rpe:42:5"
 
 
+def test_build_next_day_recovery_keyboard_uses_expected_score_mapping():
+    keyboard = feedback_service.build_next_day_recovery_keyboard("user-1", "2026-05-15")
+
+    assert keyboard["inline_keyboard"][0][0]["text"] == "😴 Exhausted"
+    assert keyboard["inline_keyboard"][0][0]["callback_data"] == "recovery:user-1:2026-05-15:1"
+    assert keyboard["inline_keyboard"][-1][0]["text"] == "🚀 Very fresh"
+    assert keyboard["inline_keyboard"][-1][0]["callback_data"] == "recovery:user-1:2026-05-15:5"
+
+
 def test_upsert_activity_subjective_feedback_inserts_with_context_snapshot(monkeypatch):
     user_cursor = _FakeCursor([("user-1",)])
     readiness_cursor = _FakeCursor(
         [
             (
+                "2026-05-14",
                 63.5,
+                0.72,
+                "Good",
                 {
                     "freshness": 4.2,
                     "recovery_score_simple": 71.0,
+                    "recovery_explanation": {"sleep_score": 74.0},
                 },
             )
         ]
@@ -104,10 +150,14 @@ def test_upsert_activity_subjective_feedback_inserts_with_context_snapshot(monke
                 "v1_extensible",
                 {},
                 {
+                    "snapshot_date": "2026-05-14",
                     "readiness_score": 63.5,
+                    "good_day_probability": 0.72,
+                    "status_text": "Good",
                     "recommendation": "moderate",
                     "freshness": 4.2,
                     "recovery_score": 71.0,
+                    "recovery_explanation": {"sleep_score": 74.0},
                 },
                 "2026-05-14T12:00:00Z",
                 "2026-05-14T12:00:00Z",
@@ -115,11 +165,7 @@ def test_upsert_activity_subjective_feedback_inserts_with_context_snapshot(monke
         ]
     )
 
-    user_conn = _FakeConn(user_cursor)
-    readiness_conn = _FakeConn(readiness_cursor)
-    write_conn = _FakeConn(write_cursor)
-    connections = iter([user_conn, readiness_conn, write_conn])
-
+    connections = iter([_FakeConn(user_cursor), _FakeConn(readiness_cursor), _FakeConn(write_cursor)])
     monkeypatch.setattr(feedback_service, "get_conn", lambda: next(connections))
 
     result = feedback_service.upsert_activity_subjective_feedback(
@@ -134,18 +180,18 @@ def test_upsert_activity_subjective_feedback_inserts_with_context_snapshot(monke
     assert result["feedback_schema_version"] == "v1_extensible"
     assert result["feedback_payload"] == {}
     assert result["context"] == {
+        "snapshot_date": "2026-05-14",
         "readiness_score": 63.5,
+        "good_day_probability": 0.72,
+        "status_text": "Good",
         "recommendation": "moderate",
         "freshness": 4.2,
         "recovery_score": 71.0,
+        "recovery_explanation": {"sleep_score": 74.0},
     }
-    assert write_conn.committed is True
     assert write_cursor.execute_calls[1][1][7] == "v1_extensible"
     assert write_cursor.execute_calls[1][1][8] == "{}"
-    assert (
-        write_cursor.execute_calls[1][1][9]
-        == '{"readiness_score": 63.5, "recommendation": "moderate", "freshness": 4.2, "recovery_score": 71.0}'
-    )
+    assert '"snapshot_date": "2026-05-14"' in write_cursor.execute_calls[1][1][9]
 
 
 def test_upsert_activity_subjective_feedback_persists_payload_and_activity_date(monkeypatch):
@@ -153,7 +199,10 @@ def test_upsert_activity_subjective_feedback_persists_payload_and_activity_date(
     readiness_cursor = _FakeCursor(
         [
             (
+                "2026-05-14",
                 52.0,
+                0.51,
+                "Normal",
                 {
                     "freshness": 1.5,
                     "recovery_score_simple": 66.0,
@@ -176,10 +225,14 @@ def test_upsert_activity_subjective_feedback_persists_payload_and_activity_date(
                 "v1_extensible",
                 {"legs_fatigue": 2, "motivation": 4},
                 {
+                    "snapshot_date": "2026-05-14",
                     "readiness_score": 52.0,
+                    "good_day_probability": 0.51,
+                    "status_text": "Normal",
                     "recommendation": "endurance",
                     "freshness": 1.5,
                     "recovery_score": 66.0,
+                    "recovery_explanation": None,
                 },
                 "2026-05-14T12:00:00Z",
                 "2026-05-14T12:00:00Z",
@@ -209,7 +262,10 @@ def test_upsert_activity_subjective_feedback_updates_existing_row(monkeypatch):
     readiness_cursor = _FakeCursor(
         [
             (
+                "2026-05-14",
                 48.0,
+                0.42,
+                "Load",
                 {
                     "freshness": -1.0,
                     "recovery_score_simple": 62.0,
@@ -232,10 +288,14 @@ def test_upsert_activity_subjective_feedback_updates_existing_row(monkeypatch):
                 "v1_extensible",
                 {},
                 {
+                    "snapshot_date": "2026-05-14",
                     "readiness_score": 48.0,
+                    "good_day_probability": 0.42,
+                    "status_text": "Load",
                     "recommendation": "endurance",
                     "freshness": -1.0,
                     "recovery_score": 62.0,
+                    "recovery_explanation": None,
                 },
                 "2026-05-14T12:00:00Z",
                 "2026-05-14T12:05:00Z",
@@ -256,6 +316,207 @@ def test_upsert_activity_subjective_feedback_updates_existing_row(monkeypatch):
     assert result["feedback_score"] == 2
     assert result["feedback_schema_version"] == "v1_extensible"
     assert result["feedback_payload"] == {}
+
+
+def test_upsert_next_day_recovery_feedback_uses_date_level_uniqueness(monkeypatch):
+    load_cursor = _FakeCursor(fetchone_values=[(2, 85.0)], fetchall_values=[[(17855535922,), (17855535923,)]])
+    readiness_cursor = _FakeCursor(
+        [
+            (
+                "2026-05-15",
+                58.0,
+                0.63,
+                "Normal",
+                {
+                    "freshness": 2.0,
+                    "recovery_score_simple": 68.0,
+                    "recovery_explanation": {"hrv_score": 61.0},
+                },
+            )
+        ]
+    )
+    write_cursor = _FakeCursor(
+        [
+            None,
+            (
+                19,
+                "user-1",
+                None,
+                "2026-05-15",
+                "next_day_recovery",
+                "fresh",
+                4,
+                "telegram",
+                "v1_extensible",
+                {
+                    "target_date": "2026-05-15",
+                    "previous_date": "2026-05-14",
+                    "previous_training_load": 85.0,
+                    "previous_activities_count": 2,
+                    "linked_activity_ids": [17855535922, 17855535923],
+                },
+                {
+                    "snapshot_date": "2026-05-15",
+                    "readiness_score": 58.0,
+                    "good_day_probability": 0.63,
+                    "status_text": "Normal",
+                    "recommendation": "endurance",
+                    "freshness": 2.0,
+                    "recovery_score": 68.0,
+                    "recovery_explanation": {"hrv_score": 61.0},
+                    "target_date": "2026-05-15",
+                    "previous_date": "2026-05-14",
+                    "previous_training_load": 85.0,
+                    "previous_activities_count": 2,
+                    "linked_activity_ids": [17855535922, 17855535923],
+                },
+                "2026-05-15T08:00:00Z",
+                "2026-05-15T08:00:00Z",
+            ),
+        ]
+    )
+
+    connections = iter([_FakeConn(load_cursor), _FakeConn(readiness_cursor), _FakeConn(write_cursor)])
+    monkeypatch.setattr(feedback_service, "get_conn", lambda: next(connections))
+
+    result = feedback_service.upsert_next_day_recovery_feedback(
+        user_id="user-1",
+        target_date="2026-05-15",
+        score=4,
+    )
+
+    assert result["was_update"] is False
+    assert result["activity_id"] is None
+    assert result["activity_date"] == "2026-05-15"
+    assert result["feedback_type"] == "next_day_recovery"
+    assert result["feedback_value"] == "fresh"
+    assert result["feedback_payload"]["linked_activity_ids"] == [17855535922, 17855535923]
+    assert write_cursor.execute_calls[0][1] == ("user-1", "2026-05-15", "next_day_recovery")
+
+
+def test_upsert_next_day_recovery_feedback_updates_existing_row(monkeypatch):
+    load_cursor = _FakeCursor(fetchone_values=[(1, 42.0)], fetchall_values=[[(17855535922,)]])
+    readiness_cursor = _FakeCursor(
+        [
+            (
+                "2026-05-15",
+                61.0,
+                0.68,
+                "Good",
+                {
+                    "freshness": 3.5,
+                    "recovery_score_simple": 72.0,
+                },
+            )
+        ]
+    )
+    write_cursor = _FakeCursor(
+        [
+            (55,),
+            (
+                55,
+                "user-1",
+                None,
+                "2026-05-15",
+                "next_day_recovery",
+                "very_fresh",
+                5,
+                "telegram",
+                "v1_extensible",
+                {
+                    "target_date": "2026-05-15",
+                    "previous_date": "2026-05-14",
+                    "previous_training_load": 42.0,
+                    "previous_activities_count": 1,
+                    "linked_activity_ids": [17855535922],
+                },
+                {
+                    "snapshot_date": "2026-05-15",
+                    "readiness_score": 61.0,
+                    "good_day_probability": 0.68,
+                    "status_text": "Good",
+                    "recommendation": "moderate",
+                    "freshness": 3.5,
+                    "recovery_score": 72.0,
+                    "recovery_explanation": None,
+                    "target_date": "2026-05-15",
+                    "previous_date": "2026-05-14",
+                    "previous_training_load": 42.0,
+                    "previous_activities_count": 1,
+                    "linked_activity_ids": [17855535922],
+                },
+                "2026-05-15T08:00:00Z",
+                "2026-05-15T08:05:00Z",
+            ),
+        ]
+    )
+
+    connections = iter([_FakeConn(load_cursor), _FakeConn(readiness_cursor), _FakeConn(write_cursor)])
+    monkeypatch.setattr(feedback_service, "get_conn", lambda: next(connections))
+
+    result = feedback_service.upsert_next_day_recovery_feedback(
+        user_id="user-1",
+        target_date="2026-05-15",
+        score=5,
+    )
+
+    assert result["was_update"] is True
+    assert result["feedback_value"] == "very_fresh"
+    assert result["feedback_score"] == 5
+
+
+def test_send_next_day_recovery_prompt_skips_when_previous_day_has_no_training(monkeypatch):
+    load_cursor = _FakeCursor(fetchone_values=[None], fetchall_values=[[]])
+    monkeypatch.setattr(feedback_service, "get_conn", lambda: _FakeConn(load_cursor))
+
+    send_calls = []
+    monkeypatch.setattr(
+        feedback_service,
+        "send_telegram_message",
+        lambda text, reply_markup=None: send_calls.append((text, reply_markup)),
+    )
+
+    result = feedback_service.send_next_day_recovery_prompt("user-1", "2026-05-15")
+
+    assert result == {
+        "ok": True,
+        "skipped": True,
+        "reason": "no_previous_training_day",
+        "user_id": "user-1",
+        "target_date": "2026-05-15",
+        "previous_date": "2026-05-14",
+        "activities_count": 0,
+        "previous_training_load": 0.0,
+        "linked_activity_ids": [],
+        "has_training": False,
+    }
+    assert send_calls == []
+
+
+def test_send_next_day_recovery_prompt_sends_when_previous_day_has_training(monkeypatch):
+    load_cursor = _FakeCursor(fetchone_values=[(1, 47.0)], fetchall_values=[[(17855535922,)]])
+    monkeypatch.setattr(feedback_service, "get_conn", lambda: _FakeConn(load_cursor))
+
+    send_calls = []
+    monkeypatch.setattr(
+        feedback_service,
+        "send_telegram_message",
+        lambda text, reply_markup=None: send_calls.append((text, reply_markup)),
+    )
+
+    result = feedback_service.send_next_day_recovery_prompt("user-1", "2026-05-15")
+
+    assert result["ok"] is True
+    assert result["skipped"] is False
+    assert result["reason"] is None
+    assert result["activities_count"] == 1
+    assert result["previous_training_load"] == 47.0
+    assert send_calls == [
+        (
+            "Human Engine\n\nHow recovered do you feel today?\n\nThis helps calibrate readiness after yesterday's training.",
+            feedback_service.build_next_day_recovery_keyboard("user-1", "2026-05-15"),
+        )
+    ]
 
 
 def test_handle_telegram_feedback_callback_rejects_invalid_payload(monkeypatch):
@@ -353,7 +614,85 @@ def test_handle_telegram_feedback_callback_best_effort_when_telegram_ack_fails(m
                 "callback_query_id": "fake-callback",
                 "ack_text": "Feedback recorded.",
                 "activity_id": 17855535922,
+                "user_id": "user-1",
+                "activity_date": None,
                 "feedback_type": "post_ride_rpe",
+                "source": "telegram",
+            },
+        )
+    ]
+
+
+def test_handle_telegram_recovery_callback_best_effort_when_telegram_edit_fails(monkeypatch):
+    logged_events: list[tuple[str, dict]] = []
+    callback_answers: list[tuple[str, str | None]] = []
+
+    monkeypatch.setattr(
+        feedback_service,
+        "upsert_next_day_recovery_feedback",
+        lambda **kwargs: {
+            "id": 8,
+            "user_id": kwargs["user_id"],
+            "activity_id": None,
+            "activity_date": kwargs["target_date"],
+            "feedback_type": "next_day_recovery",
+            "feedback_value": "fresh",
+            "feedback_score": kwargs["score"],
+            "source": kwargs["source"],
+            "feedback_schema_version": "v1_extensible",
+            "feedback_payload": {},
+            "context": {"readiness_score": 60.0},
+            "created_at": "2026-05-15T08:00:00Z",
+            "updated_at": "2026-05-15T08:00:01Z",
+            "was_update": False,
+        },
+    )
+    monkeypatch.setattr(
+        feedback_service,
+        "log_event",
+        lambda logger, event, **kwargs: logged_events.append((event, kwargs)),
+    )
+    monkeypatch.setattr(
+        feedback_service,
+        "answer_telegram_callback",
+        lambda callback_query_id, text=None: callback_answers.append((callback_query_id, text)),
+    )
+
+    def raise_http_error(*args, **kwargs):
+        response = requests.Response()
+        response.status_code = 400
+        raise requests.HTTPError("telegram bad request", response=response)
+
+    monkeypatch.setattr(feedback_service, "edit_telegram_message", raise_http_error)
+
+    result = feedback_service.handle_telegram_feedback_callback(
+        {
+            "callback_query": {
+                "id": "recovery-callback",
+                "data": "recovery:user-1:2026-05-15:4",
+                "message": {
+                    "message_id": 88,
+                    "chat": {"id": 9001},
+                },
+            }
+        }
+    )
+
+    assert result["ok"] is True
+    assert result["activity_date"] == "2026-05-15"
+    assert callback_answers == [("recovery-callback", "Feedback recorded.")]
+    assert logged_events == [
+        (
+            "telegram_feedback_message_edit_failed",
+            {
+                "level": 30,
+                "chat_id": 9001,
+                "message_id": 88,
+                "message_text": "Recovery feedback recorded ✓",
+                "activity_id": None,
+                "user_id": "user-1",
+                "activity_date": "2026-05-15",
+                "feedback_type": "next_day_recovery",
                 "source": "telegram",
             },
         )
@@ -437,3 +776,39 @@ def test_telegram_webhook_endpoint_routes_callback_updates(monkeypatch):
 
     assert response.status_code == 200
     assert response.json() == {"ok": True, "activity_id": 42}
+
+
+def test_debug_recovery_prompt_endpoint_returns_service_payload(monkeypatch):
+    monkeypatch.setattr(
+        app_module,
+        "send_next_day_recovery_prompt",
+        lambda user_id, recovery_date: {
+            "ok": True,
+            "skipped": False,
+            "reason": None,
+            "user_id": user_id,
+            "target_date": recovery_date,
+            "previous_date": "2026-05-14",
+            "activities_count": 1,
+            "previous_training_load": 47.0,
+            "linked_activity_ids": [17855535922],
+            "has_training": True,
+        },
+    )
+
+    client = TestClient(app_module.app)
+    response = client.post("/debug/feedback/recovery-prompt/user-1/2026-05-15")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "ok": True,
+        "skipped": False,
+        "reason": None,
+        "user_id": "user-1",
+        "target_date": "2026-05-15",
+        "previous_date": "2026-05-14",
+        "activities_count": 1,
+        "previous_training_load": 47.0,
+        "linked_activity_ids": [17855535922],
+        "has_training": True,
+    }
