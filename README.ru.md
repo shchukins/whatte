@@ -7,6 +7,9 @@
   <img src="https://img.shields.io/badge/лицензия-MIT-yellow" />
   <img src="https://img.shields.io/badge/интеграция-Strava-FC4C02" />
   <img src="https://img.shields.io/badge/iOS-HealthKit-black" />
+  <a href="https://t.me/humanengine_lab">
+    <img src="https://img.shields.io/badge/Telegram-Канал-2CA5E0?logo=telegram" />
+  </a>
 </p>
 
 <p align="center">
@@ -107,3 +110,9 @@ Strava + Apple Health
 - [Продуктовые сценарии](docs/product/SCENARIOS.md)
 - [Backend](backend/README.md)
 - [Contributing](CONTRIBUTING.md)
+
+---
+
+## Поддержка
+
+Human Engine — независимый open-source проект. Инфраструктура и разработка финансируются самостоятельно — если хочешь помочь, буду рад [Telegram Stars](https://t.me/humanengine_lab).
