@@ -3,10 +3,13 @@
 [Русская версия](README.ru.md)
 
 <p align="center">
-  <img src="https://img.shields.io/badge/status-active%20prototype-blue" />
-  <img src="https://img.shields.io/badge/license-MIT-yellow" />
-  <img src="https://img.shields.io/badge/integration-Strava-FC4C02" />
+  <img src="https://img.shields.io/badge/статус-активный%20прототип-blue" />
+  <img src="https://img.shields.io/badge/лицензия-MIT-yellow" />
+  <img src="https://img.shields.io/badge/интеграция-Strava-FC4C02" />
   <img src="https://img.shields.io/badge/iOS-HealthKit-black" />
+  <a href="https://t.me/humanengine_lab">
+    <img src="https://img.shields.io/badge/Telegram-Human%20Engine-2CA5E0?logo=telegram" />
+  </a>
 </p>
 
 <p align="center">
@@ -85,4 +88,4 @@ Active prototype. Core pipeline is working end-to-end — readiness is computed 
 
 ## Support
 
-Human Engine is an independent open-source project. If you'd like to support infrastructure and development, you can support via Telegram Stars
+Human Engine is an independent open-source project. Infrastructure and development are self-funded — if you'd like to help, Telegram Stars are welcome.
