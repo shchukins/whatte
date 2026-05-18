@@ -82,3 +82,7 @@ Active prototype. Core pipeline is working end-to-end — readiness is computed 
 - [Product scenarios](docs/product/SCENARIOS.md)
 - [Backend](backend/README.md)
 - [Contributing](CONTRIBUTING.md)
+
+## Support
+
+Human Engine is an independent open-source project. If you'd like to support infrastructure and development, you can support via Telegram Stars
