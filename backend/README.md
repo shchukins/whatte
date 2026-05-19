@@ -58,6 +58,7 @@ FastAPI + PostgreSQL
 
 - webhook endpoint
 - Telegram callback endpoint for inline post-ride and next-day recovery feedback
+- worker-driven scheduled next-day recovery prompt orchestration
 - raw storage
 - ingest jobs
 - загрузка активностей
@@ -430,3 +431,20 @@ API:
 
 - `http://localhost:8000`
 - health check: `http://localhost:8000/healthz`
+
+
+## Scheduled next-day recovery prompt
+
+The backend worker now schedules next-day recovery prompts once the current UTC hour matches `NEXT_DAY_RECOVERY_PROMPT_HOUR_UTC` (default `7`).
+
+Current V1 behavior:
+
+- looks at the previous UTC day for training load or activities
+- skips users who already submitted `next_day_recovery` feedback for the target date
+- persists delivery state in `subjective_feedback_prompt_log`
+- prevents duplicate sends across repeated worker loops
+- keeps the single-user debug endpoint and adds a batch debug endpoint at `POST /debug/feedback/recovery-prompts/{target_date}`
+
+Current limitation:
+
+- scheduling is UTC-based because per-user timezone orchestration is not implemented yet

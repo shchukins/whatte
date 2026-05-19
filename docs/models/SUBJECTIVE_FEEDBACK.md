@@ -11,6 +11,7 @@ Current scope:
 - post-ride RPE feedback
 - next-day recovery feedback
 - Telegram-based low-friction collection
+- automatic scheduled next-day recovery prompt orchestration
 - normalized queryable fields plus extensible payloads
 - historical context snapshots for later calibration work
 
@@ -153,6 +154,28 @@ Operational fields:
 
 - `created_at`
 - `updated_at`
+
+Prompt delivery table:
+
+- `subjective_feedback_prompt_log`
+
+Prompt delivery fields:
+
+- `user_id`
+- `prompt_type`
+- `target_date`
+- `sent_at`
+- `source`
+- `delivery_status`
+- `telegram_message_id`
+- `created_at`
+- `updated_at`
+
+Why a separate prompt log exists:
+
+- delivery orchestration has a different lifecycle than the feedback answer row
+- prompt idempotency must be persisted even before a callback arrives
+- callback rows should remain outcome data, while prompt rows remain transport/orchestration data
 
 ### 4.1 Activity-level vs date-level semantics
 
@@ -430,3 +453,29 @@ Possible next steps:
 - offline ML experiments using accumulated subjective feedback
 
 These are roadmap items, not current behavior.
+
+## 6. Next-day recovery scheduling
+
+The backend now owns automated next-day recovery prompt scheduling.
+
+Current V1 flow:
+
+1. the worker checks once per loop whether the current UTC hour matches `NEXT_DAY_RECOVERY_PROMPT_HOUR_UTC`
+2. target date is the current UTC date
+3. candidate users are discovered from the previous day via `daily_training_load` and `strava_activity_raw`
+4. backend skips users who already have `next_day_recovery` feedback for the target date
+5. backend claims a prompt-log row in `subjective_feedback_prompt_log` before sending Telegram
+6. successful delivery updates the same row to `delivery_status = sent` and stores `telegram_message_id` when available
+7. repeated scheduler runs stay idempotent because the prompt-log natural key is `(user_id, prompt_type, target_date)`
+
+Skip reasons currently include:
+
+- `no_previous_training_day`
+- `feedback_already_exists`
+- `prompt_already_sent`
+- `prompt_delivery_in_progress`
+
+Current limitation:
+
+- scheduling is UTC-based, not per-user timezone-based yet
+- this is intentional for V1 because user timezone orchestration is not yet modeled consistently across the backend

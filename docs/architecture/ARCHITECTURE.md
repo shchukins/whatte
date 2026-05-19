@@ -111,6 +111,23 @@ PostgreSQL.
 
 ---
 
+### 4.4 Notification and feedback orchestration
+
+Backend-owned orchestration now also covers Telegram feedback collection workflows.
+
+Current responsibilities:
+
+- daily readiness delivery
+- post-ride RPE prompt delivery
+- scheduled next-day recovery prompt delivery
+- callback ingestion for subjective feedback
+- prompt idempotency and delivery logging
+
+Important boundary:
+
+- orchestration decides when to send already-defined prompts
+- deterministic readiness and recovery calculations remain upstream and unchanged
+
 ## 5. Current data pipelines
 
 ### 5.1 Strava pipeline
@@ -450,3 +467,25 @@ LoadState + RecoveryState -> Readiness -> GoodDayProbability
 
 - либо он лишний
 - либо архитектура нарушена
+
+## 9. Recovery prompt scheduling flow
+
+```text
+worker loop
+↓
+UTC hour gate (`NEXT_DAY_RECOVERY_PROMPT_HOUR_UTC`)
+↓
+candidate users from previous-day load/activity
+↓
+feedback exists? -> skip
+↓
+prompt log claim in `subjective_feedback_prompt_log`
+↓
+Telegram send
+↓
+prompt log update (`sent` / `failed`)
+↓
+Telegram callback -> `activity_subjective_feedback` upsert
+```
+
+This keeps orchestration state separate from the deterministic model state and from the eventual subjective outcome row.

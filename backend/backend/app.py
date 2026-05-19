@@ -50,6 +50,7 @@ from backend.services.decision_engine import build_readiness_briefing
 from backend.services.activity_load_service import resolve_activity_load
 from backend.services.subjective_feedback_service import (
     handle_telegram_feedback_callback,
+    schedule_next_day_recovery_prompts,
     send_next_day_recovery_prompt,
 )
 
@@ -1387,6 +1388,18 @@ def debug_send_recovery_prompt(user_id: str, target_date: str):
         raise HTTPException(status_code=502, detail=f"telegram error: {e}")
     except psycopg.Error as e:
         raise HTTPException(status_code=500, detail=f"db error: {e}")
+
+@app.post("/debug/feedback/recovery-prompts/{target_date}")
+def debug_schedule_recovery_prompts(target_date: str):
+    try:
+        return schedule_next_day_recovery_prompts(target_date=target_date, source="debug")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"invalid date: {e}")
+    except requests.RequestException as e:
+        raise HTTPException(status_code=502, detail=f"telegram error: {e}")
+    except psycopg.Error as e:
+        raise HTTPException(status_code=500, detail=f"db error: {e}")
+
 
 @app.post("/api/v1/healthkit/ingest/{user_id}", response_model=HealthIngestResponse)
 def ingest_healthkit_payload(user_id: str, payload: HealthSyncPayload):

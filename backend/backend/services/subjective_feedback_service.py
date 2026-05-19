@@ -23,6 +23,12 @@ FEEDBACK_TYPE_POST_RIDE_RPE = "post_ride_rpe"
 FEEDBACK_TYPE_NEXT_DAY_RECOVERY = "next_day_recovery"
 FEEDBACK_SOURCE_TELEGRAM = "telegram"
 FEEDBACK_SCHEMA_VERSION_EXTENSIBLE = "v1_extensible"
+PROMPT_TYPE_NEXT_DAY_RECOVERY = "next_day_recovery"
+PROMPT_SOURCE_SCHEDULER = "scheduler"
+PROMPT_SOURCE_DEBUG = "debug"
+PROMPT_STATUS_PENDING = "pending"
+PROMPT_STATUS_SENT = "sent"
+PROMPT_STATUS_FAILED = "failed"
 RPE_CALLBACK_PREFIX = "rpe"
 RECOVERY_CALLBACK_PREFIX = "recovery"
 RPE_CONFIRMATION_TEXT = "Feedback recorded ✓"
@@ -429,6 +435,214 @@ def _build_feedback_row_result(row: tuple[Any, ...], *, was_update: bool) -> dic
     }
 
 
+def _build_prompt_log_result(row: tuple[Any, ...]) -> dict[str, Any]:
+    return {
+        "id": row[0],
+        "user_id": row[1],
+        "prompt_type": row[2],
+        "target_date": row[3],
+        "sent_at": row[4],
+        "source": row[5],
+        "delivery_status": row[6],
+        "telegram_message_id": row[7],
+        "created_at": row[8],
+        "updated_at": row[9],
+    }
+
+
+def has_next_day_recovery_feedback(user_id: str, target_date: str | date) -> bool:
+    normalized_target_date = _coerce_iso_date(target_date)
+
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                select 1
+                from activity_subjective_feedback
+                where user_id = %s
+                  and activity_date = %s
+                  and feedback_type = %s
+                  and strava_activity_id is null
+                limit 1;
+                """,
+                (user_id, normalized_target_date, FEEDBACK_TYPE_NEXT_DAY_RECOVERY),
+            )
+            row = cur.fetchone()
+
+    return row is not None
+
+
+def get_recovery_prompt_log(user_id: str, target_date: str | date) -> dict[str, Any] | None:
+    normalized_target_date = _coerce_iso_date(target_date)
+
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                select
+                    id,
+                    user_id,
+                    prompt_type,
+                    target_date,
+                    sent_at,
+                    source,
+                    delivery_status,
+                    telegram_message_id,
+                    created_at,
+                    updated_at
+                from subjective_feedback_prompt_log
+                where user_id = %s
+                  and prompt_type = %s
+                  and target_date = %s
+                limit 1;
+                """,
+                (user_id, PROMPT_TYPE_NEXT_DAY_RECOVERY, normalized_target_date),
+            )
+            row = cur.fetchone()
+
+    if row is None:
+        return None
+
+    return _build_prompt_log_result(row)
+
+
+def _claim_recovery_prompt_delivery(
+    *,
+    user_id: str,
+    target_date: str | date,
+    source: str,
+) -> dict[str, Any] | None:
+    normalized_target_date = _coerce_iso_date(target_date)
+
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                insert into subjective_feedback_prompt_log (
+                    user_id,
+                    prompt_type,
+                    target_date,
+                    source,
+                    delivery_status
+                )
+                values (
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    %s
+                )
+                on conflict (user_id, prompt_type, target_date) do nothing
+                returning
+                    id,
+                    user_id,
+                    prompt_type,
+                    target_date,
+                    sent_at,
+                    source,
+                    delivery_status,
+                    telegram_message_id,
+                    created_at,
+                    updated_at;
+                """,
+                (
+                    user_id,
+                    PROMPT_TYPE_NEXT_DAY_RECOVERY,
+                    normalized_target_date,
+                    source,
+                    PROMPT_STATUS_PENDING,
+                ),
+            )
+            row = cur.fetchone()
+
+            if row is None:
+                cur.execute(
+                    """
+                    update subjective_feedback_prompt_log
+                    set
+                        source = %s,
+                        delivery_status = %s,
+                        sent_at = null,
+                        telegram_message_id = null,
+                        updated_at = now()
+                    where user_id = %s
+                      and prompt_type = %s
+                      and target_date = %s
+                      and delivery_status = %s
+                    returning
+                        id,
+                        user_id,
+                        prompt_type,
+                        target_date,
+                        sent_at,
+                        source,
+                        delivery_status,
+                        telegram_message_id,
+                        created_at,
+                        updated_at;
+                    """,
+                    (
+                        source,
+                        PROMPT_STATUS_PENDING,
+                        user_id,
+                        PROMPT_TYPE_NEXT_DAY_RECOVERY,
+                        normalized_target_date,
+                        PROMPT_STATUS_FAILED,
+                    ),
+                )
+                row = cur.fetchone()
+
+            conn.commit()
+
+    if row is None:
+        return None
+
+    return _build_prompt_log_result(row)
+
+
+def _mark_prompt_delivery_result(
+    *,
+    prompt_log_id: int,
+    delivery_status: str,
+    telegram_message_id: int | None = None,
+) -> dict[str, Any]:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                update subjective_feedback_prompt_log
+                set
+                    delivery_status = %s,
+                    sent_at = case when %s = %s then now() else sent_at end,
+                    telegram_message_id = %s,
+                    updated_at = now()
+                where id = %s
+                returning
+                    id,
+                    user_id,
+                    prompt_type,
+                    target_date,
+                    sent_at,
+                    source,
+                    delivery_status,
+                    telegram_message_id,
+                    created_at,
+                    updated_at;
+                """,
+                (
+                    delivery_status,
+                    delivery_status,
+                    PROMPT_STATUS_SENT,
+                    telegram_message_id,
+                    prompt_log_id,
+                ),
+            )
+            row = cur.fetchone()
+            conn.commit()
+
+    return _build_prompt_log_result(row)
+
+
 def upsert_subjective_feedback(
     *,
     user_id: str,
@@ -687,27 +901,234 @@ def upsert_next_day_recovery_feedback(
 
 
 def send_next_day_recovery_prompt(user_id: str, recovery_date: str | date) -> dict[str, Any]:
+    return deliver_next_day_recovery_prompt(
+        user_id=user_id,
+        recovery_date=recovery_date,
+        source=PROMPT_SOURCE_DEBUG,
+    )
+
+
+def deliver_next_day_recovery_prompt(
+    *,
+    user_id: str,
+    recovery_date: str | date,
+    source: str = PROMPT_SOURCE_SCHEDULER,
+) -> dict[str, Any]:
     recovery_context = _load_recovery_prompt_context(user_id, recovery_date)
 
     if not recovery_context["has_training"]:
-        return {
+        result = {
             "ok": True,
             "skipped": True,
             "reason": "no_previous_training_day",
+            "prompt_log": None,
             **recovery_context,
         }
+        log_event(logger, "recovery_prompt_skipped", reason=result["reason"], **recovery_context)
+        return result
 
-    send_telegram_message(
-        build_next_day_recovery_message(),
-        reply_markup=build_next_day_recovery_keyboard(user_id, recovery_context["target_date"]),
+    if has_next_day_recovery_feedback(user_id, recovery_context["target_date"]):
+        result = {
+            "ok": True,
+            "skipped": True,
+            "reason": "feedback_already_exists",
+            "prompt_log": None,
+            **recovery_context,
+        }
+        log_event(logger, "recovery_prompt_skipped", reason=result["reason"], **recovery_context)
+        return result
+
+    prompt_log = _claim_recovery_prompt_delivery(
+        user_id=user_id,
+        target_date=recovery_context["target_date"],
+        source=source,
     )
+    if prompt_log is None:
+        existing_prompt_log = get_recovery_prompt_log(user_id, recovery_context["target_date"])
+        reason = "prompt_already_sent"
+        if existing_prompt_log and existing_prompt_log["delivery_status"] == PROMPT_STATUS_PENDING:
+            reason = "prompt_delivery_in_progress"
+        result = {
+            "ok": True,
+            "skipped": True,
+            "reason": reason,
+            "prompt_log": existing_prompt_log,
+            **recovery_context,
+        }
+        log_event(logger, "recovery_prompt_skipped", reason=reason, **recovery_context)
+        return result
 
-    return {
+    telegram_response = None
+    try:
+        telegram_response = send_telegram_message(
+            build_next_day_recovery_message(),
+            reply_markup=build_next_day_recovery_keyboard(user_id, recovery_context["target_date"]),
+        )
+    except requests.RequestException:
+        failed_prompt_log = _mark_prompt_delivery_result(
+            prompt_log_id=prompt_log["id"],
+            delivery_status=PROMPT_STATUS_FAILED,
+        )
+        log_event(
+            logger,
+            "recovery_prompt_delivery_failed",
+            level=logging.ERROR,
+            source=source,
+            prompt_log_id=failed_prompt_log["id"],
+            **recovery_context,
+        )
+        raise
+
+    telegram_message_id = None
+    if isinstance(telegram_response, dict):
+        result_payload = telegram_response.get("result") or {}
+        if isinstance(result_payload, dict):
+            telegram_message_id = result_payload.get("message_id")
+
+    if telegram_response is None:
+        final_prompt_log = _mark_prompt_delivery_result(
+            prompt_log_id=prompt_log["id"],
+            delivery_status=PROMPT_STATUS_FAILED,
+        )
+        result = {
+            "ok": False,
+            "skipped": False,
+            "reason": "telegram_not_configured",
+            "prompt_log": final_prompt_log,
+            **recovery_context,
+        }
+        log_event(
+            logger,
+            "recovery_prompt_delivery_failed",
+            level=logging.ERROR,
+            source=source,
+            reason=result["reason"],
+            prompt_log_id=final_prompt_log["id"],
+            **recovery_context,
+        )
+        return result
+
+    final_prompt_log = _mark_prompt_delivery_result(
+        prompt_log_id=prompt_log["id"],
+        delivery_status=PROMPT_STATUS_SENT,
+        telegram_message_id=telegram_message_id,
+    )
+    result = {
         "ok": True,
         "skipped": False,
         "reason": None,
+        "prompt_log": final_prompt_log,
         **recovery_context,
     }
+    log_event(
+        logger,
+        "recovery_prompt_sent",
+        source=source,
+        prompt_log_id=final_prompt_log["id"],
+        telegram_message_id=telegram_message_id,
+        **recovery_context,
+    )
+    return result
+
+
+def list_recovery_prompt_candidate_users(target_date: str | date) -> list[str]:
+    recovery_day = _coerce_iso_date(target_date)
+    previous_day = recovery_day - timedelta(days=1)
+
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                with candidate_users as (
+                    select distinct user_id
+                    from daily_training_load
+                    where date = %s
+                      and (
+                        coalesce(activities_count, 0) > 0
+                        or coalesce(tss, 0) > 0
+                      )
+                    union
+                    select distinct user_id
+                    from strava_activity_raw
+                    where date(start_date) = %s
+                )
+                select user_id
+                from candidate_users
+                order by user_id asc;
+                """,
+                (previous_day, previous_day),
+            )
+            rows = cur.fetchall()
+
+    return [str(row[0]) for row in rows]
+
+
+def schedule_next_day_recovery_prompts(
+    *,
+    target_date: str | date,
+    source: str = PROMPT_SOURCE_SCHEDULER,
+) -> dict[str, Any]:
+    recovery_day = _coerce_iso_date(target_date)
+    candidate_users = list_recovery_prompt_candidate_users(recovery_day)
+    results: list[dict[str, Any]] = []
+
+    for user_id in candidate_users:
+        try:
+            result = deliver_next_day_recovery_prompt(
+                user_id=user_id,
+                recovery_date=recovery_day,
+                source=source,
+            )
+        except requests.RequestException as exc:
+            log_event(
+                logger,
+                "recovery_prompt_scheduler_user_failed",
+                level=logging.ERROR,
+                user_id=user_id,
+                target_date=recovery_day.isoformat(),
+                source=source,
+                error_type=type(exc).__name__,
+                error=str(exc),
+            )
+            result = {
+                "ok": False,
+                "skipped": False,
+                "reason": "telegram_delivery_failed",
+            }
+        results.append(
+            {
+                "user_id": user_id,
+                "ok": result["ok"],
+                "skipped": result["skipped"],
+                "reason": result["reason"],
+            }
+        )
+
+    sent_count = sum(1 for result in results if not result["skipped"] and result["ok"])
+    skipped_count = sum(1 for result in results if result["skipped"])
+    failed_count = sum(1 for result in results if not result["ok"])
+
+    summary = {
+        "ok": True,
+        "target_date": recovery_day.isoformat(),
+        "candidate_users": candidate_users,
+        "processed_users": len(results),
+        "sent_count": sent_count,
+        "skipped_count": skipped_count,
+        "failed_count": failed_count,
+        "results": results,
+    }
+
+    log_event(
+        logger,
+        "recovery_prompt_scheduler_completed",
+        target_date=summary["target_date"],
+        processed_users=summary["processed_users"],
+        sent_count=sent_count,
+        skipped_count=skipped_count,
+        failed_count=failed_count,
+    )
+    return summary
 
 
 def handle_telegram_feedback_callback(payload: dict[str, Any]) -> dict[str, Any]:

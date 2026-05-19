@@ -171,8 +171,10 @@ Next-day recovery prompt собирает delayed outcome после преды�
 Current MVP behavior:
 
 - prompt отправляется отдельно от post-ride RPE
-- scheduler пока не реализован
+- worker scheduler запускает batch orchestration утром по UTC часу `NEXT_DAY_RECOVERY_PROMPT_HOUR_UTC`
+- repeated worker loops безопасны, потому что duplicate prevention хранится в БД
 - prompt можно отправить через backend service / debug endpoint
+- batch scheduling можно проверить через debug endpoint
 
 Prompt usefulness conditions:
 
@@ -266,3 +268,26 @@ Expected response includes:
 - recommendation calibration loops based on accumulated feedback
 
 Это roadmap, а не текущая backend behavior.
+
+
+## 11. Scheduled recovery prompt orchestration
+
+Delivery state now persists in `subjective_feedback_prompt_log`.
+
+Why this is separate from `activity_subjective_feedback`:
+
+- prompt delivery happens before user feedback exists
+- duplicate prevention belongs to orchestration, not to outcome rows
+- delivery failures and retries need their own lifecycle
+
+Current idempotency guarantees:
+
+- at most one prompt-log row per `(user_id, prompt_type, target_date)`
+- repeated scheduler runs do not create duplicate sends after a `sent` row exists
+- existing `next_day_recovery` feedback suppresses prompt delivery entirely
+- repeated callbacks still upsert into the same date-level feedback row
+
+Current operational limitation:
+
+- prompt scheduling is UTC-based rather than user-timezone-based
+- Telegram delivery still uses the current backend-wide chat configuration, which matches the existing notification architecture

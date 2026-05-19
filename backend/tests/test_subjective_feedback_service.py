@@ -466,14 +466,18 @@ def test_upsert_next_day_recovery_feedback_updates_existing_row(monkeypatch):
 
 
 def test_send_next_day_recovery_prompt_skips_when_previous_day_has_no_training(monkeypatch):
-    load_cursor = _FakeCursor(fetchone_values=[None], fetchall_values=[[]])
-    monkeypatch.setattr(feedback_service, "get_conn", lambda: _FakeConn(load_cursor))
-
-    send_calls = []
     monkeypatch.setattr(
         feedback_service,
-        "send_telegram_message",
-        lambda text, reply_markup=None: send_calls.append((text, reply_markup)),
+        "_load_recovery_prompt_context",
+        lambda user_id, recovery_date: {
+            "user_id": user_id,
+            "target_date": "2026-05-15",
+            "previous_date": "2026-05-14",
+            "activities_count": 0,
+            "previous_training_load": 0.0,
+            "linked_activity_ids": [],
+            "has_training": False,
+        },
     )
 
     result = feedback_service.send_next_day_recovery_prompt("user-1", "2026-05-15")
@@ -482,6 +486,7 @@ def test_send_next_day_recovery_prompt_skips_when_previous_day_has_no_training(m
         "ok": True,
         "skipped": True,
         "reason": "no_previous_training_day",
+        "prompt_log": None,
         "user_id": "user-1",
         "target_date": "2026-05-15",
         "previous_date": "2026-05-14",
@@ -490,18 +495,62 @@ def test_send_next_day_recovery_prompt_skips_when_previous_day_has_no_training(m
         "linked_activity_ids": [],
         "has_training": False,
     }
-    assert send_calls == []
 
 
 def test_send_next_day_recovery_prompt_sends_when_previous_day_has_training(monkeypatch):
-    load_cursor = _FakeCursor(fetchone_values=[(1, 47.0)], fetchall_values=[[(17855535922,)]])
-    monkeypatch.setattr(feedback_service, "get_conn", lambda: _FakeConn(load_cursor))
+    claim_calls = []
+    sent_messages = []
 
-    send_calls = []
+    monkeypatch.setattr(
+        feedback_service,
+        "_load_recovery_prompt_context",
+        lambda user_id, recovery_date: {
+            "user_id": user_id,
+            "target_date": "2026-05-15",
+            "previous_date": "2026-05-14",
+            "activities_count": 1,
+            "previous_training_load": 47.0,
+            "linked_activity_ids": [17855535922],
+            "has_training": True,
+        },
+    )
+    monkeypatch.setattr(feedback_service, "has_next_day_recovery_feedback", lambda *args, **kwargs: False)
+    monkeypatch.setattr(
+        feedback_service,
+        "_claim_recovery_prompt_delivery",
+        lambda **kwargs: claim_calls.append(kwargs) or {
+            "id": 21,
+            "user_id": kwargs["user_id"],
+            "prompt_type": "next_day_recovery",
+            "target_date": "2026-05-15",
+            "sent_at": None,
+            "source": kwargs["source"],
+            "delivery_status": "pending",
+            "telegram_message_id": None,
+            "created_at": "2026-05-15T08:00:00Z",
+            "updated_at": "2026-05-15T08:00:00Z",
+        },
+    )
     monkeypatch.setattr(
         feedback_service,
         "send_telegram_message",
-        lambda text, reply_markup=None: send_calls.append((text, reply_markup)),
+        lambda text, reply_markup=None: sent_messages.append((text, reply_markup)) or {"result": {"message_id": 444}},
+    )
+    monkeypatch.setattr(
+        feedback_service,
+        "_mark_prompt_delivery_result",
+        lambda **kwargs: {
+            "id": kwargs["prompt_log_id"],
+            "user_id": "user-1",
+            "prompt_type": "next_day_recovery",
+            "target_date": "2026-05-15",
+            "sent_at": "2026-05-15T08:00:03Z",
+            "source": "debug",
+            "delivery_status": kwargs["delivery_status"],
+            "telegram_message_id": kwargs["telegram_message_id"],
+            "created_at": "2026-05-15T08:00:00Z",
+            "updated_at": "2026-05-15T08:00:03Z",
+        },
     )
 
     result = feedback_service.send_next_day_recovery_prompt("user-1", "2026-05-15")
@@ -511,7 +560,16 @@ def test_send_next_day_recovery_prompt_sends_when_previous_day_has_training(monk
     assert result["reason"] is None
     assert result["activities_count"] == 1
     assert result["previous_training_load"] == 47.0
-    assert send_calls == [
+    assert result["prompt_log"]["delivery_status"] == "sent"
+    assert result["prompt_log"]["telegram_message_id"] == 444
+    assert claim_calls == [
+        {
+            "user_id": "user-1",
+            "target_date": "2026-05-15",
+            "source": "debug",
+        }
+    ]
+    assert sent_messages == [
         (
             "Human Engine\n\nHow recovered do you feel today?\n\nThis helps calibrate readiness after yesterday's training.",
             feedback_service.build_next_day_recovery_keyboard("user-1", "2026-05-15"),
@@ -812,3 +870,315 @@ def test_debug_recovery_prompt_endpoint_returns_service_payload(monkeypatch):
         "linked_activity_ids": [17855535922],
         "has_training": True,
     }
+
+
+def test_claim_recovery_prompt_delivery_inserts_pending_row(monkeypatch):
+    cursor = _FakeCursor(
+        fetchone_values=[
+            (
+                31,
+                "user-1",
+                "next_day_recovery",
+                "2026-05-15",
+                None,
+                "scheduler",
+                "pending",
+                None,
+                "2026-05-15T08:00:00Z",
+                "2026-05-15T08:00:00Z",
+            )
+        ]
+    )
+    monkeypatch.setattr(feedback_service, "get_conn", lambda: _FakeConn(cursor))
+
+    result = feedback_service._claim_recovery_prompt_delivery(
+        user_id="user-1",
+        target_date="2026-05-15",
+        source="scheduler",
+    )
+
+    assert result["delivery_status"] == "pending"
+    assert result["source"] == "scheduler"
+    assert cursor.execute_calls[0][1] == (
+        "user-1",
+        "next_day_recovery",
+        feedback_service._coerce_iso_date("2026-05-15"),
+        "scheduler",
+        "pending",
+    )
+
+
+def test_mark_prompt_delivery_result_updates_sent_metadata(monkeypatch):
+    cursor = _FakeCursor(
+        fetchone_values=[
+            (
+                31,
+                "user-1",
+                "next_day_recovery",
+                "2026-05-15",
+                "2026-05-15T08:00:03Z",
+                "scheduler",
+                "sent",
+                444,
+                "2026-05-15T08:00:00Z",
+                "2026-05-15T08:00:03Z",
+            )
+        ]
+    )
+    monkeypatch.setattr(feedback_service, "get_conn", lambda: _FakeConn(cursor))
+
+    result = feedback_service._mark_prompt_delivery_result(
+        prompt_log_id=31,
+        delivery_status="sent",
+        telegram_message_id=444,
+    )
+
+    assert result["delivery_status"] == "sent"
+    assert result["telegram_message_id"] == 444
+    assert cursor.execute_calls[0][1] == ("sent", "sent", "sent", 444, 31)
+
+
+def test_deliver_next_day_recovery_prompt_skips_when_feedback_already_exists(monkeypatch):
+    monkeypatch.setattr(
+        feedback_service,
+        "_load_recovery_prompt_context",
+        lambda user_id, recovery_date: {
+            "user_id": user_id,
+            "target_date": "2026-05-15",
+            "previous_date": "2026-05-14",
+            "activities_count": 1,
+            "previous_training_load": 47.0,
+            "linked_activity_ids": [17855535922],
+            "has_training": True,
+        },
+    )
+    monkeypatch.setattr(feedback_service, "has_next_day_recovery_feedback", lambda *args, **kwargs: True)
+
+    result = feedback_service.deliver_next_day_recovery_prompt(
+        user_id="user-1",
+        recovery_date="2026-05-15",
+    )
+
+    assert result["ok"] is True
+    assert result["skipped"] is True
+    assert result["reason"] == "feedback_already_exists"
+    assert result["prompt_log"] is None
+
+
+def test_deliver_next_day_recovery_prompt_prevents_duplicate_prompt(monkeypatch):
+    monkeypatch.setattr(
+        feedback_service,
+        "_load_recovery_prompt_context",
+        lambda user_id, recovery_date: {
+            "user_id": user_id,
+            "target_date": "2026-05-15",
+            "previous_date": "2026-05-14",
+            "activities_count": 1,
+            "previous_training_load": 47.0,
+            "linked_activity_ids": [17855535922],
+            "has_training": True,
+        },
+    )
+    monkeypatch.setattr(feedback_service, "has_next_day_recovery_feedback", lambda *args, **kwargs: False)
+    monkeypatch.setattr(feedback_service, "_claim_recovery_prompt_delivery", lambda **kwargs: None)
+    monkeypatch.setattr(
+        feedback_service,
+        "get_recovery_prompt_log",
+        lambda *args, **kwargs: {
+            "id": 21,
+            "user_id": "user-1",
+            "prompt_type": "next_day_recovery",
+            "target_date": "2026-05-15",
+            "sent_at": "2026-05-15T08:00:03Z",
+            "source": "scheduler",
+            "delivery_status": "sent",
+            "telegram_message_id": 444,
+            "created_at": "2026-05-15T08:00:00Z",
+            "updated_at": "2026-05-15T08:00:03Z",
+        },
+    )
+
+    result = feedback_service.deliver_next_day_recovery_prompt(
+        user_id="user-1",
+        recovery_date="2026-05-15",
+    )
+
+    assert result["ok"] is True
+    assert result["skipped"] is True
+    assert result["reason"] == "prompt_already_sent"
+    assert result["prompt_log"]["delivery_status"] == "sent"
+
+
+def test_schedule_next_day_recovery_prompts_sends_prompt_after_training_day(monkeypatch):
+    monkeypatch.setattr(
+        feedback_service,
+        "list_recovery_prompt_candidate_users",
+        lambda target_date: ["user-1"],
+    )
+    monkeypatch.setattr(
+        feedback_service,
+        "deliver_next_day_recovery_prompt",
+        lambda **kwargs: {"ok": True, "skipped": False, "reason": None},
+    )
+
+    result = feedback_service.schedule_next_day_recovery_prompts(target_date="2026-05-15")
+
+    assert result == {
+        "ok": True,
+        "target_date": "2026-05-15",
+        "candidate_users": ["user-1"],
+        "processed_users": 1,
+        "sent_count": 1,
+        "skipped_count": 0,
+        "failed_count": 0,
+        "results": [{"user_id": "user-1", "ok": True, "skipped": False, "reason": None}],
+    }
+
+
+def test_schedule_next_day_recovery_prompts_skips_users_without_load_activity(monkeypatch):
+    monkeypatch.setattr(
+        feedback_service,
+        "list_recovery_prompt_candidate_users",
+        lambda target_date: [],
+    )
+
+    result = feedback_service.schedule_next_day_recovery_prompts(target_date="2026-05-15")
+
+    assert result == {
+        "ok": True,
+        "target_date": "2026-05-15",
+        "candidate_users": [],
+        "processed_users": 0,
+        "sent_count": 0,
+        "skipped_count": 0,
+        "failed_count": 0,
+        "results": [],
+    }
+
+
+def test_schedule_next_day_recovery_prompts_is_idempotent_across_repeated_runs(monkeypatch):
+    calls = []
+
+    monkeypatch.setattr(
+        feedback_service,
+        "list_recovery_prompt_candidate_users",
+        lambda target_date: ["user-1"],
+    )
+
+    def fake_deliver(**kwargs):
+        calls.append(kwargs)
+        if len(calls) == 1:
+            return {"ok": True, "skipped": False, "reason": None}
+        return {"ok": True, "skipped": True, "reason": "prompt_already_sent"}
+
+    monkeypatch.setattr(feedback_service, "deliver_next_day_recovery_prompt", fake_deliver)
+
+    first = feedback_service.schedule_next_day_recovery_prompts(target_date="2026-05-15")
+    second = feedback_service.schedule_next_day_recovery_prompts(target_date="2026-05-15")
+
+    assert first["sent_count"] == 1
+    assert first["skipped_count"] == 0
+    assert second["sent_count"] == 0
+    assert second["skipped_count"] == 1
+    assert second["results"] == [
+        {"user_id": "user-1", "ok": True, "skipped": True, "reason": "prompt_already_sent"}
+    ]
+
+
+def test_handle_telegram_recovery_callback_is_safe_for_duplicate_callbacks(monkeypatch):
+    callback_answers = []
+    edited_messages = []
+    upsert_calls = []
+
+    def fake_upsert(*, user_id, target_date, score, source):
+        upsert_calls.append((user_id, target_date, score, source))
+        return {
+            "user_id": user_id,
+            "activity_id": None,
+            "activity_date": target_date,
+            "feedback_type": "next_day_recovery",
+            "feedback_value": "fresh",
+            "feedback_score": score,
+            "source": source,
+            "feedback_schema_version": "v1_extensible",
+            "feedback_payload": {},
+            "context": {"readiness_score": 60.0},
+            "created_at": "2026-05-15T08:00:00Z",
+            "updated_at": "2026-05-15T08:00:01Z",
+            "was_update": len(upsert_calls) > 1,
+        }
+
+    monkeypatch.setattr(feedback_service, "upsert_next_day_recovery_feedback", fake_upsert)
+    monkeypatch.setattr(
+        feedback_service,
+        "answer_telegram_callback",
+        lambda callback_query_id, text=None: callback_answers.append((callback_query_id, text)),
+    )
+    monkeypatch.setattr(
+        feedback_service,
+        "edit_telegram_message",
+        lambda chat_id, message_id, text: edited_messages.append((chat_id, message_id, text)),
+    )
+
+    payload = {
+        "callback_query": {
+            "id": "cb-1",
+            "data": "recovery:user-1:2026-05-15:4",
+            "message": {
+                "message_id": 88,
+                "chat": {"id": 9001},
+            },
+        }
+    }
+
+    first = feedback_service.handle_telegram_feedback_callback(payload)
+    second = feedback_service.handle_telegram_feedback_callback(payload)
+
+    assert first["ok"] is True
+    assert second["ok"] is True
+    assert upsert_calls == [
+        ("user-1", "2026-05-15", 4, "telegram"),
+        ("user-1", "2026-05-15", 4, "telegram"),
+    ]
+    assert callback_answers == [
+        ("cb-1", "Feedback recorded."),
+        ("cb-1", "Feedback recorded."),
+    ]
+    assert edited_messages == [
+        (9001, 88, "Recovery feedback recorded ✓"),
+        (9001, 88, "Recovery feedback recorded ✓"),
+    ]
+
+
+def test_debug_recovery_prompt_batch_endpoint_returns_scheduler_payload(monkeypatch):
+    monkeypatch.setattr(
+        app_module,
+        "schedule_next_day_recovery_prompts",
+        lambda target_date, source: {
+            "ok": True,
+            "target_date": target_date,
+            "candidate_users": ["user-1"],
+            "processed_users": 1,
+            "sent_count": 1,
+            "skipped_count": 0,
+            "failed_count": 0,
+            "results": [{"user_id": "user-1", "ok": True, "skipped": False, "reason": None}],
+        },
+    )
+
+    client = TestClient(app_module.app)
+    response = client.post("/debug/feedback/recovery-prompts/2026-05-15")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "ok": True,
+        "target_date": "2026-05-15",
+        "candidate_users": ["user-1"],
+        "processed_users": 1,
+        "sent_count": 1,
+        "skipped_count": 0,
+        "failed_count": 0,
+        "results": [{"user_id": "user-1", "ok": True, "skipped": False, "reason": None}],
+    }
+
+
