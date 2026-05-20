@@ -36,9 +36,9 @@ Strava and Apple Health are the connectors. Everything else is yours.
 
 ## What it does
 
-**Morning readiness briefing** — every morning you get your recovery state, training load trend, and a concrete recommendation for the day. Not a score. An answer.
+**Morning readiness briefing** — the backend already produces a daily readiness result with explanation, a deterministic recommendation zone, and Telegram/iOS-friendly briefing text.
 
-**Adaptive training suggestion** — the system knows your calendar, your available time, and your current readiness. It suggests a workout that fits your actual day — duration, intensity, timing.
+**Deterministic training guidance** — the current product maps readiness into explicit training guidance like `recovery`, `endurance`, `moderate`, or `high_intensity`. Broader day-planning logic such as calendar-aware timing or duration selection remains planned.
 
 **Explainable outputs** — every recommendation shows its reasoning. HRV down, sleep short, high fatigue — you see exactly why. No black box.
 
@@ -73,7 +73,7 @@ The core is deterministic and reproducible. AI is an auxiliary layer, not the pr
 
 ## Status
 
-Active prototype. Core pipeline is working end-to-end — readiness is computed daily from real Strava and HealthKit data, delivered to iOS. Product features are in active development.
+Active prototype. Core pipeline is working end-to-end: Strava and HealthKit data flow into daily load, recovery, readiness, and deterministic recommendation outputs. Daily readiness is available through the API and Telegram delivery. Broader planning and calibration work remain in active development.
 
 ---
 

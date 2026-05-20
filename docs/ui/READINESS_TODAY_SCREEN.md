@@ -99,7 +99,23 @@ HRV: 64
 
 ⸻
 
-4.5 Короткое объяснение (опционально)
+4.5 Recommendation блок
+
+В текущем backend уже доступен deterministic decision output:
+	•	recommendation
+	•	reason
+	•	briefing / briefing_text
+
+Это уже часть MVP data contract, а не future-only идея.
+
+Пример:
+
+Recommendation: endurance
+Briefing: Сегодня нормальная готовность. Рекомендуется спокойная аэробная тренировка.
+
+⸻
+
+4.6 Короткое объяснение (опционально)
 
 1–2 строки интерпретации.
 
@@ -160,10 +176,13 @@ HRV: 64
 В первой версии не делаем:
 	•	сложные графики
 	•	baseline как отдельные метрики
-	•	рекомендации тренировок
 	•	планирование
 	•	сравнение с другими днями (кроме простого тренда)
 	•	пользовательские настройки
+
+Важно:
+	•	baseline recommendation и briefing уже есть
+	•	не реализованы более широкие planning features: duration suggestion, calendar-aware timing, workout construction
 
 ⸻
 
@@ -180,7 +199,11 @@ HRV: 64
 
 Экран использует:
 
-Основной endpoint
+Основные endpoints
+
+GET /api/v1/model/readiness-daily/{user_id}/latest
+
+или
 
 GET /api/v1/model/readiness-daily/{user_id}/{date}
 
@@ -188,6 +211,10 @@ GET /api/v1/model/readiness-daily/{user_id}/{date}
 	•	readiness_score
 	•	good_day_probability
 	•	status_text
+	•	recommendation
+	•	reason
+	•	briefing
+	•	data_quality
 	•	explanation_json:
 	•	freshness
 	•	freshness_norm
@@ -200,14 +227,14 @@ GET /api/v1/model/readiness-daily/{user_id}/{date}
 
 После реализации базового экрана:
 
-1. Recommendation layer
-	•	“что делать сегодня”
-
-2. Trend UI
+1. Trend UI
 	•	нормальный график
 
-3. История
+2. История
 	•	экран истории readiness
 
+3. Более широкий planning layer
+	•	duration / timing / context-aware guidance
+
 4. Адаптивные подсказки
-	•	объяснения уровня “инсайтов”
+	•	объяснения уровня “инсайтов” без нарушения deterministic core
