@@ -1,4 +1,5 @@
 import json
+import math
 from datetime import date
 
 from backend.services import health_recovery_daily, load_state_v2, readiness_daily, readiness_query
@@ -67,6 +68,53 @@ class _FakeConn:
         self.committed = True
 
 
+class _FakeRecoveryCursor:
+    def __init__(
+        self,
+        *,
+        sleep_row,
+        resting_hr_row,
+        hrv_row,
+        weight_row,
+        hrv_baseline_row,
+        rhr_baseline_row,
+    ) -> None:
+        self._sleep_row = sleep_row
+        self._resting_hr_row = resting_hr_row
+        self._hrv_row = hrv_row
+        self._weight_row = weight_row
+        self._hrv_baseline_row = hrv_baseline_row
+        self._rhr_baseline_row = rhr_baseline_row
+        self._last_query = ""
+        self.insert_params: list[tuple] = []
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        return False
+
+    def execute(self, query, params):
+        self._last_query = query
+        if "insert into health_recovery_daily" in query:
+            self.insert_params.append(params)
+
+    def fetchone(self):
+        if "from health_sleep_night" in self._last_query:
+            return self._sleep_row
+        if "from health_resting_hr_daily" in self._last_query and "date = %s" in self._last_query:
+            return self._resting_hr_row
+        if "from health_hrv_sample" in self._last_query and "sample_start_at::date = %s" in self._last_query:
+            return self._hrv_row
+        if "from health_weight_measurement" in self._last_query:
+            return self._weight_row
+        if "from health_hrv_sample" in self._last_query and "sample_start_at::date < %s::date" in self._last_query:
+            return self._hrv_baseline_row
+        if "from health_resting_hr_daily" in self._last_query and "date < %s::date" in self._last_query:
+            return self._rhr_baseline_row
+        return None
+
+
 def _build_readiness_result(
     monkeypatch,
     *,
@@ -103,6 +151,35 @@ def _run_load_state(monkeypatch, tss_values: list[float]):
     }
 
 
+def _run_recovery_daily(
+    monkeypatch,
+    *,
+    sleep_row,
+    resting_hr_row,
+    hrv_row,
+    weight_row,
+    hrv_baseline_row,
+    rhr_baseline_row,
+):
+    fake_cursor = _FakeRecoveryCursor(
+        sleep_row=sleep_row,
+        resting_hr_row=resting_hr_row,
+        hrv_row=hrv_row,
+        weight_row=weight_row,
+        hrv_baseline_row=hrv_baseline_row,
+        rhr_baseline_row=rhr_baseline_row,
+    )
+    fake_conn = _FakeConn(fake_cursor)
+    monkeypatch.setattr(health_recovery_daily, "get_conn", lambda: fake_conn)
+
+    result = health_recovery_daily.recompute_health_recovery_daily_for_date(
+        user_id="user-1",
+        target_date="2026-04-16",
+    )
+    explanation_json = json.loads(fake_cursor.insert_params[0][10])
+    return result, explanation_json, fake_conn
+
+
 def test_higher_recent_load_increases_fatigue_and_reduces_freshness(monkeypatch):
     lower_load = _run_load_state(monkeypatch, [0.0, 0.0, 50.0])
     higher_load = _run_load_state(monkeypatch, [0.0, 0.0, 100.0])
@@ -110,6 +187,26 @@ def test_higher_recent_load_increases_fatigue_and_reduces_freshness(monkeypatch)
     assert higher_load["fatigue_total"] > lower_load["fatigue_total"]
     assert higher_load["freshness"] < lower_load["freshness"]
     assert higher_load["result"]["last_freshness"] == higher_load["freshness"]
+
+
+def test_high_acute_load_reduces_readiness_for_same_recovery(monkeypatch):
+    # This guards the product meaning of readiness: more acute strain should
+    # not look better when recovery evidence is held constant.
+    lower_load = _run_load_state(monkeypatch, [0.0, 0.0, 40.0])
+    higher_load = _run_load_state(monkeypatch, [0.0, 0.0, 140.0])
+
+    lower_readiness, _ = _build_readiness_result(
+        monkeypatch,
+        load_row=(lower_load["freshness"],),
+        recovery_row=(70.0, {"sleep_minutes": 480.0, "hrv_today": 58.0, "rhr_today": 49.0}),
+    )
+    higher_readiness, _ = _build_readiness_result(
+        monkeypatch,
+        load_row=(higher_load["freshness"],),
+        recovery_row=(70.0, {"sleep_minutes": 480.0, "hrv_today": 58.0, "rhr_today": 49.0}),
+    )
+
+    assert higher_readiness["readiness_score"] < lower_readiness["readiness_score"]
 
 
 def test_better_recovery_increases_readiness_for_same_freshness(monkeypatch):
@@ -209,6 +306,27 @@ def test_recovery_score_improves_with_better_inputs_and_stays_bounded():
     assert good_explanation["recovery_score_simple"] == good_score
 
 
+def test_poor_sleep_reduces_recovery_for_same_hrv_and_resting_hr():
+    # Sleep is a first-class recovery input, so the score should move even if
+    # cardiovascular signals stay fixed.
+    short_sleep_score, _ = health_recovery_daily._compute_recovery_score_with_baseline(
+        sleep_minutes=300.0,
+        hrv_today=55.0,
+        rhr_today=50.0,
+        hrv_baseline=55.0,
+        rhr_baseline=50.0,
+    )
+    full_sleep_score, _ = health_recovery_daily._compute_recovery_score_with_baseline(
+        sleep_minutes=480.0,
+        hrv_today=55.0,
+        rhr_today=50.0,
+        hrv_baseline=55.0,
+        rhr_baseline=50.0,
+    )
+
+    assert short_sleep_score < full_sleep_score
+
+
 def test_recovery_score_is_deterministic_for_same_inputs():
     first = health_recovery_daily._compute_recovery_score_with_baseline(
         sleep_minutes=455.0,
@@ -226,6 +344,82 @@ def test_recovery_score_is_deterministic_for_same_inputs():
     )
 
     assert second == first
+
+
+def test_recovery_daily_handles_missing_hrv_without_nan_or_crash(monkeypatch):
+    # The recovery pipeline must degrade gracefully because HRV can be absent
+    # on real days while other health signals are still usable.
+    result, explanation_json, fake_conn = _run_recovery_daily(
+        monkeypatch,
+        sleep_row=(430.0, 40.0, 90.0, 70.0),
+        resting_hr_row=(52.0,),
+        hrv_row=(None,),
+        weight_row=(72.3,),
+        hrv_baseline_row=(54.0,),
+        rhr_baseline_row=(50.0,),
+    )
+
+    assert result["recovery_score_simple"] is not None
+    assert math.isnan(result["recovery_score_simple"]) is False
+    assert result["hrv_daily_median_ms"] is None
+    assert explanation_json["hrv_today"] is None
+    assert explanation_json["hrv_score"] == 50.0
+    assert explanation_json["recovery_score_simple"] == result["recovery_score_simple"]
+    assert fake_conn.committed is True
+
+
+def test_readiness_outputs_do_not_produce_nan_when_inputs_are_partial(monkeypatch):
+    # Partial days are normal in a longitudinal pipeline. The fallback output
+    # still needs to stay numerically valid for downstream consumers.
+    result, explanation_json = _build_readiness_result(
+        monkeypatch,
+        load_row=None,
+        recovery_row=(63.4, {"sleep_minutes": 455.0, "hrv_today": None, "rhr_today": 51.0}),
+    )
+
+    assert result["fallback_mode"] == "recovery_only"
+    assert math.isnan(result["readiness_score"]) is False
+    assert math.isnan(result["good_day_probability"]) is False
+    assert explanation_json["recovery_score_simple"] == 63.4
+
+
+def test_readiness_fallback_modes_are_deterministic(monkeypatch):
+    # Fallback paths are part of the production contract, not error cases.
+    # They must stay reproducible because upstream data completeness varies.
+    full_first, _ = _build_readiness_result(
+        monkeypatch,
+        load_row=(4.0,),
+        recovery_row=(66.0, {"sleep_minutes": 450.0, "hrv_today": 56.0, "rhr_today": 49.0}),
+    )
+    full_second, _ = _build_readiness_result(
+        monkeypatch,
+        load_row=(4.0,),
+        recovery_row=(66.0, {"sleep_minutes": 450.0, "hrv_today": 56.0, "rhr_today": 49.0}),
+    )
+    load_only_first, _ = _build_readiness_result(
+        monkeypatch,
+        load_row=(4.0,),
+        recovery_row=None,
+    )
+    load_only_second, _ = _build_readiness_result(
+        monkeypatch,
+        load_row=(4.0,),
+        recovery_row=None,
+    )
+    recovery_only_first, _ = _build_readiness_result(
+        monkeypatch,
+        load_row=None,
+        recovery_row=(66.0, {"sleep_minutes": 450.0, "hrv_today": 56.0, "rhr_today": 49.0}),
+    )
+    recovery_only_second, _ = _build_readiness_result(
+        monkeypatch,
+        load_row=None,
+        recovery_row=(66.0, {"sleep_minutes": 450.0, "hrv_today": 56.0, "rhr_today": 49.0}),
+    )
+
+    assert full_second["readiness_score"] == full_first["readiness_score"]
+    assert load_only_second["readiness_score"] == load_only_first["readiness_score"]
+    assert recovery_only_second["readiness_score"] == recovery_only_first["readiness_score"]
 
 
 def test_data_quality_marks_missing_recovery_inputs_for_load_only_readiness():
