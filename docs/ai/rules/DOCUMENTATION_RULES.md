@@ -1,0 +1,6 @@
+- После изменения модели обновлять docs/models/*.
+- После изменения API обновлять docs/api или соответствующий contract.
+- После изменения data model обновлять docs/data/*.
+- Planned features не описывать как implemented.
+- Разделять: implemented / partial / planned / future.
+- Не использовать маркетинговые заявления без подтверждения кодом.
