@@ -1,0 +1,3 @@
+api.shchukin.de {
+    respond "Human Engine Edge Server" 200
+}
