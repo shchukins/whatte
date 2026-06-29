@@ -1,3 +1,13 @@
+shchukin.de {
+	handle /dashboard* {
+		reverse_proxy http://127.0.0.1:8000
+	}
+
+	handle {
+		respond "Human Engine" 200
+	}
+}
+
 api.shchukin.de {
-    reverse_proxy http://100.89.147.77:8000
+	reverse_proxy http://127.0.0.1:8000
 }

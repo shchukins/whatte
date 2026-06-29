@@ -19,5 +19,5 @@ sudo systemctl reload caddy
 
 echo
 echo "[OK] EU Edge deployed"
-curl -fsSL https://api.shchukin.de || true
+curl -fsSL https://api.shchukin.de/healthz || true
 echo
