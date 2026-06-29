@@ -1,0 +1,37 @@
+{% extends "dashboard/base.html" %}
+
+{% block content %}
+<section class="hero">
+    <h1>Internal Dashboard</h1>
+    <p>Safe SSR scaffold for Human Engine operational visibility.</p>
+</section>
+
+<section class="grid">
+    <article class="card">
+        <h2>System</h2>
+        <p class="metric"><span class="label">Backend status:</span> {{ backend_status }}</p>
+        <p class="metric"><span class="label">Server time:</span> {{ server_time }}</p>
+        <p class="metric"><span class="label">Timezone:</span> {{ server_timezone }}</p>
+    </article>
+
+    <article class="card">
+        <h2>Strava</h2>
+        <p class="placeholder">Placeholder for future Strava connection and activity status.</p>
+    </article>
+
+    <article class="card">
+        <h2>Ingest Jobs</h2>
+        <p class="placeholder">Placeholder for future ingest job visibility.</p>
+    </article>
+
+    <article class="card">
+        <h2>Connection</h2>
+        <p class="placeholder">Placeholder for future integration and auth state.</p>
+    </article>
+
+    <article class="card">
+        <h2>System Info</h2>
+        <p class="placeholder">Placeholder for future environment and runtime diagnostics.</p>
+    </article>
+</section>
+{% endblock %}

@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field
 
 from backend.config import settings
 from backend.core.logging import configure_logging, log_event
+from backend.dashboard import router as dashboard_router
 from backend.db import get_conn
 from backend.services.fitness_service import recompute_fitness_state
 from backend.services.ingest_service import process_one_strava_ingest_job
@@ -58,6 +59,7 @@ configure_logging()
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Human Engine API", version="0.1.0")
+app.include_router(dashboard_router)
 
 
 class EventIn(BaseModel):
