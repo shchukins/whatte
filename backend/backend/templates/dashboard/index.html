@@ -9,9 +9,14 @@
 <section class="grid">
     <article class="card">
         <h2>System</h2>
-        <p class="metric"><span class="label">Backend status:</span> {{ backend_status }}</p>
-        <p class="metric"><span class="label">Server time:</span> {{ server_time }}</p>
-        <p class="metric"><span class="label">Timezone:</span> {{ server_timezone }}</p>
+        <p class="metric"><span class="label">Backend status:</span> {{ system.backend_status }}</p>
+        <p class="metric"><span class="label">Database status:</span> {{ system.database_status }}</p>
+        <p class="metric"><span class="label">Server time:</span> {{ system.server_time_moscow }}</p>
+        <p class="metric"><span class="label">Process started:</span> {{ system.process_started_at_moscow }}</p>
+        <p class="metric"><span class="label">Uptime:</span> {{ system.process_uptime_seconds }}s</p>
+        {% if system.database_error %}
+        <p class="metric"><span class="label">Database error:</span> {{ system.database_error }}</p>
+        {% endif %}
     </article>
 
     <article class="card">
