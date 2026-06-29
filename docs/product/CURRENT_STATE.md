@@ -235,7 +235,23 @@ good_day_probability = readiness_score / 100
 - `readiness_daily.explanation_json` содержит recovery breakdown
 - результат возвращается в iOS через public API
 
-Публичный API уже проксируется через VPS / Caddy по пути `/api/*`.
+Публичный API уже проксируется через VPS / Caddy через `api.shchukin.de`.
+
+Новый domain split:
+
+- `shchukin.de` — web surfaces
+- `shchukin.de/dashboard` — Internal Dashboard
+- `api.shchukin.de` — technical API, Strava OAuth callback, Telegram webhook, HealthKit sync, `/healthz`, OpenAPI/docs when enabled
+
+Dashboard status:
+
+- dashboard shell implemented as FastAPI SSR HTML with Jinja2 and minimal CSS
+- first read-only `System` data layer implemented
+- current `System` section shows backend status, database status, server time, process started time, uptime, and safe database error fallback
+- next required security step: protect `/dashboard` with `Caddy` Basic Auth
+- later planned dashboard expansion: `Connection`, `Ingest Jobs`, and Strava activities sections
+
+Важно: dashboard пока не считается production-secure без auth
 
 ---
 

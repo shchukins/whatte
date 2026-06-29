@@ -96,9 +96,11 @@ sources
 Status: `implemented`
 
 - FastAPI backend is the system entry point
-- exposes sync, recompute, readiness read, notification/debug, and callback paths
+- exposes sync, recompute, readiness read, notification/debug, callback paths, and the internal SSR dashboard route
 - current repo evidence:
   - `backend/backend/app.py`
+  - `backend/backend/dashboard/`
+  - `backend/backend/templates/dashboard/`
   - readiness API docs in `docs/api/READINESS_API.md`
 
 ### Ingestion layer
@@ -453,6 +455,17 @@ Status: `planned`
 - freshness-aware morning answer
 - sync status visibility
 - explicit stale/missing-data handling
+
+### Internal dashboard
+
+Status: `implemented baseline`
+
+- current route: `/dashboard`
+- served as FastAPI SSR HTML with Jinja2 templates and minimal CSS
+- current sections: `System`, `Strava` placeholder, `Ingest Jobs` placeholder, `Connection` placeholder, `System Info` placeholder
+- `System` currently exposes backend status, database status, server time, process start time, uptime, and database error fallback
+- database errors must not break page rendering
+- dashboard remains internal and is not yet production-secure without auth
 
 ### Future dashboards
 

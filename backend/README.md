@@ -206,6 +206,43 @@ Recovery breakdown внутри `explanation_json.recovery_explanation`:
 - feedback не влияет на core calculations
 - feedback хранится как отдельный evaluation / calibration dataset
 
+## Internal dashboard surface
+
+A minimal internal dashboard is now implemented as a backend-owned operational surface.
+
+Current properties:
+
+- route: `/dashboard`
+- rendering: FastAPI server-side rendered HTML
+- templates: Jinja2 under `backend/backend/templates/dashboard/`
+- dashboard code: `backend/backend/dashboard/`
+- styling: minimal CSS only
+- no React, Vue, Svelte, SPA, or frontend build step
+
+Current sections:
+
+- `System`
+- `Strava` placeholder
+- `Ingest Jobs` placeholder
+- `Connection` placeholder
+- `System Info` placeholder
+
+Current `System` data layer:
+
+- backend status
+- database status via existing `get_conn()` and `SELECT 1`
+- server time in `Europe/Moscow`
+- process started time and uptime
+- database error fallback without breaking dashboard rendering
+
+Important constraints:
+
+- dashboard route remains read-only
+- database errors must not crash `/dashboard`
+- operational error text must be treated carefully and must not expose secrets
+- dashboard is currently unauthenticated and should be treated as temporary internal access only until edge protection is added
+- immediate planned protection: `Caddy` Basic Auth for `/dashboard`
+
 ## HealthKit full sync pipeline
 
 Текущий orchestration pipeline:

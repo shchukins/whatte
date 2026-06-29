@@ -62,6 +62,9 @@ PostgreSQL
 - backend не доступен напрямую из интернета
 - доступ идет через VPS + Tailscale
 - инфраструктура self-hosted
+- `shchukin.de` используется для web surfaces
+- `shchukin.de/dashboard` проксируется на backend как internal SSR dashboard
+- `api.shchukin.de` остается техническим API-доменом для webhook/sync/health/OAuth paths
 
 ---
 
@@ -71,6 +74,11 @@ PostgreSQL
 
 FastAPI сервис.
 
+Backend now serves two distinct surface families through the same application process:
+
+- technical API endpoints on `api.shchukin.de`
+- internal SSR dashboard at `shchukin.de/dashboard`
+
 Ответственность:
 
 - прием webhook и sync payloads
@@ -79,6 +87,23 @@ FastAPI сервис.
 - API для доступа к данным и derived state
 
 Backend — центр deterministic core.
+
+Dashboard implementation constraints:
+
+- server-side rendered HTML via FastAPI + Jinja2
+- templates under `backend/backend/templates/dashboard/`
+- dashboard modules under `backend/backend/dashboard/`
+- minimal CSS only
+- no SPA and no frontend build step
+
+Current dashboard `System` section is operational and read-only:
+
+- backend status
+- database health via `get_conn()` + `SELECT 1`
+- server time
+- process start time
+- uptime
+- database error fallback that must not break page rendering
 
 ---
 

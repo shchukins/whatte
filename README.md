@@ -75,6 +75,25 @@ The core is deterministic and reproducible. AI is an auxiliary layer, not the pr
 
 Active prototype. Core pipeline is working end-to-end: Strava and HealthKit data flow into daily load, recovery, readiness, and deterministic recommendation outputs. Daily readiness is available through the API and Telegram delivery. Broader planning and calibration work remain in active development.
 
+## Operational Surfaces
+
+- `shchukin.de` is the main web domain for user/admin web surfaces.
+- `shchukin.de/dashboard` serves the internal dashboard as a FastAPI server-side rendered HTML page.
+- `api.shchukin.de` remains the technical API domain for FastAPI endpoints, Strava OAuth callback, Telegram webhook, HealthKit sync, `/healthz`, and API docs when enabled.
+
+Current dashboard implementation:
+
+- FastAPI SSR route: `/dashboard`
+- Jinja2 templates with minimal CSS
+- no SPA and no frontend build step
+- current sections: System, Strava placeholder, Ingest Jobs placeholder, Connection placeholder, System Info placeholder
+
+Security note:
+
+- the internal dashboard is not yet production-secure
+- the next required protection step is `Caddy` Basic Auth for `/dashboard`
+- a later option is Google OAuth restricted to a single allowed user email
+
 ---
 
 ## Documentation
