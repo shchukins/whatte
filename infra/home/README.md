@@ -1,8 +1,10 @@
 # Home Node
 
-The home node is the primary Human Engine runtime.
+Status: legacy / secondary infrastructure context.
 
-Current role:
+The current production backend runtime is on the VPS. This home-node document is kept to preserve context for older local/home-server deployment, backup, and observability assumptions. It should not be read as the current primary production topology.
+
+Historical / secondary role:
 
 - FastAPI backend
 - background worker
@@ -34,3 +36,4 @@ Related files currently associated with the home node:
 Status note:
 
 - `backend/infra/docker-compose.yml` was left in place. It appears to be a secondary local Postgres-only helper, not the primary stack.
+- old home-server watchdog / cron notifications are legacy and should be disabled or explicitly treated as non-primary to avoid false production errors after the VPS move.

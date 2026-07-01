@@ -48,10 +48,6 @@ Internet
 ↓
 VPS (Caddy reverse proxy)
 ↓
-Tailscale VPN
-↓
-Home server
-↓
 Backend (FastAPI)
 ↓
 PostgreSQL
@@ -59,12 +55,13 @@ PostgreSQL
 
 Свойства:
 
-- backend не доступен напрямую из интернета
-- доступ идет через VPS + Tailscale
+- production backend работает на VPS
+- Caddy завершает TLS и проксирует публичные домены на локальный FastAPI upstream
 - инфраструктура self-hosted
 - `shchukin.de` используется для web surfaces
 - `shchukin.de/dashboard` проксируется на backend как internal SSR dashboard
 - `api.shchukin.de` остается техническим API-доменом для webhook/sync/health/OAuth paths
+- старый home-server deployment / watchdog monitoring является legacy context, а не текущей основной production-схемой
 
 ---
 
@@ -95,15 +92,24 @@ Dashboard implementation constraints:
 - dashboard modules under `backend/backend/dashboard/`
 - minimal CSS only
 - no SPA and no frontend build step
+- protected at the edge with `Caddy` Basic Auth
+- Google OAuth remains a future authorization improvement
 
-Current dashboard `System` section is operational and read-only:
+Current dashboard is operational and read-only:
 
-- backend status
-- database health via `get_conn()` + `SELECT 1`
-- server time
-- process start time
-- uptime
-- database error fallback that must not break page rendering
+- `System`: backend status, database health via `get_conn()` + `SELECT 1`, server time, process start time, uptime, and database error fallback
+- `Connection`: Strava connection status, athlete id, scope, token expiry, and token state
+- `Ingest Jobs`: latest jobs plus pending and failed/error counts
+- `Strava Activities`: latest saved local activities and total count
+
+Dashboard boundaries:
+
+- reads local backend/database state only
+- does not call Strava API
+- does not refresh tokens
+- does not mutate database state
+- does not show raw payloads, access tokens, refresh tokens, or secrets
+- one section failure must not break all of `/dashboard`
 
 ---
 
@@ -363,6 +369,12 @@ This layer is intentionally append-only in meaning:
 
 - Loki хранит и индексирует JSON logs
 - Grafana используется для поиска событий, таймлайнов и operational checks
+
+Operational monitoring hierarchy:
+
+- FastAPI SSR dashboard at `shchukin.de/dashboard` is the primary current operational monitoring surface for production state
+- Grafana/Loki remains the lower-level log analysis stack
+- old home-server Telegram watchdog / cron monitoring is legacy and should not be treated as primary production monitoring
 
 ---
 

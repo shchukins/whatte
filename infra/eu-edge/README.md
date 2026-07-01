@@ -23,9 +23,10 @@ Operational notes:
 
 - Caddy owns TLS termination and reverse proxying on the edge host.
 - The dashboard is rendered by FastAPI via Jinja2 templates; Caddy only routes the request.
-- The dashboard is currently unauthenticated. This must not be treated as production-secure.
-- The immediate planned protection step is `Caddy` Basic Auth for `/dashboard`.
+- The dashboard is protected with `Caddy` Basic Auth on `/dashboard`.
 - A later option is Google OAuth restricted to a single allowed user email.
+- The backend production runtime is on the VPS; `api.shchukin.de` remains the API surface and `shchukin.de/dashboard` is the internal monitoring surface.
+- Old home-server watchdog / cron monitoring is legacy and should not be treated as primary production monitoring after the VPS move.
 
 Manual deploy on the edge host:
 

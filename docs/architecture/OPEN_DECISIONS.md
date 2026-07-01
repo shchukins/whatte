@@ -240,13 +240,18 @@ open
 
 ### Context
 
-Visualization layer пока не является основной частью реализованного core.
+Visualization layer пока не является основной частью реализованного product core.
+
+Operational clarification:
+
+- internal FastAPI SSR dashboard at `shchukin.de/dashboard` is already implemented as a read-only monitoring surface
+- this open decision is about future product/user visualization, not the existing operational dashboard
 
 ---
 
 ### Options
 
-1. Web dashboard
+1. Product web dashboard
 2. Mobile-first
 3. Минималистичный readiness-first интерфейс
 

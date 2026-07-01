@@ -174,6 +174,7 @@ Status: `implemented`
 
 - structured JSON logs
 - Docker stdout -> Promtail -> Loki -> Grafana
+- FastAPI SSR dashboard for current production operational state
 - observability is operational only and must not become product logic
 
 ## 5. Storage and processing model
@@ -461,11 +462,18 @@ Status: `planned`
 Status: `implemented baseline`
 
 - current route: `/dashboard`
+- public path: `https://shchukin.de/dashboard`
 - served as FastAPI SSR HTML with Jinja2 templates and minimal CSS
-- current sections: `System`, `Strava` placeholder, `Ingest Jobs` placeholder, `Connection` placeholder, `System Info` placeholder
-- `System` currently exposes backend status, database status, server time, process start time, uptime, and database error fallback
-- database errors must not break page rendering
-- dashboard remains internal and is not yet production-secure without auth
+- protected by `Caddy` Basic Auth; Google OAuth remains a future authorization improvement
+- current sections:
+  - `System`: backend status, database status, server time, process start time, uptime, and database error fallback
+  - `Connection`: Strava connection status, athlete id, scope, token expiry, and token state
+  - `Ingest Jobs`: latest ingest jobs plus pending and failed/error counts
+  - `Strava Activities`: latest locally stored activities and total count
+- section errors must not break page rendering
+- dashboard is read-only, local-state-only, and must not call Strava API, refresh tokens, mutate database state, show raw payloads, or expose secrets
+- dashboard is the primary current operational monitoring surface for the VPS production backend
+- old home-server Telegram watchdog / cron monitoring is legacy and not the primary production monitoring channel
 
 ### Future dashboards
 

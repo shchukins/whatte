@@ -245,13 +245,22 @@ good_day_probability = readiness_score / 100
 
 Dashboard status:
 
-- dashboard shell implemented as FastAPI SSR HTML with Jinja2 and minimal CSS
-- first read-only `System` data layer implemented
-- current `System` section shows backend status, database status, server time, process started time, uptime, and safe database error fallback
-- next required security step: protect `/dashboard` with `Caddy` Basic Auth
-- later planned dashboard expansion: `Connection`, `Ingest Jobs`, and Strava activities sections
+- dashboard implemented as FastAPI SSR HTML with Jinja2 and minimal CSS
+- dashboard is protected at the edge with `Caddy` Basic Auth
+- current sections:
+  - `System`: backend status, database status, server time, process started time, uptime, and safe database error fallback
+  - `Connection`: Strava connection status, athlete id, scope, token expiry, and token state
+  - `Ingest Jobs`: latest ingest jobs plus pending and failed/error counts
+  - `Strava Activities`: latest saved local activities with total count, name/type/date/distance/time
+- dashboard is read-only and uses local backend/database state only
+- dashboard does not call Strava API, refresh tokens, mutate DB rows, show raw payloads, or expose secrets
+- token refresh remains limited to Strava API access paths, not dashboard reads
 
-Важно: dashboard пока не считается production-secure без auth
+Operational monitoring status:
+
+- dashboard is the primary operational monitoring surface for the current VPS production backend
+- Telegram alerts and the old home-server watchdog / cron monitoring are legacy/secondary, not the main monitoring channel
+- dashboard is not a full alerting system
 
 ---
 

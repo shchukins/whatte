@@ -86,13 +86,18 @@ Current dashboard implementation:
 - FastAPI SSR route: `/dashboard`
 - Jinja2 templates with minimal CSS
 - no SPA and no frontend build step
-- current sections: System, Strava placeholder, Ingest Jobs placeholder, Connection placeholder, System Info placeholder
+- current sections: System, Connection, Ingest Jobs, and Strava Activities
+- the dashboard reads local backend/database state only; it does not call Strava, refresh tokens, modify database rows, or expose access/refresh tokens or secrets
 
 Security note:
 
-- the internal dashboard is not yet production-secure
-- the next required protection step is `Caddy` Basic Auth for `/dashboard`
-- a later option is Google OAuth restricted to a single allowed user email
+- the internal dashboard is protected at the edge with `Caddy` Basic Auth
+- Google OAuth restricted to a single allowed user email remains the preferred future authorization model
+
+Operational monitoring note:
+
+- the FastAPI SSR dashboard is the primary operational monitoring surface for the current VPS production backend
+- the old home-server Telegram watchdog / cron-style monitoring is legacy and should not be treated as the main production monitoring channel
 
 ---
 

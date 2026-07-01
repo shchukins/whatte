@@ -14,9 +14,9 @@ infra/
 
 Current node split:
 
-- `home/`: primary home node. Backend, worker, PostgreSQL, local observability, NAS-oriented backups.
-- `eu-edge/`: public edge entrypoint for `shchukin.de` domains. Caddy/TLS/reverse-proxy role.
-- `monitoring/`: operational observability stack and related notes.
+- `eu-edge/`: current VPS production entrypoint and backend host for `shchukin.de` domains. Caddy/TLS/reverse-proxy role.
+- `home/`: legacy / secondary home-node context. Older backend, worker, PostgreSQL, local observability, NAS-oriented backup assumptions may still be documented here, but this is not the current primary production topology.
+- `monitoring/`: operational observability stack and related notes. The primary production status surface is now `https://shchukin.de/dashboard`; Grafana/Loki is lower-level log analysis.
 - `backup/`: backup scripts and backup-specific notes.
 
 Current runtime locations kept as-is:
@@ -48,3 +48,4 @@ Notes:
 - No tracked Caddy config existed in the repo before this reorganization pass.
 - `backend/infra/docker-compose.yml` looks like a secondary helper for local Postgres exposure on `127.0.0.1:5433`, not the current main runtime stack.
 - Observability files already live under `infra/monitoring/observability`; they were not moved to avoid breaking commands and existing documentation.
+- Old home-server Telegram watchdog / cron monitoring is legacy after the production move to VPS and should not be treated as primary monitoring.

@@ -1,12 +1,15 @@
 # Monitoring
 
-Human Engine monitoring is currently centered on the observability stack in [observability](/srv/human-engine/infra/monitoring/observability).
+Human Engine's primary current production monitoring surface is the FastAPI SSR dashboard at `https://shchukin.de/dashboard`.
+
+The observability stack in [observability](/srv/human-engine/infra/monitoring/observability) remains useful for lower-level log analysis and debugging, but it is not the primary status surface after the VPS dashboard work.
 
 Current status:
 
 - observability stack exists
 - stack is operational / optional
 - Grafana is available in repo config but should be treated as "currently not primary" infrastructure rather than product-critical runtime
+- old home-server Telegram watchdog / cron monitoring is legacy and should not be treated as primary production monitoring
 
 Primary files:
 

@@ -45,12 +45,10 @@ Internet
 ↓
 VPS (Caddy reverse proxy)
 ↓
-Tailscale
-↓
-Home server
-↓
 FastAPI + PostgreSQL
 ```
+
+Текущий production backend работает на VPS. `api.shchukin.de` остается техническим API-доменом, а `shchukin.de/dashboard` проксируется Caddy на internal dashboard в том же FastAPI backend process. Старый home-server deployment / watchdog context считается legacy и не является основной production-схемой.
 
 ## Реализованные backend layers
 
@@ -208,40 +206,48 @@ Recovery breakdown внутри `explanation_json.recovery_explanation`:
 
 ## Internal dashboard surface
 
-A minimal internal dashboard is now implemented as a backend-owned operational surface.
+The internal dashboard is implemented as a backend-owned operational monitoring surface.
 
 Current properties:
 
 - route: `/dashboard`
+- public path: `https://shchukin.de/dashboard`
 - rendering: FastAPI server-side rendered HTML
 - templates: Jinja2 under `backend/backend/templates/dashboard/`
 - dashboard code: `backend/backend/dashboard/`
 - styling: minimal CSS only
 - no React, Vue, Svelte, SPA, or frontend build step
+- protected at the edge with `Caddy` Basic Auth
 
 Current sections:
 
 - `System`
-- `Strava` placeholder
-- `Ingest Jobs` placeholder
-- `Connection` placeholder
-- `System Info` placeholder
+- `Connection`
+- `Ingest Jobs`
+- `Strava Activities`
 
-Current `System` data layer:
+Current data layer:
 
-- backend status
-- database status via existing `get_conn()` and `SELECT 1`
-- server time in `Europe/Moscow`
-- process started time and uptime
-- database error fallback without breaking dashboard rendering
+- `System`: backend status, database status via existing `get_conn()` / `SELECT 1`, server time, process started time, uptime, and database error fallback
+- `Connection`: Strava connection status, athlete id, scope, token expiry, and token state
+- `Ingest Jobs`: latest ingest jobs plus pending and failed/error counts
+- `Strava Activities`: latest locally stored activities with total count, name/type/date/distance/time
 
 Important constraints:
 
 - dashboard route remains read-only
 - database errors must not crash `/dashboard`
-- operational error text must be treated carefully and must not expose secrets
-- dashboard is currently unauthenticated and should be treated as temporary internal access only until edge protection is added
-- immediate planned protection: `Caddy` Basic Auth for `/dashboard`
+- a failing dashboard section must degrade safely instead of breaking the whole page
+- dashboard reads local database/backend state; it must not call Strava API
+- dashboard must not refresh Strava tokens or perform side effects
+- dashboard must not expose `access_token`, `refresh_token`, passwords, or other secrets
+- Google OAuth restricted to an allowed user remains a future authorization improvement, not current behavior
+
+Operational role:
+
+- dashboard is the primary operational monitoring surface for the current VPS production backend
+- Telegram alerts and the old home-server watchdog are legacy/secondary and should not be developed as the main monitoring channel right now
+- dashboard is not a full alerting system; it is a read-only status and pipeline inspection surface
 
 ## HealthKit full sync pipeline
 

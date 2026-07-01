@@ -104,6 +104,20 @@ Daily readiness доступен через API и Telegram delivery. Более
 
 ---
 
+## Операционные поверхности
+
+- `shchukin.de` — основной web-домен для пользовательских и админских web surfaces.
+- `shchukin.de/dashboard` — internal dashboard, реализованный как FastAPI SSR HTML через Jinja2.
+- `api.shchukin.de` — технический API-домен для FastAPI endpoints, Strava OAuth callback, Telegram webhook, HealthKit sync, `/healthz` и API docs when enabled.
+
+Dashboard защищен `Caddy` Basic Auth и является текущей основной поверхностью operational monitoring для production backend на VPS. Google OAuth остается целевым будущим вариантом авторизации.
+
+Dashboard показывает System, Connection, Ingest Jobs и Strava Activities из локального backend/database state. Он не вызывает Strava API, не refresh-ит токены, не изменяет БД и не показывает secrets.
+
+Старый home-server Telegram watchdog / cron monitoring считается legacy и не должен восприниматься как основной production monitoring канал.
+
+---
+
 ## Документация
 
 - [Архитектура](docs/architecture/ARCHITECTURE.md)
