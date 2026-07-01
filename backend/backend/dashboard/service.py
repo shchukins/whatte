@@ -11,7 +11,9 @@ MOSCOW_TZ = ZoneInfo("Europe/Moscow")
 PROCESS_STARTED_AT = datetime.now(MOSCOW_TZ)
 MAX_DATABASE_ERROR_LENGTH = 300
 MAX_INGEST_ERROR_LENGTH = 240
+MAX_STRAVA_ERROR_LENGTH = 240
 INGEST_JOBS_LIMIT = 10
+STRAVA_ACTIVITIES_LIMIT = 10
 TOKEN_EXPIRES_SOON_WINDOW = timedelta(hours=24)
 
 
@@ -56,10 +58,31 @@ class DashboardConnectionStatus:
 
 
 @dataclass(frozen=True)
+class DashboardStravaActivityRow:
+    strava_activity_id: int | None
+    name: str
+    sport_type: str
+    start_date_moscow: str
+    distance_km: str
+    moving_time: str
+    elapsed_time: str
+    received_at_moscow: str
+
+
+@dataclass(frozen=True)
+class DashboardStravaActivitiesStatus:
+    status: str
+    error: str | None
+    activities: list[DashboardStravaActivityRow]
+    total_count: int | None
+
+
+@dataclass(frozen=True)
 class DashboardData:
     system: DashboardSystemStatus
     ingest_jobs: DashboardIngestJobsStatus
     connection: DashboardConnectionStatus
+    strava_activities: DashboardStravaActivitiesStatus
 
 
 def _format_moscow_timestamp(value: datetime | None) -> str:
@@ -82,6 +105,26 @@ def _truncate_text(value: str | None, *, limit: int = MAX_INGEST_ERROR_LENGTH) -
     if len(text) <= limit:
         return text
     return text[: limit - 1].rstrip() + "…"
+
+
+def _format_duration_seconds(value: int | None) -> str:
+    if value is None or value < 0:
+        return "—"
+    hours, remainder = divmod(value, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    if hours > 0:
+        if minutes > 0:
+            return f"{hours}h {minutes}m"
+        return f"{hours}h"
+    if minutes > 0:
+        return f"{minutes}m"
+    return f"{seconds}s"
+
+
+def _format_distance_km(value: float | None) -> str:
+    if value is None:
+        return "—"
+    return f"{value / 1000:.1f}"
 
 
 def _get_database_status() -> tuple[str, str | None]:
@@ -216,6 +259,78 @@ def get_dashboard_connection_status() -> DashboardConnectionStatus:
         )
 
 
+def get_dashboard_strava_activities_status() -> DashboardStravaActivitiesStatus:
+    try:
+        with get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("select count(*) from strava_activity_raw;")
+                count_row = cur.fetchone() or (0,)
+
+                cur.execute(
+                    """
+                    select
+                        strava_activity_id,
+                        coalesce(nullif(trim(name), ''), nullif(trim(raw_json ->> 'name'), '')) as activity_name,
+                        coalesce(
+                            nullif(trim(activity_type), ''),
+                            nullif(trim(raw_json ->> 'sport_type'), ''),
+                            nullif(trim(raw_json ->> 'type'), '')
+                        ) as activity_type_label,
+                        coalesce(
+                            start_date,
+                            nullif(raw_json ->> 'start_date', '')::timestamptz,
+                            nullif(raw_json ->> 'start_date_local', '')::timestamptz
+                        ) as activity_start_date,
+                        coalesce(
+                            distance_m,
+                            nullif(raw_json ->> 'distance', '')::double precision
+                        ) as activity_distance_m,
+                        coalesce(
+                            moving_time_s,
+                            nullif(raw_json ->> 'moving_time', '')::integer
+                        ) as activity_moving_time_s,
+                        coalesce(
+                            elapsed_time_s,
+                            nullif(raw_json ->> 'elapsed_time', '')::integer
+                        ) as activity_elapsed_time_s,
+                        coalesce(updated_at, fetched_at) as activity_received_at
+                    from strava_activity_raw
+                    order by start_date desc nulls last, updated_at desc, id desc
+                    limit %s;
+                    """,
+                    (STRAVA_ACTIVITIES_LIMIT,),
+                )
+                rows = cur.fetchall()
+
+        activities = [
+            DashboardStravaActivityRow(
+                strava_activity_id=row[0],
+                name=_truncate_text(row[1], limit=80),
+                sport_type=_truncate_text(row[2], limit=40),
+                start_date_moscow=_format_moscow_timestamp(row[3]),
+                distance_km=_format_distance_km(row[4]),
+                moving_time=_format_duration_seconds(row[5]),
+                elapsed_time=_format_duration_seconds(row[6]),
+                received_at_moscow=_format_moscow_timestamp(row[7]),
+            )
+            for row in rows
+        ]
+
+        return DashboardStravaActivitiesStatus(
+            status="ok",
+            error=None,
+            activities=activities,
+            total_count=count_row[0],
+        )
+    except Exception as exc:
+        return DashboardStravaActivitiesStatus(
+            status="error",
+            error=_truncate_text(_sanitize_database_error(exc), limit=MAX_STRAVA_ERROR_LENGTH),
+            activities=[],
+            total_count=None,
+        )
+
+
 def get_dashboard_system_status() -> DashboardSystemStatus:
     now = datetime.now(MOSCOW_TZ)
     database_status, database_error = _get_database_status()
@@ -236,4 +351,5 @@ def get_dashboard_data() -> DashboardData:
         system=get_dashboard_system_status(),
         ingest_jobs=get_dashboard_ingest_jobs_status(),
         connection=get_dashboard_connection_status(),
+        strava_activities=get_dashboard_strava_activities_status(),
     )

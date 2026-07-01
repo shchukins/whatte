@@ -29,6 +29,14 @@ class _FakeCursor:
         if "from strava_activity_ingest_job" in self._last_query and "order by id desc" in self._last_query:
             assert params == (10,)
             return
+        if self._last_query == "select count(*) from strava_activity_raw;":
+            return
+        if "from strava_activity_raw" in self._last_query and "order by start_date desc nulls last" in self._last_query:
+            assert params == (10,)
+            assert "access_token" not in self._last_query
+            assert "refresh_token" not in self._last_query
+            assert "client_secret" not in self._last_query
+            return
         if "from user_strava_connection" in self._last_query:
             assert "access_token" not in self._last_query
             assert "refresh_token" not in self._last_query
@@ -40,6 +48,8 @@ class _FakeCursor:
             return (1,)
         if "count(*) filter" in self._last_query:
             return (2, 1)
+        if self._last_query == "select count(*) from strava_activity_raw;":
+            return (12,)
         if "from user_strava_connection" in self._last_query:
             return (
                 555777999,
@@ -67,6 +77,29 @@ class _FakeCursor:
                     123456789,
                     None,
                     None,
+                    None,
+                ),
+            ]
+        if "from strava_activity_raw" in self._last_query and "order by start_date desc nulls last" in self._last_query:
+            return [
+                (
+                    777888999,
+                    "Morning Ride",
+                    "Ride",
+                    datetime(2026, 7, 1, 6, 30, tzinfo=ZoneInfo("UTC")),
+                    42500.0,
+                    4980,
+                    5400,
+                    datetime(2026, 7, 1, 8, 5, tzinfo=ZoneInfo("UTC")),
+                ),
+                (
+                    777888998,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    1200,
                     None,
                 ),
             ]
@@ -117,6 +150,25 @@ class _DatabaseOnlyFailingCursor:
         raise AssertionError(f"unexpected fetchone query: {self._last_query}")
 
 
+class _StravaActivitiesFailingConn:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        return False
+
+    def cursor(self):
+        return _StravaActivitiesFailingCursor()
+
+
+class _StravaActivitiesFailingCursor(_FakeCursor):
+    def execute(self, query, params=None):
+        normalized = " ".join(query.split()).lower()
+        if normalized == "select count(*) from strava_activity_raw;":
+            raise RuntimeError("relation strava_activity_raw does not exist")
+        return super().execute(query, params)
+
+
 def test_dashboard_endpoints_render_html(monkeypatch):
     monkeypatch.setattr(dashboard_service, "get_conn", lambda: _FakeConn())
 
@@ -145,7 +197,13 @@ def test_dashboard_endpoints_render_html(monkeypatch):
         assert "987654321" in response.text
         assert "xxxxx" in response.text
         assert "…" in response.text
-        assert "Strava" in response.text
+        assert "Strava Activities" in response.text
+        assert "Total count:" in response.text
+        assert "12" in response.text
+        assert "Morning Ride" in response.text
+        assert "42.5" in response.text
+        assert "1h 23m" in response.text
+        assert "20m" in response.text
         assert "System Info" in response.text
         assert "access_token" not in response.text
         assert "refresh_token" not in response.text
@@ -193,6 +251,12 @@ def test_dashboard_renders_connection_error_without_failing(monkeypatch):
                 token_expires_at_moscow="—",
                 token_state="unknown",
             ),
+            strava_activities=dashboard_service.DashboardStravaActivitiesStatus(
+                status="ok",
+                error=None,
+                activities=[],
+                total_count=0,
+            ),
         ),
     )
 
@@ -203,3 +267,15 @@ def test_dashboard_renders_connection_error_without_failing(monkeypatch):
     assert "Connection" in response.text
     assert "Connection status unavailable." in response.text
     assert "connection query failed" in response.text
+
+
+def test_dashboard_renders_strava_activities_error_without_failing(monkeypatch):
+    monkeypatch.setattr(dashboard_service, "get_conn", lambda: _StravaActivitiesFailingConn())
+
+    client = TestClient(app_module.app)
+    response = client.get("/dashboard")
+
+    assert response.status_code == 200
+    assert "Strava Activities" in response.text
+    assert "Strava activities unavailable." in response.text
+    assert "relation strava_activity_raw does not exist" in response.text

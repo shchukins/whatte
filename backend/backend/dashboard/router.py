@@ -23,6 +23,7 @@ def _build_dashboard_context(request: Request) -> dict[str, object]:
         "system": asdict(dashboard_data.system),
         "ingest_jobs": asdict(dashboard_data.ingest_jobs),
         "connection": asdict(dashboard_data.connection),
+        "strava_activities": asdict(dashboard_data.strava_activities),
     }
 
 
