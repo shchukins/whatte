@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from fastapi.testclient import TestClient
@@ -29,6 +29,10 @@ class _FakeCursor:
         if "from strava_activity_ingest_job" in self._last_query and "order by id desc" in self._last_query:
             assert params == (10,)
             return
+        if "from user_strava_connection" in self._last_query:
+            assert "access_token" not in self._last_query
+            assert "refresh_token" not in self._last_query
+            return
         raise AssertionError(f"unexpected query: {query}")
 
     def fetchone(self):
@@ -36,6 +40,12 @@ class _FakeCursor:
             return (1,)
         if "count(*) filter" in self._last_query:
             return (2, 1)
+        if "from user_strava_connection" in self._last_query:
+            return (
+                555777999,
+                "activity:read_all",
+                datetime.now(MOSCOW_TZ) + timedelta(hours=12),
+            )
         raise AssertionError(f"unexpected fetchone query: {self._last_query}")
 
     def fetchall(self):
@@ -123,6 +133,11 @@ def test_dashboard_endpoints_render_html(monkeypatch):
         assert "ok" in response.text
         assert "Process started:" in response.text
         assert "Uptime:" in response.text
+        assert "Connection" in response.text
+        assert "Athlete ID:" in response.text
+        assert "555777999" in response.text
+        assert "activity:read_all" in response.text
+        assert "expires_soon" in response.text
         assert "Ingest Jobs" in response.text
         assert "Pending count:" in response.text
         assert "Failed/error count:" in response.text
@@ -131,8 +146,9 @@ def test_dashboard_endpoints_render_html(monkeypatch):
         assert "xxxxx" in response.text
         assert "…" in response.text
         assert "Strava" in response.text
-        assert "Connection" in response.text
         assert "System Info" in response.text
+        assert "access_token" not in response.text
+        assert "refresh_token" not in response.text
 
 
 def test_dashboard_renders_ingest_error_without_failing(monkeypatch):
@@ -147,3 +163,43 @@ def test_dashboard_renders_ingest_error_without_failing(monkeypatch):
     assert "Status:" in response.text
     assert "Error:" in response.text
     assert "relation strava_activity_ingest_job does not exist" in response.text
+
+
+def test_dashboard_renders_connection_error_without_failing(monkeypatch):
+    monkeypatch.setattr(
+        dashboard_service,
+        "get_dashboard_data",
+        lambda: dashboard_service.DashboardData(
+            system=dashboard_service.DashboardSystemStatus(
+                backend_status="ok",
+                database_status="ok",
+                database_error=None,
+                server_time_moscow="2026-07-01 12:00:00 MSK",
+                process_started_at_moscow="2026-07-01 10:00:00 MSK",
+                process_uptime_seconds=7200,
+            ),
+            ingest_jobs=dashboard_service.DashboardIngestJobsStatus(
+                status="ok",
+                error=None,
+                jobs=[],
+                failed_count=0,
+                pending_count=0,
+            ),
+            connection=dashboard_service.DashboardConnectionStatus(
+                status="error",
+                error="connection query failed",
+                athlete_id=None,
+                scope=None,
+                token_expires_at_moscow="—",
+                token_state="unknown",
+            ),
+        ),
+    )
+
+    client = TestClient(app_module.app)
+    response = client.get("/dashboard")
+
+    assert response.status_code == 200
+    assert "Connection" in response.text
+    assert "Connection status unavailable." in response.text
+    assert "connection query failed" in response.text

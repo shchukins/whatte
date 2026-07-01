@@ -16,11 +16,13 @@ templates = Jinja2Templates(
 
 
 def _build_dashboard_context(request: Request) -> dict[str, object]:
+    dashboard_data = dashboard_service.get_dashboard_data()
     return {
         "request": request,
         "page_title": "Human Engine Internal Dashboard",
-        "system": asdict(dashboard_service.get_dashboard_system_status()),
-        "ingest_jobs": asdict(dashboard_service.get_dashboard_ingest_jobs_status()),
+        "system": asdict(dashboard_data.system),
+        "ingest_jobs": asdict(dashboard_data.ingest_jobs),
+        "connection": asdict(dashboard_data.connection),
     }
 
 

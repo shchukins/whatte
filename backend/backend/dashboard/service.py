@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from backend.config import settings
@@ -12,6 +12,7 @@ PROCESS_STARTED_AT = datetime.now(MOSCOW_TZ)
 MAX_DATABASE_ERROR_LENGTH = 300
 MAX_INGEST_ERROR_LENGTH = 240
 INGEST_JOBS_LIMIT = 10
+TOKEN_EXPIRES_SOON_WINDOW = timedelta(hours=24)
 
 
 @dataclass(frozen=True)
@@ -42,6 +43,23 @@ class DashboardIngestJobsStatus:
     jobs: list[DashboardIngestJobRow]
     failed_count: int | None
     pending_count: int | None
+
+
+@dataclass(frozen=True)
+class DashboardConnectionStatus:
+    status: str
+    error: str | None
+    athlete_id: int | None
+    scope: str | None
+    token_expires_at_moscow: str
+    token_state: str
+
+
+@dataclass(frozen=True)
+class DashboardData:
+    system: DashboardSystemStatus
+    ingest_jobs: DashboardIngestJobsStatus
+    connection: DashboardConnectionStatus
 
 
 def _format_moscow_timestamp(value: datetime | None) -> str:
@@ -75,6 +93,16 @@ def _get_database_status() -> tuple[str, str | None]:
         return "ok", None
     except Exception as exc:
         return "error", _sanitize_database_error(exc)
+
+
+def _resolve_token_state(expires_at: datetime | None, *, now: datetime) -> str:
+    if expires_at is None:
+        return "unknown"
+    if expires_at < now:
+        return "expired"
+    if expires_at <= now + TOKEN_EXPIRES_SOON_WINDOW:
+        return "expires_soon"
+    return "valid"
 
 
 def get_dashboard_ingest_jobs_status() -> DashboardIngestJobsStatus:
@@ -139,6 +167,55 @@ def get_dashboard_ingest_jobs_status() -> DashboardIngestJobsStatus:
         )
 
 
+def get_dashboard_connection_status() -> DashboardConnectionStatus:
+    now = datetime.now(MOSCOW_TZ)
+
+    try:
+        with get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    select
+                        strava_athlete_id,
+                        scope,
+                        expires_at
+                    from user_strava_connection
+                    order by updated_at desc, id desc
+                    limit 1;
+                    """
+                )
+                row = cur.fetchone()
+
+        if not row:
+            return DashboardConnectionStatus(
+                status="not_connected",
+                error=None,
+                athlete_id=None,
+                scope=None,
+                token_expires_at_moscow="—",
+                token_state="unknown",
+            )
+
+        expires_at = row[2]
+        return DashboardConnectionStatus(
+            status="connected",
+            error=None,
+            athlete_id=row[0],
+            scope=row[1],
+            token_expires_at_moscow=_format_moscow_timestamp(expires_at),
+            token_state=_resolve_token_state(expires_at, now=now),
+        )
+    except Exception as exc:
+        return DashboardConnectionStatus(
+            status="error",
+            error=_sanitize_database_error(exc),
+            athlete_id=None,
+            scope=None,
+            token_expires_at_moscow="—",
+            token_state="unknown",
+        )
+
+
 def get_dashboard_system_status() -> DashboardSystemStatus:
     now = datetime.now(MOSCOW_TZ)
     database_status, database_error = _get_database_status()
@@ -151,4 +228,12 @@ def get_dashboard_system_status() -> DashboardSystemStatus:
         server_time_moscow=_format_moscow_timestamp(now),
         process_started_at_moscow=_format_moscow_timestamp(PROCESS_STARTED_AT),
         process_uptime_seconds=uptime_seconds,
+    )
+
+
+def get_dashboard_data() -> DashboardData:
+    return DashboardData(
+        system=get_dashboard_system_status(),
+        ingest_jobs=get_dashboard_ingest_jobs_status(),
+        connection=get_dashboard_connection_status(),
     )

@@ -19,6 +19,25 @@
         {% endif %}
     </article>
 
+    <article class="card">
+        <h2>Connection</h2>
+        <p class="metric"><span class="label">Status:</span> {{ connection.status }}</p>
+
+        {% if connection.status == "connected" %}
+        <p class="metric"><span class="label">Athlete ID:</span> {{ connection.athlete_id if connection.athlete_id is not none else "—" }}</p>
+        <p class="metric"><span class="label">Scope:</span> {{ connection.scope or "—" }}</p>
+        <p class="metric"><span class="label">Token expires:</span> {{ connection.token_expires_at_moscow }}</p>
+        <p class="metric"><span class="label">Token state:</span> {{ connection.token_state }}</p>
+        {% elif connection.status == "not_connected" %}
+        <p class="placeholder">No Strava connection found.</p>
+        {% else %}
+        <p class="placeholder">Connection status unavailable.</p>
+        {% if connection.error %}
+        <p class="metric"><span class="label">Error:</span> {{ connection.error }}</p>
+        {% endif %}
+        {% endif %}
+    </article>
+
     <article class="card card-wide">
         <h2>Ingest Jobs</h2>
         <p class="metric"><span class="label">Status:</span> {{ ingest_jobs.status }}</p>
@@ -65,11 +84,6 @@
     <article class="card">
         <h2>Strava</h2>
         <p class="placeholder">Placeholder for future Strava connection and activity status.</p>
-    </article>
-
-    <article class="card">
-        <h2>Connection</h2>
-        <p class="placeholder">Placeholder for future integration and auth state.</p>
     </article>
 
     <article class="card">
