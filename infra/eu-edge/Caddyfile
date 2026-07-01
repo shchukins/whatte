@@ -1,5 +1,9 @@
 shchukin.de {
 	handle /dashboard* {
+		basicauth {
+			sergey $2a$14$3hRHbJgbDkKV9CpenAdFxeL3DpikaFxXR8.fJib8EGZAPZWR8LMsG
+		}
+
 		reverse_proxy http://127.0.0.1:8000
 	}
 
@@ -7,7 +11,6 @@ shchukin.de {
 		respond "Human Engine" 200
 	}
 }
-
 api.shchukin.de {
 	reverse_proxy http://127.0.0.1:8000
 }
