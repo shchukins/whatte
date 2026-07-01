@@ -20,6 +20,7 @@ def _build_dashboard_context(request: Request) -> dict[str, object]:
         "request": request,
         "page_title": "Human Engine Internal Dashboard",
         "system": asdict(dashboard_service.get_dashboard_system_status()),
+        "ingest_jobs": asdict(dashboard_service.get_dashboard_ingest_jobs_status()),
     }
 
 
