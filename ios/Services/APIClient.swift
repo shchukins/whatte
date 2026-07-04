@@ -7,6 +7,23 @@
 
 import Foundation
 
+private enum APIConfig {
+    static let productionBaseURL = URL(string: "https://api.shchukin.de")!
+    static let localBaseURL = URL(string: "http://192.168.1.51:8000")!
+
+    static var baseURL: URL {
+        guard
+            let override = ProcessInfo.processInfo.environment["HUMAN_ENGINE_API_BASE_URL"],
+            !override.isEmpty,
+            let url = URL(string: override)
+        else {
+            return productionBaseURL
+        }
+
+        return url
+    }
+}
+
 struct HealthIngestAndProcessResponse: Decodable {
     let ok: Bool
     let userId: String
@@ -24,7 +41,11 @@ final class APIClient {
 
     private init() {}
 
-    private let baseURL = URL(string: "https://api.shchlab.ru")!
+    private let baseURL = APIConfig.baseURL
+
+    var configuredBaseURLDisplayString: String {
+        baseURL.host() ?? baseURL.absoluteString
+    }
 
     func fetchLatestReadiness(
         userID: String,

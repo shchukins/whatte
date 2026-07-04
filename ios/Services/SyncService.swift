@@ -82,6 +82,63 @@ final class SyncService {
         }
     }
 
+    func performBackfill(
+        from startDate: Date,
+        completion: @escaping (Result<FullSyncData, Error>) -> Void
+    ) {
+        HealthKitService.shared.fetchLatestWeightSample { weightResult in
+            switch weightResult {
+            case .success(let weights):
+                HealthKitService.shared.fetchRestingHRSamples(from: startDate) { restingHRResult in
+                    switch restingHRResult {
+                    case .success(let restingHR):
+                        HealthKitService.shared.fetchHRVSamples(from: startDate) { hrvResult in
+                            switch hrvResult {
+                            case .success(let hrv):
+                                HealthKitService.shared.fetchSleepSamples(from: startDate) { sleepResult in
+                                    switch sleepResult {
+                                    case .success(let sleep):
+                                        let sleepNightAggregates = HealthKitService.shared.buildSleepNightAggregates(from: sleep)
+
+                                        let payload = HealthKitService.shared.buildHealthSyncPayload(
+                                            sleepAggregates: sleepNightAggregates,
+                                            restingHRSamples: restingHR,
+                                            hrvSamples: hrv,
+                                            weightSamples: weights
+                                        )
+
+                                        let result = FullSyncData(
+                                            weightSamples: weights,
+                                            restingHRSamples: restingHR,
+                                            hrvSamples: hrv,
+                                            sleepSamples: sleep,
+                                            sleepNightAggregates: sleepNightAggregates,
+                                            payload: payload
+                                        )
+
+                                        completion(.success(result))
+
+                                    case .failure(let error):
+                                        completion(.failure(error))
+                                    }
+                                }
+
+                            case .failure(let error):
+                                completion(.failure(error))
+                            }
+                        }
+
+                    case .failure(let error):
+                        completion(.failure(error))
+                    }
+                }
+
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
     func performIncrementalSync(completion: @escaping (Result<IncrementalSyncData, Error>) -> Void) {
         HealthKitService.shared.fetchHRVIncremental { hrvResult in
             switch hrvResult {

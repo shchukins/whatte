@@ -1,567 +1,620 @@
-//
-//  ContentView.swift
-//  HumanEngineIOS
-//
-//  Created by Сергей Щукин on 05.04.2026.
-//
-
 import SwiftUI
 
 struct ContentView: View {
-
-    // MARK: - UI state
-
     @State private var viewModel = ContentViewModel()
-    private let terminalLabelFont = Font.system(size: 12, weight: .medium, design: .monospaced)
-    private let terminalRowFont = Font.system(size: 18, weight: .regular, design: .monospaced)
-    private let terminalValueFont = Font.system(size: 18, weight: .semibold, design: .monospaced)
-    private let mainBriefingFont = Font.system(size: 26, weight: .bold, design: .default)
-    private let scoreFont = Font.system(size: 64, weight: .black, design: .rounded)
-    private let bodyLabelFont = Font.system(size: 17, weight: .regular, design: .default)
 
-    // MARK: - View
+    private let actionColumns = [
+        GridItem(.flexible(), spacing: 12),
+        GridItem(.flexible(), spacing: 12)
+    ]
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    readinessCard
+            ZStack {
+                HEColor.background
+                    .ignoresSafeArea()
+
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 18) {
+                        topBar
+                        connectionStatusRow
+                        mainStatusCard
+                        metricsRow
+                        syncDataCard
+                        dataSourcesCard
+                        tabBar
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 16)
+                    .padding(.bottom, 28)
                 }
-                .padding()
             }
-            .background(Color(.systemGroupedBackground))
-            .navigationTitle("Today")
+            .toolbar(.hidden, for: .navigationBar)
             .onAppear {
                 viewModel.reloadSyncState()
-                viewModel.loadTodayReadiness()
-                viewModel.loadReadinessHistory()
+                viewModel.refreshStatuses()
             }
             .onReceive(NotificationCenter.default.publisher(for: .syncStateDidChange)) { _ in
                 viewModel.reloadSyncState()
+                viewModel.refreshStatuses()
             }
             .onReceive(NotificationCenter.default.publisher(for: .autoSyncDidFinish)) { _ in
                 viewModel.reloadSyncState()
-                viewModel.loadTodayReadiness()
-                viewModel.loadReadinessHistory()
+                viewModel.refreshStatuses()
             }
         }
     }
 
-    // MARK: - Main screen
+    private var topBar: some View {
+        HStack(spacing: 14) {
+            Text(">_")
+                .font(.system(size: 18, weight: .bold, design: .monospaced))
+                .foregroundStyle(HEColor.accentGreen)
 
-    private var readinessCard: some View {
-        Group {
-            if let readiness = viewModel.todayReadiness {
-                VStack(alignment: .leading, spacing: 12) {
-                    mainStatusPanel(readiness)
-                    recommendationPanel(readiness)
-                    trendPanel
-                    signalsPanel(readiness)
-                    dataQualityPanel(readiness)
-                    recoveryPanel(readiness)
-                    footerView
+            VStack(alignment: .leading, spacing: 3) {
+                Text("HUMAN ENGINE")
+                    .font(.system(size: 22, weight: .bold, design: .default))
+                    .foregroundStyle(HEColor.accentGreen)
+                    .lineLimit(1)
+
+                Text("HEALTHKIT INGESTION CLIENT")
+                    .font(HETypography.overline)
+                    .foregroundStyle(HEColor.secondaryText)
+                    .tracking(1.2)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.9)
+            }
+
+            Spacer()
+
+            Image(systemName: "gearshape")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(HEColor.secondaryText)
+                .padding(10)
+                .background(HEColor.card)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(HEColor.border, lineWidth: 1)
+                )
+        }
+    }
+
+    private var connectionStatusRow: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                StatusBadge(
+                    text: viewModel.backendStatusLabel,
+                    color: viewModel.backendStatusLabel == "CONNECTED" ? HEColor.accentGreen : HEColor.accentCyan
+                )
+
+                StatusBadge(text: "AUTO SYNC ON", color: HEColor.accentCyan)
+
+                StatusBadge(text: "UPDATED \(updatedStatusText)", color: HEColor.accentYellow)
+            }
+        }
+    }
+
+    private var mainStatusCard: some View {
+        DashboardCard(title: "SYNC STATUS", accent: HEColor.accentGreen) {
+            ViewThatFits {
+                HStack(alignment: .center, spacing: 20) {
+                    mainStatusLeftColumn
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .layoutPriority(1)
+
+                    syncRing
+                        .frame(maxWidth: .infinity)
+                        .layoutPriority(2)
+
+                    mainStatusRightColumn
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
-            } else if let error = viewModel.readinessErrorMessage {
-                terminalPanel {
-                    VStack(alignment: .leading, spacing: 8) {
-                        sectionLabel("STATUS")
 
-                        Text("Failed to load readiness")
-                            .font(.headline)
+                VStack(alignment: .leading, spacing: 18) {
+                    HStack(alignment: .center, spacing: 20) {
+                        mainStatusLeftColumn
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .layoutPriority(1)
+
+                        syncRing
+                            .frame(maxWidth: .infinity)
+                    }
+
+                    mainStatusRightColumn
+                }
+            }
+        }
+    }
+
+    private var mainStatusLeftColumn: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("HEALTHKIT INGESTION")
+                .font(HETypography.overline)
+                .foregroundStyle(HEColor.secondaryText)
+                .tracking(1.2)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text(mainStatusText)
+                .font(HETypography.status)
+                .foregroundStyle(HEColor.primaryText)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+
+            Text(mainStatusSubtitle)
+                .font(HETypography.body)
+                .foregroundStyle(HEColor.secondaryText)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var mainStatusRightColumn: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            MetricRow(title: "LAST SYNC", value: viewModel.lastSyncDisplayText)
+            MetricRow(title: "ITEMS SENT", value: "\(viewModel.syncState.lastSentItemCount)")
+            MetricRow(title: "SYNC MODE", value: viewModel.lastSyncModeDisplayText)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var syncRing: some View {
+        ZStack {
+            Circle()
+                .stroke(HEColor.border, lineWidth: 10)
+                .frame(width: 124, height: 124)
+
+            Circle()
+                .trim(from: 0, to: ringTrim)
+                .stroke(
+                    AngularGradient(
+                        colors: [HEColor.accentGreen, HEColor.accentCyan],
+                        center: .center
+                    ),
+                    style: StrokeStyle(lineWidth: 10, lineCap: .round)
+                )
+                .frame(width: 124, height: 124)
+                .rotationEffect(.degrees(-90))
+
+            Image(systemName: "waveform.path.ecg")
+                .font(.system(size: 30, weight: .semibold))
+                .foregroundStyle(HEColor.accentCyan)
+        }
+        .frame(minWidth: 124, minHeight: 124)
+    }
+
+    private var metricsRow: some View {
+        ViewThatFits {
+            HStack(alignment: .top, spacing: 16) {
+                loadStateCard
+                recoveryDataCard
+            }
+
+            VStack(alignment: .leading, spacing: 16) {
+                loadStateCard
+                recoveryDataCard
+            }
+        }
+    }
+
+    private var loadStateCard: some View {
+        DashboardCard(title: "LOAD STATE", accent: HEColor.accentYellow, secondaryBackground: true) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("BACKEND OWNED")
+                    .font(HETypography.title)
+                    .foregroundStyle(HEColor.primaryText)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.9)
+
+                Text("Strava data synced separately. Load, readiness, and recommendation logic stay on the backend.")
+                    .font(HETypography.body)
+                    .foregroundStyle(HEColor.secondaryText)
+                    .lineLimit(3)
+
+                placeholderBars(color: HEColor.accentYellow)
+            }
+        }
+    }
+
+    private var recoveryDataCard: some View {
+        DashboardCard(title: "RECOVERY DATA", accent: HEColor.accentCyan, secondaryBackground: true) {
+            VStack(alignment: .leading, spacing: 12) {
+                MetricRow(title: "SLEEP NIGHTS", value: "\(viewModel.sleepNightAggregates.count)", valueColor: HEColor.accentGreen)
+                MetricRow(title: "HRV SAMPLES", value: "\(viewModel.hrvSamples.count)", valueColor: HEColor.accentCyan)
+                MetricRow(title: "REST HR DAYS", value: "\(viewModel.restingHRSamples.count)", valueColor: HEColor.accentYellow)
+                MetricRow(title: "LATEST WEIGHT", value: viewModel.latestWeightValue)
+                MetricRow(title: "SYNC MODE", value: viewModel.lastSyncModeDisplayText)
+            }
+        }
+    }
+
+    private var syncDataCard: some View {
+        DashboardCard(title: "SYNC & DATA", accent: HEColor.accentGreen) {
+            VStack(alignment: .leading, spacing: 16) {
+                LazyVGrid(columns: actionColumns, spacing: 12) {
+                    SyncActionButton(
+                        title: "SYNC NOW",
+                        subtitle: "Full sync",
+                        icon: "arrow.clockwise",
+                        accent: HEColor.accentGreen
+                    ) {
+                        viewModel.runFullSyncFromMainScreen()
+                    }
+
+                    SyncActionButton(
+                        title: "INCREMENTAL",
+                        subtitle: "New data only",
+                        icon: "arrow.down.circle",
+                        accent: HEColor.accentCyan
+                    ) {
+                        viewModel.runIncrementalSyncFromMainScreen()
+                    }
+
+                    SyncActionButton(
+                        title: "BACKFILL",
+                        subtitle: "Since May 23",
+                        icon: "calendar",
+                        accent: HEColor.accentPurple
+                    ) {
+                        viewModel.runBackfillSinceMay23FromMainScreen()
+                    }
+
+                    SyncActionButton(
+                        title: "PAYLOAD",
+                        subtitle: "View summary",
+                        icon: "doc.text",
+                        accent: HEColor.accentYellow
+                    ) {
+                        viewModel.buildPayloadPreview()
+                    }
+                }
+                .disabled(viewModel.isSyncInProgress)
+
+                if viewModel.isSyncInProgress {
+                    ProgressView("Sync in progress...")
+                        .tint(HEColor.accentGreen)
+                        .foregroundStyle(HEColor.secondaryText)
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    ViewThatFits {
+                        HStack(alignment: .top, spacing: 12) {
+                            MetricRow(title: "LAST SYNC", value: viewModel.lastSyncDisplayText)
+                            MetricRow(title: "MODE", value: viewModel.lastSyncModeDisplayText, valueColor: accentColor(forMode: viewModel.syncState.lastSyncMode))
+                        }
+
+                        VStack(alignment: .leading, spacing: 12) {
+                            MetricRow(title: "LAST SYNC", value: viewModel.lastSyncDisplayText)
+                            MetricRow(title: "MODE", value: viewModel.lastSyncModeDisplayText, valueColor: accentColor(forMode: viewModel.syncState.lastSyncMode))
+                        }
+                    }
+
+                    ViewThatFits {
+                        HStack(alignment: .top, spacing: 12) {
+                            MetricRow(title: "ITEMS SENT", value: "\(viewModel.syncState.lastSentItemCount)")
+                            MetricRow(title: "LAST PAYLOAD", value: viewModel.lastPayloadDisplayText)
+                        }
+
+                        VStack(alignment: .leading, spacing: 12) {
+                            MetricRow(title: "ITEMS SENT", value: "\(viewModel.syncState.lastSentItemCount)")
+                            MetricRow(title: "LAST PAYLOAD", value: viewModel.lastPayloadDisplayText)
+                        }
+                    }
+                }
+
+                if !viewModel.payloadSummary.isEmpty {
+                    Divider()
+                        .overlay(HEColor.border)
+
+                    Text(viewModel.payloadSummary)
+                        .font(HETypography.metric)
+                        .foregroundStyle(HEColor.secondaryText)
+                        .textSelection(.enabled)
+                }
+
+                if let error = viewModel.syncState.lastErrorMessage, !error.isEmpty {
+                    Divider()
+                        .overlay(HEColor.border)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("LAST ERROR")
+                            .font(HETypography.overline)
+                            .foregroundStyle(HEColor.error)
+                            .tracking(1.0)
 
                         Text(error)
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(HEColor.secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
-            } else {
-                terminalPanel {
-                    VStack(alignment: .leading, spacing: 8) {
-                        sectionLabel("STATUS")
 
-                        Text("No readiness data yet")
-                            .font(.headline)
-                            .foregroundStyle(.secondary)
+                DisclosureGroup("UTILITY ACTIONS") {
+                    VStack(alignment: .leading, spacing: 10) {
+                        utilityButtonRow(
+                            title: "REQUEST PERMISSIONS",
+                            subtitle: "HealthKit authorization",
+                            action: viewModel.requestPermissions
+                        )
+
+                        utilityButtonRow(
+                            title: "REFRESH PERMISSIONS",
+                            subtitle: "Reload authorization state",
+                            action: viewModel.refreshStatuses
+                        )
+
+                        utilityButtonRow(
+                            title: "READ SAMPLE DATA",
+                            subtitle: "Load recent HealthKit samples",
+                            action: viewModel.readSampleData
+                        )
+
+                        utilityButtonRow(
+                            title: "RESET SYNC STATE",
+                            subtitle: "Clear local sync metadata",
+                            action: viewModel.resetSyncState
+                        )
                     }
+                    .padding(.top, 12)
                 }
-            }
-        }
-    }
+                .font(HETypography.overline)
+                .tint(HEColor.secondaryText)
 
-    private var syncStatusView: some View {
-        Text(syncStatusText)
-            .font(.caption)
-            .foregroundStyle(.secondary)
-    }
-
-    private var footerView: some View {
-        HStack {
-            syncStatusView
-            Spacer()
-        }
-        .padding(.horizontal, 4)
-    }
-
-    private func mainStatusPanel(_ readiness: ReadinessDailyResponse) -> some View {
-        terminalPanel {
-            VStack(alignment: .leading, spacing: 12) {
-                sectionLabel("STATUS")
-
-                if let briefingText = mainBriefingText(for: readiness) {
-                    Text(briefingText)
-                        .font(mainBriefingFont)
-                        .foregroundStyle(.primary)
-                        .lineSpacing(3)
-                }
-
-                HStack(alignment: .bottom, spacing: 16) {
-                    Text(format(readiness.readinessScore))
-                        .font(scoreFont)
-                        .foregroundStyle(readinessColor(readiness.readinessScore))
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        if let secondaryStatusText = secondaryStatusText(for: readiness) {
-                            Text(secondaryStatusText)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-
-                        Text("Prob: \(formatPercent(readiness.goodDayProbability))")
-                            .font(.subheadline.monospacedDigit())
-                            .foregroundStyle(.secondary)
+                if !viewModel.payloadPreview.isEmpty {
+                    DisclosureGroup("PAYLOAD PREVIEW") {
+                        Text(viewModel.payloadPreview)
+                            .font(.system(size: 11, weight: .regular, design: .monospaced))
+                            .foregroundStyle(HEColor.secondaryText)
+                            .textSelection(.enabled)
+                            .padding(.top, 10)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
+                    .font(HETypography.overline)
+                    .tint(HEColor.secondaryText)
                 }
             }
         }
     }
 
-    private func recommendationPanel(_ readiness: ReadinessDailyResponse) -> some View {
-        terminalPanel {
-            VStack(alignment: .leading, spacing: 6) {
-                sectionLabel("RECOMMENDATION")
+    private var dataSourcesCard: some View {
+        DashboardCard(title: "DATA SOURCES", accent: HEColor.accentCyan) {
+            VStack(alignment: .leading, spacing: 14) {
+                DataSourceRow(
+                    title: "HealthKit",
+                    subtitle: "Sleep, HRV, Resting HR, Weight",
+                    status: viewModel.healthKitStatusLabel,
+                    color: color(forStatusKey: viewModel.healthKitStatusColor)
+                )
 
-                Text(recommendationLabel(from: readiness.recommendation) ?? recommendationText(readiness: readiness.readinessScore))
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-            }
-        }
-    }
+                Divider()
+                    .overlay(HEColor.border)
 
-    private var trendPanel: some View {
-        terminalPanel {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack {
-                    sectionLabel("TREND")
-                    Spacer()
-                    Text(readinessTrendLabel)
-                        .font(terminalLabelFont)
-                        .foregroundStyle(.secondary)
-                }
+                DataSourceRow(
+                    title: "Strava",
+                    subtitle: "Activities, Training Load",
+                    status: "BACKEND",
+                    color: HEColor.accentYellow
+                )
 
-                if viewModel.readinessHistory.count < 2 {
-                    Text("Not enough history")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                } else {
-                    VStack(spacing: 6) {
-                        HStack(spacing: 8) {
-                            ForEach(viewModel.readinessHistory) { item in
-                                Text(shortDateLabel(item.date))
-                                    .font(terminalLabelFont)
-                                    .foregroundStyle(.secondary)
-                                    .frame(maxWidth: .infinity)
-                            }
-                        }
+                Divider()
+                    .overlay(HEColor.border)
 
-                        HStack(spacing: 8) {
-                            ForEach(viewModel.readinessHistory) { item in
-                                trendBar(item)
-                            }
-                        }
+                DataSourceRow(
+                    title: "Backend",
+                    subtitle: viewModel.backendDisplayName,
+                    status: viewModel.backendStatusLabel,
+                    color: color(forStatusKey: viewModel.backendStatusColor)
+                )
 
-                        HStack(spacing: 8) {
-                            ForEach(viewModel.readinessHistory) { item in
-                                Text(shortScore(item.readinessScore ?? 0))
-                                    .font(terminalLabelFont)
-                                    .monospacedDigit()
-                                    .foregroundStyle(.secondary)
-                                    .frame(maxWidth: .infinity)
-                            }
+                Divider()
+                    .overlay(HEColor.border)
+
+                DataSourceRow(
+                    title: "Manual / Debug",
+                    subtitle: "Backfill, payload preview, reset",
+                    status: "OK",
+                    color: HEColor.accentPurple
+                )
+
+                Divider()
+                    .overlay(HEColor.border)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("PERMISSIONS")
+                        .font(HETypography.overline)
+                        .foregroundStyle(HEColor.secondaryText)
+                        .tracking(1.0)
+
+                    ForEach(viewModel.authorizationItems, id: \.name) { item in
+                        HStack {
+                            Text(item.name.uppercased())
+                                .font(HETypography.metric)
+                                .foregroundStyle(HEColor.primaryText)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.9)
+
+                            Spacer()
+
+                            Text(item.status.uppercased())
+                                .font(HETypography.overline)
+                                .foregroundStyle(permissionColor(for: item.status))
+                                .lineLimit(2)
+                                .multilineTextAlignment(.trailing)
                         }
                     }
+
+                    Text("HealthKit read permissions are verified by data access, not authorizationStatus.")
+                        .font(.caption2)
+                        .foregroundStyle(HEColor.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
     }
 
-    private func signalsPanel(_ readiness: ReadinessDailyResponse) -> some View {
-        terminalPanel {
-            VStack(alignment: .leading, spacing: 10) {
-                sectionLabel("SIGNALS")
-
-                compactValueRow(title: "Freshness", value: freshnessText(from: readiness.explanation?.freshness))
-                compactValueRow(title: "Recovery", value: format(readiness.explanation?.recoveryScoreSimple))
-            }
+    private var tabBar: some View {
+        HStack(spacing: 8) {
+            dashboardTab("OVERVIEW", active: true)
+            dashboardTab("SYNC", active: false)
+            dashboardTab("RECOVERY", active: false)
+            dashboardTab("TRENDS", active: false)
+            dashboardTab("SETTINGS", active: false)
         }
-    }
-
-    @ViewBuilder
-    private func dataQualityPanel(_ readiness: ReadinessDailyResponse) -> some View {
-        if let dataQuality = readiness.dataQuality {
-            terminalPanel {
-                VStack(alignment: .leading, spacing: 10) {
-                    sectionLabel("DATA")
-
-                    dataQualityRow(title: "Sleep", value: dataQuality.sleep)
-                    dataQualityRow(title: "HRV", value: dataQuality.hrv)
-                    dataQualityRow(title: "Rest HR", value: dataQuality.restingHR)
-                    dataQualityRow(title: "Training", value: dataQuality.training)
-                }
-            }
-        }
-    }
-
-    private func recoveryPanel(_ readiness: ReadinessDailyResponse) -> some View {
-        terminalPanel {
-            recoveryBreakdownSection(readiness)
-        }
-    }
-
-    @ViewBuilder
-    private func recoveryBreakdownSection(_ readiness: ReadinessDailyResponse) -> some View {
-        if let recovery = readiness.explanation?.recoveryExplanation {
-            VStack(alignment: .leading, spacing: 10) {
-                sectionLabel("RECOVERY")
-
-                recoveryRow(title: "Sleep", score: recovery.sleepScore)
-                recoveryRow(title: "HRV", score: recovery.hrvScore)
-                recoveryRow(title: "Resting HR", score: recovery.rhrScore)
-            }
-        }
-    }
-
-    // MARK: - Reusable blocks
-
-    @ViewBuilder
-    private func compactValueRow(title: String, value: String) -> some View {
-        HStack(spacing: 12) {
-            Text(title)
-                .font(bodyLabelFont)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .frame(width: 110, alignment: .leading)
-
-            Spacer(minLength: 0)
-
-            Text(value)
-                .font(terminalValueFont)
-                .monospacedDigit()
-                .foregroundStyle(.primary)
-            .lineLimit(1)
-        }
-    }
-
-    @ViewBuilder
-    private func dataQualityRow(title: String, value: String?) -> some View {
-        HStack(spacing: 12) {
-            Text(title)
-                .font(bodyLabelFont)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .frame(width: 110, alignment: .leading)
-
-            Spacer(minLength: 0)
-
-            Text(dataQualityLabel(value))
-                .font(terminalValueFont)
-                .foregroundStyle(dataQualityColor(value))
-                .lineLimit(1)
-        }
-    }
-
-    @ViewBuilder
-    private func trendBar(_ item: ReadinessHistoryItem) -> some View {
-        let scores = viewModel.readinessHistory.map { $0.readinessScore ?? 0 }
-        let score = item.readinessScore ?? 0
-        let minScore = scores.min() ?? 0
-        let maxScore = scores.max() ?? 100
-        let height = relativeTrendHeight(score: score, minScore: minScore, maxScore: maxScore)
-
-        VStack(spacing: 0) {
-            RoundedRectangle(cornerRadius: 2)
-                .fill(readinessColor(item.readinessScore))
-                .frame(width: 16, height: height)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-    }
-
-    @ViewBuilder
-    private func recoveryRow(title: String, score: Double?) -> some View {
-        HStack(spacing: 10) {
-            Text(title)
-                .font(bodyLabelFont)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .frame(width: 110, alignment: .leading)
-
-            Text(format(score))
-                .font(.system(size: 17, weight: .semibold, design: .monospaced))
-                .monospacedDigit()
-                .foregroundStyle(.primary)
-                .frame(width: 48, alignment: .trailing)
-
-            Text(terminalBar(value: score))
-                .font(.system(size: 17, weight: .regular, design: .monospaced))
-                .foregroundStyle(readinessColor(score))
-                .lineLimit(1)
-
-            Spacer(minLength: 0)
-        }
-    }
-
-    // MARK: - Helpers
-
-    private func terminalPanel<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            content()
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
-        .background(Color.white.opacity(0.05))
-        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .padding(6)
+        .frame(maxWidth: .infinity)
+        .background(HEColor.card)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
         .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(HEColor.border, lineWidth: 1)
         )
     }
 
-    private func sectionLabel(_ text: String) -> some View {
-        Text("> \(text)")
-            .font(terminalLabelFont)
-            .textCase(.uppercase)
-            .foregroundStyle(.secondary)
+    private func utilityButtonRow(title: String, subtitle: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title)
+                        .font(HETypography.overline)
+                        .foregroundStyle(HEColor.primaryText)
+                        .tracking(1.0)
+                        .lineLimit(1)
+
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundStyle(HEColor.secondaryText)
+                        .lineLimit(2)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(HEColor.secondaryText)
+            }
+            .padding(.vertical, 6)
+        }
+        .buttonStyle(.plain)
     }
 
-    private func format(_ value: Double?) -> String {
-        guard let value else { return "n/a" }
-        return String(format: "%.1f", value)
+    private func dashboardTab(_ title: String, active: Bool) -> some View {
+        Text(title)
+            .font(HETypography.overline)
+            .foregroundStyle(active ? HEColor.background : HEColor.secondaryText)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity)
+            .background(active ? HEColor.accentGreen : Color.clear)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .lineLimit(1)
+            .minimumScaleFactor(0.75)
     }
 
-    private func formatPercent(_ value: Double?) -> String {
-        guard let value else { return "n/a" }
-        return String(format: "%.1f%%", value * 100.0)
+    private func placeholderBars(color: Color) -> some View {
+        HStack(alignment: .bottom, spacing: 8) {
+            ForEach([18.0, 34.0, 22.0, 40.0, 28.0], id: \.self) { height in
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(color.opacity(0.3))
+                    .frame(height: height)
+            }
+        }
+        .frame(height: 46, alignment: .bottom)
     }
 
-    private func freshnessText(from value: Double?) -> String {
-        guard let value else { return "No load data" }
-        return String(format: "%.1f", value)
-    }
-
-    private func dataQualityLabel(_ value: String?) -> String {
-        guard let value = trimmedText(value) else { return "n/a" }
-
-        switch value.lowercased() {
-        case "ok":
-            return "OK"
-        case "partial":
-            return "Partial"
-        case "missing":
-            return "Missing"
+    private func color(forStatusKey key: String) -> Color {
+        switch key {
+        case "connected":
+            return HEColor.accentGreen
+        case "warning":
+            return HEColor.accentYellow
+        case "error":
+            return HEColor.error
         default:
-            return value
+            return HEColor.accentCyan
         }
     }
 
-    private func dataQualityColor(_ value: String?) -> Color {
-        switch trimmedText(value)?.lowercased() {
-        case "ok":
-            return .green
-        case "partial":
-            return .yellow
-        case "missing":
-            return .secondary
+    private func accentColor(forMode mode: SyncMode?) -> Color {
+        switch mode {
+        case .full:
+            return HEColor.accentGreen
+        case .incremental:
+            return HEColor.accentCyan
+        case .backfill:
+            return HEColor.accentPurple
+        case nil:
+            return HEColor.secondaryText
+        }
+    }
+
+    private func permissionColor(for status: String) -> Color {
+        switch status {
+        case "READ OK":
+            return HEColor.accentGreen
+        case "NO DATA / CHECK HEALTH SETTINGS":
+            return HEColor.accentYellow
+        case "NOT REQUESTED":
+            return HEColor.secondaryText
         default:
-            return .primary
+            return HEColor.error
         }
     }
 
-    private func readinessExplanationText(for readiness: ReadinessDailyResponse) -> String? {
-        if let readinessComment = trimmedText(readiness.readinessComment) {
-            return readinessComment
-        }
-
-        if let briefingText = trimmedText(readiness.briefingText) {
-            return briefingText
-        }
-
-        if let statusText = trimmedText(readiness.statusText) {
-            return statusText
-        }
-
-        if readiness.readinessScore != nil || readiness.explanation != nil {
-            return "Not enough data yet"
-        }
-
-        return nil
-    }
-
-    private func trimmedText(_ text: String?) -> String? {
-        guard let text else { return nil }
-
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : trimmed
-    }
-
-    private func mainBriefingText(for readiness: ReadinessDailyResponse) -> String? {
-        if let briefing = trimmedText(readiness.briefing) {
-            return briefing
-        }
-
-        if let briefingText = trimmedText(readiness.briefingText) {
-            return briefingText
-        }
-
-        return nil
-    }
-
-    private func secondaryStatusText(for readiness: ReadinessDailyResponse) -> String? {
-        let statusText = trimmedText(readiness.statusText)
-
-        return statusText
-    }
-
-    private func recommendationText(for readiness: ReadinessDailyResponse) -> String {
-        if let recommendation = trimmedText(readiness.recommendation) {
-            return recommendation
-        }
-
-        return recommendationText(readiness: readiness.readinessScore)
-    }
-
-    private func recommendationLabel(from value: String?) -> String? {
-        guard let value = trimmedText(value)?.lowercased() else { return nil }
-
-        switch value {
-        case "recovery":
-            return "Recovery day"
-        case "endurance":
-            return "Easy endurance"
-        case "moderate":
-            return "Moderate training"
-        case "high_intensity":
-            return "High intensity possible"
-        default:
-            return nil
-        }
-    }
-
-    private func recommendationText(readiness: Double?) -> String {
-        guard let readiness else { return "Not enough data" }
-
-        switch readiness {
-        case ..<40:
-            return "Recovery or rest day"
-        case 40...60:
-            return "Easy training recommended"
-        case 60...75:
-            return "Good day for endurance"
-        default:
-            return "Good day for hard workout"
-        }
-    }
-
-    private var readinessTrendLabel: String {
-        let scores = viewModel.readinessHistory.compactMap(\.readinessScore)
-
-        guard viewModel.readinessHistory.count >= 2, let first = scores.first, let last = scores.last else {
-            return "Not enough history"
-        }
-
-        if last - first >= 5 {
-            return "Improving"
-        }
-
-        if first - last >= 5 {
-            return "Declining"
-        }
-
-        return "Stable"
-    }
-
-    private func shortScore(_ score: Double) -> String {
-        String(format: "%.0f", score)
-    }
-
-    private func terminalBar(value: Double?) -> String {
-        guard let value else { return "░░░░░░░░░░" }
-
-        let filled = max(0, min(10, Int(value / 10.0)))
-        return String(repeating: "█", count: filled) + String(repeating: "░", count: 10 - filled)
-    }
-
-    private func relativeTrendHeight(score: Double, minScore: Double, maxScore: Double) -> CGFloat {
-        let minHeight: CGFloat = 8
-        let maxHeight: CGFloat = 34
-        let range = max(maxScore - minScore, 1)
-        let normalized = (score - minScore) / range
-        return minHeight + CGFloat(normalized) * (maxHeight - minHeight)
-    }
-
-    private func shortDateLabel(_ dateString: String) -> String {
-        let parts = dateString.split(separator: "-")
-        return String(parts.last ?? "")
-    }
-
-    private var syncStatusText: String {
+    private var mainStatusText: String {
         if viewModel.syncState.lastErrorMessage != nil {
-            return "Sync failed, will retry"
+            return "CHECK"
         }
 
+        if viewModel.syncState.lastSuccessfulSyncAt != nil {
+            return "SYNC OK"
+        }
+
+        return "READY"
+    }
+
+    private var mainStatusSubtitle: String {
+        if let error = viewModel.syncState.lastErrorMessage, !error.isEmpty {
+            return error
+        }
+
+        return "READY TO SYNC"
+    }
+
+    private var ringTrim: CGFloat {
+        let value = min(max(CGFloat(viewModel.syncState.lastSentItemCount) / 100.0, 0.18), 0.92)
+        return value
+    }
+
+    private var updatedStatusText: String {
         if let lastSuccessfulSyncAt = viewModel.syncState.lastSuccessfulSyncAt {
-            return "Updated \(relativeTimeString(from: lastSuccessfulSyncAt))"
+            return relativeTimeString(from: lastSuccessfulSyncAt).uppercased()
         }
 
         if let lastSyncAttemptAt = viewModel.syncState.lastSyncAttemptAt {
-            return "Checked \(relativeTimeString(from: lastSyncAttemptAt))"
+            return DateFormatters.shortDateTime(lastSyncAttemptAt).uppercased()
         }
 
-        return "No data yet"
+        return "NOT YET"
     }
 
     private func relativeTimeString(from date: Date) -> String {
         let seconds = Int(Date().timeIntervalSince(date))
 
         if seconds < 60 {
-            return "just now"
+            return "JUST NOW"
         }
 
         let minutes = seconds / 60
         if minutes < 60 {
-            return minutes == 1 ? "1 min ago" : "\(minutes) min ago"
+            return minutes == 1 ? "1 MIN AGO" : "\(minutes) MIN AGO"
         }
 
         let hours = minutes / 60
         if hours < 24 {
-            return hours == 1 ? "1 h ago" : "\(hours) h ago"
+            return hours == 1 ? "1 H AGO" : "\(hours) H AGO"
         }
 
         return DateFormatters.shortDateTime(date)
-    }
-
-    private func readinessColor(_ score: Double?) -> Color {
-        guard let score else { return .gray }
-
-        switch score {
-        case ..<40:
-            return .red
-        case 40..<60:
-            return .orange
-        case 60..<75:
-            return .yellow
-        default:
-            return .green
-        }
     }
 }
 

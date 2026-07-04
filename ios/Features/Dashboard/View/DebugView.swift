@@ -64,6 +64,10 @@ struct DebugView: View {
                 Button("Incremental sync") {
                     viewModel.performIncrementalSync()
                 }
+
+                Button("Backfill since May 23") {
+                    viewModel.performBackfillSinceMay23()
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -84,6 +88,10 @@ struct DebugView: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
+
+                    Text("HealthKit read permissions are verified by data access, not authorizationStatus.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
         }

@@ -21,12 +21,17 @@ final class HealthKitService {
     }
 
     func fetchSleepSamplesForLast7Days(completion: @escaping (Result<[SleepSample], Error>) -> Void) {
+        let startDate = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date.distantPast
+        fetchSleepSamples(from: startDate, completion: completion)
+    }
+
+    func fetchSleepSamples(from startDate: Date, completion: @escaping (Result<[SleepSample], Error>) -> Void) {
         guard let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) else {
             completion(.failure(HealthKitError.typeNotAvailable))
             return
         }
 
-        let predicate = samplesPredicateForLast7Days()
+        let predicate = samplesPredicate(from: startDate)
         let sortDescriptors = [
             NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
         ]
@@ -34,7 +39,7 @@ final class HealthKitService {
         let query = HKSampleQuery(
             sampleType: sleepType,
             predicate: predicate,
-            limit: 100,
+            limit: HKObjectQueryNoLimit,
             sortDescriptors: sortDescriptors
         ) { _, samples, error in
             DispatchQueue.main.async {
@@ -170,7 +175,8 @@ final class HealthKitService {
             return
         }
 
-        let predicate = samplesPredicateForLast7Days()
+        let startDate = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date.distantPast
+        let predicate = samplesPredicate(from: startDate)
         let sortDescriptors = [
             NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
         ]
@@ -202,12 +208,17 @@ final class HealthKitService {
     }
 
     func fetchRestingHRSamplesForLast7Days(completion: @escaping (Result<[RestingHRSample], Error>) -> Void) {
+        let startDate = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date.distantPast
+        fetchRestingHRSamples(from: startDate, completion: completion)
+    }
+
+    func fetchRestingHRSamples(from startDate: Date, completion: @escaping (Result<[RestingHRSample], Error>) -> Void) {
         guard let restingHeartRateType = HKObjectType.quantityType(forIdentifier: .restingHeartRate) else {
             completion(.failure(HealthKitError.typeNotAvailable))
             return
         }
 
-        let predicate = samplesPredicateForLast7Days()
+        let predicate = samplesPredicate(from: startDate)
         let sortDescriptors = [
             NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
         ]
@@ -215,7 +226,7 @@ final class HealthKitService {
         let query = HKSampleQuery(
             sampleType: restingHeartRateType,
             predicate: predicate,
-            limit: 20,
+            limit: HKObjectQueryNoLimit,
             sortDescriptors: sortDescriptors
         ) { _, samples, error in
             DispatchQueue.main.async {
@@ -240,12 +251,17 @@ final class HealthKitService {
     }
 
     func fetchHRVSamplesForLast7Days(completion: @escaping (Result<[HRVSample], Error>) -> Void) {
+        let startDate = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date.distantPast
+        fetchHRVSamples(from: startDate, completion: completion)
+    }
+
+    func fetchHRVSamples(from startDate: Date, completion: @escaping (Result<[HRVSample], Error>) -> Void) {
         guard let hrvType = HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN) else {
             completion(.failure(HealthKitError.typeNotAvailable))
             return
         }
 
-        let predicate = samplesPredicateForLast7Days()
+        let predicate = samplesPredicate(from: startDate)
         let sortDescriptors = [
             NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
         ]
@@ -253,7 +269,7 @@ final class HealthKitService {
         let query = HKSampleQuery(
             sampleType: hrvType,
             predicate: predicate,
-            limit: 50,
+            limit: HKObjectQueryNoLimit,
             sortDescriptors: sortDescriptors
         ) { _, samples, error in
             DispatchQueue.main.async {
@@ -457,8 +473,7 @@ final class HealthKitService {
         healthStore.execute(query)
     }
     
-    private func samplesPredicateForLast7Days() -> NSPredicate {
-        let startDate = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date.distantPast
+    private func samplesPredicate(from startDate: Date) -> NSPredicate {
         return HKQuery.predicateForSamples(
             withStart: startDate,
             end: Date(),
