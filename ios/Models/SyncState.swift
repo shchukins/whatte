@@ -10,6 +10,7 @@ import Foundation
 enum SyncMode: String, Codable {
     case full
     case incremental
+    case backfill
 }
 
 struct SyncState: Codable {

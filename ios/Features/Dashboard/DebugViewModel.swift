@@ -1,15 +1,20 @@
 import Foundation
-import HealthKit
 import Observation
 
 @Observable
 final class DebugViewModel {
+    private static let backfillStartDate: Date = {
+        let calendar = Calendar(identifier: .gregorian)
+        return calendar.date(from: DateComponents(year: 2026, month: 5, day: 23)) ?? Date.distantPast
+    }()
+    private static let hasRequestedPermissionsKey = "healthkit_read_permissions_requested"
 
     // MARK: - Loaded HealthKit data
 
     var weightSamples: [WeightSample] = []
     var restingHRSamples: [RestingHRSample] = []
     var hrvSamples: [HRVSample] = []
+    var sleepSamples: [SleepSample] = []
     var sleepNightAggregates: [SleepNightAggregate] = []
 
     // MARK: - UI state
@@ -22,10 +27,14 @@ final class DebugViewModel {
     var isSyncInProgress: Bool = false
 
     let backendUserID: String = "sergey"
+    private var hasRequestedHealthPermissions = UserDefaults.standard.bool(forKey: hasRequestedPermissionsKey)
 
     // MARK: - Permissions
 
     func requestPermissions() {
+        hasRequestedHealthPermissions = true
+        UserDefaults.standard.set(true, forKey: Self.hasRequestedPermissionsKey)
+
         HealthKitService.shared.requestAuthorization { [weak self] result in
             guard let self else { return }
 
@@ -42,26 +51,12 @@ final class DebugViewModel {
     }
 
     func refreshStatuses() {
-        let statuses = HealthKitService.shared.authorizationStatuses()
-
-        authorizationItems = statuses
-            .map { key, value in
-                (name: key, status: Self.mapAuthorizationStatus(value))
-            }
-            .sorted { $0.name < $1.name }
-    }
-
-    private static func mapAuthorizationStatus(_ status: HKAuthorizationStatus) -> String {
-        switch status {
-        case .notDetermined:
-            return "Not determined"
-        case .sharingDenied:
-            return "Denied"
-        case .sharingAuthorized:
-            return "Authorized"
-        @unknown default:
-            return "Unknown"
-        }
+        authorizationItems = [
+            (name: "HRV", status: readStatus(hasData: !hrvSamples.isEmpty)),
+            (name: "Resting HR", status: readStatus(hasData: !restingHRSamples.isEmpty)),
+            (name: "Sleep", status: readStatus(hasData: !sleepNightAggregates.isEmpty || !sleepSamples.isEmpty)),
+            (name: "Weight", status: readStatus(hasData: !weightSamples.isEmpty))
+        ]
     }
 
     // MARK: - Sync state
@@ -74,6 +69,7 @@ final class DebugViewModel {
         syncState = .empty
         SyncStateStore.shared.clear()
         statusMessage = "Sync state reset"
+        refreshStatuses()
     }
 
     func saveSyncState() {
@@ -102,8 +98,10 @@ final class DebugViewModel {
                                         self.weightSamples = weights
                                         self.restingHRSamples = restingHR
                                         self.hrvSamples = hrv
+                                        self.sleepSamples = sleep
                                         self.sleepNightAggregates = sleepNightAggregates
                                         self.statusMessage = "Sample data loaded"
+                                        self.refreshStatuses()
 
                                     case .failure(let error):
                                         self.statusMessage = "Sleep read error: \(error.localizedDescription)"
@@ -200,6 +198,17 @@ final class DebugViewModel {
         (payload.latestWeight == nil ? 0 : 1)
     }
 
+    private func syncSuccessMessage(for mode: SyncMode) -> String {
+        switch mode {
+        case .full:
+            return "Full sync sent"
+        case .incremental:
+            return "Incremental sent"
+        case .backfill:
+            return "Backfill sent"
+        }
+    }
+
     // MARK: - Sending
 
     func sendPayload(
@@ -222,7 +231,7 @@ final class DebugViewModel {
 
             switch result {
             case .success:
-                self.statusMessage = mode == .full ? "Full sync sent" : "Incremental sent"
+                self.statusMessage = self.syncSuccessMessage(for: mode)
                 self.syncState.lastSuccessfulSyncAt = Date()
                 self.syncState.lastPayloadGeneratedAt = Date()
                 self.syncState.lastErrorMessage = nil
@@ -242,6 +251,38 @@ final class DebugViewModel {
         }
     }
 
+    // MARK: - Backfill
+
+    func performBackfillSinceMay23() {
+        guard !isSyncInProgress else { return }
+
+        isSyncInProgress = true
+        statusMessage = "Running backfill since 2026-05-23..."
+
+        SyncService.shared.performBackfill(from: Self.backfillStartDate) { [weak self] result in
+            guard let self else { return }
+
+            switch result {
+            case .success(let data):
+                self.weightSamples = data.weightSamples
+                self.restingHRSamples = data.restingHRSamples
+                self.hrvSamples = data.hrvSamples
+                self.sleepSamples = data.sleepSamples
+                self.sleepNightAggregates = data.sleepNightAggregates
+                self.updatePayloadSummary(from: data.payload)
+                self.refreshStatuses()
+
+                self.sendPayload(data.payload, mode: .backfill) {}
+
+            case .failure(let error):
+                self.statusMessage = "Backfill error: \(error.localizedDescription)"
+                self.syncState.lastErrorMessage = error.localizedDescription
+                self.saveSyncState()
+                self.isSyncInProgress = false
+            }
+        }
+    }
+
     // MARK: - Full sync
 
     func performFullSync() {
@@ -258,8 +299,10 @@ final class DebugViewModel {
                 self.weightSamples = data.weightSamples
                 self.restingHRSamples = data.restingHRSamples
                 self.hrvSamples = data.hrvSamples
+                self.sleepSamples = data.sleepSamples
                 self.sleepNightAggregates = data.sleepNightAggregates
                 self.updatePayloadSummary(from: data.payload)
+                self.refreshStatuses()
 
                 self.sendPayload(data.payload, mode: .full) {}
 
@@ -296,8 +339,10 @@ final class DebugViewModel {
 
                 self.hrvSamples = data.newHRVSamples
                 self.restingHRSamples = data.newRestingHRSamples
+                self.sleepSamples = []
                 self.sleepNightAggregates = data.newSleepNightAggregates
                 self.updatePayloadSummary(from: payload)
+                self.refreshStatuses()
 
                 self.sendPayload(payload, mode: .incremental) {}
 
@@ -308,5 +353,13 @@ final class DebugViewModel {
                 self.isSyncInProgress = false
             }
         }
+    }
+
+    private func readStatus(hasData: Bool) -> String {
+        if !hasRequestedHealthPermissions {
+            return "NOT REQUESTED"
+        }
+
+        return hasData ? "READ OK" : "NO DATA / CHECK HEALTH SETTINGS"
     }
 }
