@@ -1,0 +1,7 @@
+- Deterministic core нельзя заменять LLM.
+- AI может быть только auxiliary / interpretation layer.
+- Не менять production logic без тестов.
+- Не делать big-bang refactoring.
+- Сначала читать AGENTS.md, README.md, SYSTEM_MAP.md.
+- Если задача неоднозначная — сначала proposal, потом implementation.
+- Не создавать новые архитектурные сущности без явной причины.

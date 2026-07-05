@@ -153,7 +153,18 @@ Recovery не заменяет fatigue, а корректирует readiness п
 - допустимую интенсивность
 - ограничения по дню
 
-В текущем состоянии recommendation layer остается planned.
+В текущем backend baseline recommendation layer уже реализован как deterministic mapping от `readiness_score`:
+
+- `< 40` -> `recovery`
+- `40 <= score < 60` -> `endurance`
+- `60 <= score <= 75` -> `moderate`
+- `> 75` -> `high_intensity`
+
+Важно:
+
+- это baseline decision support, а не полноценный training planner
+- recommendation не пересчитывает readiness, а использует уже сохраненный readiness output
+- более широкий planning layer остается planned
 
 ---
 
@@ -166,7 +177,18 @@ Recovery не заменяет fatigue, а корректирует readiness п
 - стабильным
 - опираться на readiness layer, а не на свободный текст
 
-В текущем состоянии ride briefing layer остается planned.
+В текущем backend baseline ride briefing уже реализован как deterministic formatting layer поверх:
+
+- `readiness_score`
+- `status_text`
+- `recommendation`
+- `reason`
+
+Важно:
+
+- briefing используется в readiness API response и notification flows
+- это не LLM-generated coaching text
+- richer multi-surface briefing orchestration остается partial / evolving
 
 ---
 

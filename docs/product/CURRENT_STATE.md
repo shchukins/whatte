@@ -1,6 +1,6 @@
 # Human Engine — CURRENT STATE
 
-Last updated: 2026-04-17
+Last updated: 2026-05-21
 
 ---
 
@@ -235,21 +235,90 @@ good_day_probability = readiness_score / 100
 - `readiness_daily.explanation_json` содержит recovery breakdown
 - результат возвращается в iOS через public API
 
-Публичный API уже проксируется через VPS / Caddy по пути `/api/*`.
+Публичный API уже проксируется через VPS / Caddy через `api.shchukin.de`.
+
+Новый domain split:
+
+- `shchukin.de` — web surfaces
+- `shchukin.de/dashboard` — Internal Dashboard
+- `api.shchukin.de` — technical API, Strava OAuth callback, Telegram webhook, HealthKit sync, `/healthz`, OpenAPI/docs when enabled
+
+Dashboard status:
+
+- dashboard implemented as FastAPI SSR HTML with Jinja2 and minimal CSS
+- dashboard is protected at the edge with `Caddy` Basic Auth
+- current sections:
+  - `System`: backend status, database status, server time, process started time, uptime, and safe database error fallback
+  - `Connection`: Strava connection status, athlete id, scope, token expiry, and token state
+  - `Ingest Jobs`: latest ingest jobs plus pending and failed/error counts
+  - `Strava Activities`: latest saved local activities with total count, name/type/date/distance/time
+- dashboard is read-only and uses local backend/database state only
+- dashboard does not call Strava API, refresh tokens, mutate DB rows, show raw payloads, or expose secrets
+- token refresh remains limited to Strava API access paths, not dashboard reads
+
+Operational monitoring status:
+
+- dashboard is the primary operational monitoring surface for the current VPS production backend
+- Telegram alerts and the old home-server watchdog / cron monitoring are legacy/secondary, not the main monitoring channel
+- dashboard is not a full alerting system
 
 ---
 
-## 6. Основные ограничения текущей версии
+## 6. Decision, delivery and feedback layers
+
+### 6.1 Deterministic decision baseline
+
+Поверх `readiness_daily` уже работает baseline decision layer:
+
+- `recommendation`
+- `reason`
+- `briefing`
+
+Текущий mapping:
+
+- `< 40` -> `recovery`
+- `40 <= score < 60` -> `endurance`
+- `60 <= score <= 75` -> `moderate`
+- `> 75` -> `high_intensity`
+
+Важно:
+
+- decision layer не меняет readiness formula
+- decision layer не использует AI / LLM
+- это baseline guidance, а не полноценный planner по времени, длительности и контексту дня
+
+### 6.2 Delivery layer
+
+Уже реализованы:
+
+- GET readiness API с `recommendation`, `reason`, `briefing`, `data_quality`
+- daily Telegram readiness delivery
+- deterministic formatting для iOS / Today-style consumption
+
+### 6.3 Subjective feedback layer
+
+Уже реализованы:
+
+- post-ride RPE prompt
+- next-day recovery prompt
+- `activity_subjective_feedback`
+- `subjective_feedback_prompt_log`
+
+Важно:
+
+- feedback не меняет deterministic core calculations
+- feedback сохраняется как evaluation / calibration dataset
+
+## 7. Основные ограничения текущей версии
 
 1. Recovery baseline уже реализован, но еще не откалиброван на популяционных или персональных outcome данных.
 2. `load_input_nonlinear` пока фактически линейный.
 3. `good_day_probability` пока является простым mapping от readiness score.
-4. Decision layer и recommendation layer еще не реализованы как отдельный production layer.
-5. Персонализация и calibration остаются следующим этапом.
+4. Decision layer уже реализован, но пока остается узким baseline mapping без time-aware planning и duration guidance.
+5. В notification / briefing flows сохраняется риск архитектурного дрейфа: часть legacy formatting logic еще живет вне `decision_engine`, что может со временем разъехать тексты и правила.
+6. Персонализация и calibration остаются следующим этапом.
 
----
-
-## 7. Ключевые архитектурные решения
+## 8. Ключевые архитектурные решения
 
 - Load и Recovery разделены
 - Readiness не равен freshness
@@ -257,6 +326,8 @@ good_day_probability = readiness_score / 100
 - Recovery влияет на readiness, но не переписывает load model
 - используется daily aggregation
 - используется probability layer (`good_day_probability`)
+- baseline decision layer отделен от readiness formula
+- subjective feedback хранится отдельно от model state как calibration dataset
 - deterministic core остается приоритетом
 
 ---

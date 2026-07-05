@@ -167,11 +167,18 @@ partially resolved
 
 Ride briefing — важный output системы.
 
-Базовая readiness layer уже реализована, но не зафиксировано:
+Что уже реализовано:
 
-- окончательный формат user-facing briefing
-- уровень детализации
-- mapping from readiness to recommendation
+- baseline deterministic `recommendation`
+- baseline deterministic `reason`
+- baseline deterministic `briefing`
+- readiness API response с decision output
+
+Что остается незафиксированным окончательно:
+
+- окончательный multi-surface формат user-facing briefing
+- уровень детализации на разных surfaces
+- граница между `decision_engine` и legacy notification formatting
 
 ---
 
@@ -193,6 +200,38 @@ Ride briefing — важный output системы.
 
 ### Status
 
+partially resolved
+
+---
+
+## OD-008: Decision formatting unification
+
+### Context
+
+В текущем backend уже есть явный `decision_engine` для recommendation / briefing.
+
+Одновременно часть legacy notification formatting logic продолжает жить в `notification_service`.
+
+Это не нарушает boundary между AI и deterministic core, но создает риск постепенного drift:
+
+- тексты могут начать расходиться
+- пороги и формулировки могут дублироваться
+- ответственность decision layer станет менее явной
+
+### Minimal correction strategy
+
+1. Считать `decision_engine` canonical source для readiness-to-guidance mapping
+2. Постепенно свести user-facing readiness wording к одному formatting path
+3. Оставить `notification_service` orchestration-слоем, а не вторым decision-слоем
+
+### Open questions
+
+- какие notification-specific embellishments допустимы вне canonical decision path
+- нужно ли выделять отдельный formatter module между decision и delivery
+- как покрыть унификацию tests без избыточной связанности
+
+### Status
+
 open
 
 ---
@@ -201,13 +240,18 @@ open
 
 ### Context
 
-Visualization layer пока не является основной частью реализованного core.
+Visualization layer пока не является основной частью реализованного product core.
+
+Operational clarification:
+
+- internal FastAPI SSR dashboard at `shchukin.de/dashboard` is already implemented as a read-only monitoring surface
+- this open decision is about future product/user visualization, not the existing operational dashboard
 
 ---
 
 ### Options
 
-1. Web dashboard
+1. Product web dashboard
 2. Mobile-first
 3. Минималистичный readiness-first интерфейс
 

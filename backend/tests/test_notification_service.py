@@ -2,6 +2,7 @@ from backend.services.notification_service import (
     build_briefing_text,
     build_daily_readiness_message,
     build_readiness_briefing_message,
+    build_training_processed_message,
     build_readiness_comment,
     build_workout_comment,
     classify_workout_type,
@@ -11,6 +12,7 @@ from backend.services.notification_service import (
     describe_freshness_trend,
     describe_training_impact,
     recommend_training,
+    notify_training_processed,
 )
 
 def test_compute_readiness_score_none():
@@ -463,3 +465,137 @@ def test_describe_training_impact_moderate_load():
 
 def test_describe_training_impact_light_load():
     assert describe_training_impact(0.5, -0.5) == "Легкая нагрузка"
+
+
+class _FakeTrainingProcessedCursor:
+    def __init__(self, activity_row, state_rows) -> None:
+        self.activity_row = activity_row
+        self.state_rows = state_rows
+        self._last_query = ""
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        return False
+
+    def execute(self, query, params):
+        self._last_query = query
+
+    def fetchone(self):
+        if "from strava_activity_raw" in self._last_query:
+            return self.activity_row
+        if "from daily_fitness_state" in self._last_query:
+            return self.state_rows[0] if self.state_rows else None
+        raise AssertionError(f"unexpected fetchone query: {self._last_query}")
+
+    def fetchall(self):
+        if "from daily_fitness_state" in self._last_query:
+            return self.state_rows
+        raise AssertionError(f"unexpected fetchall query: {self._last_query}")
+
+
+class _FakeTrainingProcessedConn:
+    def __init__(self, cursor) -> None:
+        self._cursor = cursor
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        return False
+
+    def cursor(self):
+        return self._cursor
+
+
+def test_build_training_processed_message_for_unsupported_activity(monkeypatch):
+    fake_cursor = _FakeTrainingProcessedCursor(
+        activity_row=(
+            "Table Tennis",
+            "2026-04-17T18:00:00Z",
+            "TableTennis",
+            3600,
+            None,
+            None,
+            None,
+            None,
+            128.0,
+        ),
+        state_rows=[],
+    )
+    fake_conn = _FakeTrainingProcessedConn(fake_cursor)
+
+    monkeypatch.setattr(
+        "backend.services.notification_service.get_conn",
+        lambda: fake_conn,
+    )
+
+    message = build_training_processed_message(user_id="user-1", activity_id=42)
+
+    assert "Type: unsupported" in message
+    assert "Load model: unsupported" in message
+    assert (
+        "Comment: Activity stored, but excluded from daily load aggregation and readiness impact because reliable load estimate is not available."
+        in message
+    )
+    assert "Impact:\nUnsupported and excluded" in message
+    assert "Fatigue Δ" not in message
+    assert "Freshness Δ" not in message
+    assert "Легкая нагрузка" not in message
+
+
+def test_build_training_processed_message_for_supported_cycling_activity(monkeypatch):
+    fake_cursor = _FakeTrainingProcessedCursor(
+        activity_row=(
+            "Evening Ride",
+            "2026-04-17T18:00:00Z",
+            "Ride",
+            5400,
+            72.5,
+            210.0,
+            0.84,
+            185.0,
+            142.0,
+        ),
+        state_rows=[
+            (55.0, 31.0, -4.0),
+            (53.0, 26.0, 0.5),
+        ],
+    )
+    fake_conn = _FakeTrainingProcessedConn(fake_cursor)
+
+    monkeypatch.setattr(
+        "backend.services.notification_service.get_conn",
+        lambda: fake_conn,
+    )
+
+    message = build_training_processed_message(user_id="user-1", activity_id=43)
+
+    assert "Type: tempo" in message
+    assert "Load model: power_tss" in message
+    assert "Fatigue Δ: 5.00" in message
+    assert "Freshness Δ: -4.50" in message
+
+
+def test_notify_training_processed_sends_feedback_prompt(monkeypatch):
+    sent_messages: list[str] = []
+    feedback_prompts: list[int] = []
+
+    monkeypatch.setattr(
+        "backend.services.notification_service.build_training_processed_message",
+        lambda user_id, activity_id: f"processed:{user_id}:{activity_id}",
+    )
+    monkeypatch.setattr(
+        "backend.services.notification_service.send_telegram_message",
+        lambda text: sent_messages.append(text),
+    )
+    monkeypatch.setattr(
+        "backend.services.notification_service.send_post_ride_rpe_request",
+        lambda activity_id: feedback_prompts.append(activity_id),
+    )
+
+    notify_training_processed(user_id="user-1", activity_id=43)
+
+    assert sent_messages == ["processed:user-1:43"]
+    assert feedback_prompts == [43]

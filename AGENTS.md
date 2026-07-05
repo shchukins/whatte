@@ -1,181 +1,115 @@
 # AGENTS.md
 
-## 1. Purpose
+## Purpose
 
-This repository contains Human Engine — a system for analyzing training data and supporting workout decisions.
+Human Engine is an engineering-first system for analyzing training data and supporting workout decisions.
 
-At the current stage:
+Current product priority:
 
-> deterministic product core is the priority  
-> AI is auxiliary  
+> deterministic core first  
+> AI is auxiliary
 
----
+This file is a short entrypoint for agents. Detailed workflow, style, PR, and documentation rules live in dedicated documents.
 
-## 2. Mental model (read first)
+## Mental model
 
 Human Engine is:
 
-- a data pipeline  
-- a physiology-driven model  
-- a readiness evaluation system  
-- a deterministic decision-support system  
+- a data pipeline
+- a physiology-informed model
+- a readiness evaluation system
+- a deterministic decision-support system
 
-It is NOT:
+Human Engine is not:
 
-- an AI-driven system  
-- a black-box model  
-- a generative decision engine  
+- an AI-driven product core
+- a black-box decision engine
+- a generative substitute for domain logic
 
----
+## Non-negotiable rules
 
-## 3. Absolute rules (do not violate)
+- Do not replace deterministic logic with LLM behavior.
+- Do not introduce hidden probabilistic behavior into the product core.
+- Do not silently change physiology logic, metric definitions, or readiness meaning.
+- Do not modify critical domain logic implicitly or without clear justification.
+- Do not introduce new architecture or services without an explicit reason.
 
-The following rules have highest priority:
+## Architecture boundaries
 
-### 3.1 Do NOT replace deterministic logic with AI
+Protected core:
 
-Never:
+- backend
+- database
+- domain logic
 
-- move calculations into LLM  
-- replace formulas with generated text  
-- introduce hidden probabilistic behavior  
+AI is limited to auxiliary roles such as:
 
----
+- explanation
+- text generation
+- navigation and analysis support
+- documentation assistance
 
-### 3.2 Do NOT change domain meaning
+If a change pressures these boundaries, stop and make the boundary tradeoff explicit.
 
-Never:
-
-- invent new physiology logic  
-- silently change metric definitions  
-- reinterpret readiness logic  
-
----
-
-### 3.3 Do NOT break architecture boundaries
-
-Core (protected):
-
-- backend  
-- database  
-- domain logic  
-
-AI (separate):
-
-- explanation  
-- text generation  
-- documentation  
-
----
-
-## 4. What AI is allowed to do
-
-AI may:
-
-- generate documentation  
-- explain metrics  
-- transform ideas into structured tasks  
-- help navigate codebase  
-- propose code changes  
-
----
-
-## 5. What AI must NOT do
-
-AI must not:
-
-- implement core logic without explicit instructions  
-- introduce new architecture patterns  
-- add new services without justification  
-- modify critical logic implicitly  
-
----
-
-## 6. How to make changes
-
-For non-trivial tasks:
-
-1. read relevant files  
-2. understand current behavior  
-3. propose minimal change  
-4. implement  
-5. verify  
-6. summarize  
-
----
-
-## 7. Change strategy
+## Change philosophy
 
 Prefer:
 
-- minimal changes  
-- local impact  
-- explicit logic  
-- simple solutions  
+- minimal, explicit changes
+- local reasoning
+- simple designs
+- deterministic, observable behavior
 
 Avoid:
 
-- large refactoring without reason  
-- renaming core structures  
-- adding abstractions prematurely  
+- large refactors without a clear need
+- hidden coupling
+- premature abstractions
+- convenience-driven changes that weaken explainability
 
----
+## Required reading
 
-## 8. Verification
+Before non-trivial work, read the local context that defines the system:
 
-Before finishing:
+- `README.md`
+- `docs/ai/PRODUCT_CONTEXT.md`
+- `docs/ai/CURRENT_PRIORITIES.md`
+- `docs/ai/GLOSSARY.md`
+- `docs/ai/SYSTEM_MAP.md`
 
-- verify the change directly  
-- check affected paths  
-- avoid unrelated modifications  
+## External rule documents
 
-If verification is not possible:
+Operational detail is maintained separately. Follow these documents instead of duplicating their rules here:
 
-- state assumptions explicitly  
+- `docs/ai/rules/CODEX_RULES.md`
+- `docs/ai/rules/PR_WORKFLOW_RULES.md`
+- `docs/ai/rules/CODE_STYLE_RULES.md`
+- `docs/ai/rules/DOCUMENTATION_RULES.md`
 
----
+Use them for:
 
-## 9. Safety constraints
+- implementation and review workflow
+- PR scope and process
+- code comments and style expectations
+- documentation update requirements
 
-Never:
+## Skills
 
-- expose secrets  
-- commit generated data  
-- modify environment configs without reason  
-- introduce unstable dependencies  
+Project skills are stored in:
 
----
+- `docs/ai/skills/`
 
-## 10. Context sources
+When asked to use a skill:
 
-When relevant, consult:
+- open `docs/ai/skills/<skill-name>.md`
+- follow its instructions
+- if it does not exist, say so explicitly
 
-- docs/ai/PRODUCT_CONTEXT.md  
-- docs/ai/CURRENT_PRIORITIES.md  
-- docs/ai/GLOSSARY.md  
-- architecture documents  
+## Conflict resolution
 
----
+If rules conflict, use this priority:
 
-## 11. Conflict resolution
-
-If rules conflict:
-
-priority order:
-
-1. deterministic correctness  
-2. architecture boundaries  
-3. simplicity  
-4. developer convenience  
-
----
-
-## 12. Definition of done
-
-A task is complete when:
-
-- change is implemented  
-- architecture is preserved  
-- behavior remains predictable  
-- verification is performed  
-- risks are stated  
+1. deterministic correctness
+2. architecture boundaries
+3. simplicity
+4. developer convenience

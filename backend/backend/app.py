@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field
 
 from backend.config import settings
 from backend.core.logging import configure_logging, log_event
+from backend.dashboard import router as dashboard_router
 from backend.db import get_conn
 from backend.services.fitness_service import recompute_fitness_state
 from backend.services.ingest_service import process_one_strava_ingest_job
@@ -42,15 +43,23 @@ from backend.services.load_state_v2 import recompute_load_state_daily_v2
 from backend.services.readiness_daily import recompute_readiness_daily_for_date
 from backend.services.healthkit_pipeline import ingest_and_process_healthkit_payload
 from backend.services.readiness_query import (
+    get_latest_readiness_daily,
     get_readiness_daily_for_date,
     get_readiness_daily_history,
 )
 from backend.services.decision_engine import build_readiness_briefing
+from backend.services.activity_load_service import resolve_activity_load
+from backend.services.subjective_feedback_service import (
+    handle_telegram_feedback_callback,
+    schedule_next_day_recovery_prompts,
+    send_next_day_recovery_prompt,
+)
 
 configure_logging()
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Human Engine API", version="0.1.0")
+app.include_router(dashboard_router)
 
 
 class EventIn(BaseModel):
@@ -941,68 +950,108 @@ def debug_compute_daily_load(user_id: str, date_str: str):
     try:
         with get_conn() as conn:
             with conn.cursor() as cur:
-
                 cur.execute(
                     """
                     select
-                        count(*),
-                        coalesce(sum(duration_s),0),
-                        coalesce(sum(distance_m),0),
-                        coalesce(sum(elevation_gain_m),0),
-                        coalesce(sum(work_kj),0),
-                        coalesce(sum(tss),0)
-                    from activity_metrics
-                    where user_id = %s
-                      and date(computed_at) = %s::date;
+                        r.activity_type,
+                        m.duration_s,
+                        m.distance_m,
+                        m.elevation_gain_m,
+                        m.work_kj,
+                        m.tss,
+                        m.normalized_power,
+                        m.intensity_factor
+                    from activity_metrics m
+                    join strava_activity_raw r
+                      on r.strava_activity_id = m.strava_activity_id
+                    where m.user_id = %s
+                      and date(r.start_date) = %s::date
+                      and m.version = 'v1';
                     """,
                     (user_id, date_str),
                 )
 
-                row = cur.fetchone()
+                rows = cur.fetchall()
 
-                (
-                    activities_count,
-                    duration_s,
-                    distance_m,
-                    elevation_gain_m,
-                    work_kj,
-                    tss,
-                ) = row
+                activities_count = 0
+                duration_s = 0.0
+                distance_m = 0.0
+                elevation_gain_m = 0.0
+                work_kj = 0.0
+                tss = 0.0
+
+                for row in rows:
+                    (
+                        activity_type,
+                        row_duration_s,
+                        row_distance_m,
+                        row_elevation_gain_m,
+                        row_work_kj,
+                        row_tss,
+                        normalized_power,
+                        intensity_factor,
+                    ) = row
+
+                    load_info = resolve_activity_load(
+                        activity_type=activity_type,
+                        tss=row_tss,
+                        normalized_power=normalized_power,
+                        intensity_factor=intensity_factor,
+                    )
+                    if not load_info["load_model_included"]:
+                        continue
+
+                    activities_count += 1
+                    duration_s += float(row_duration_s or 0)
+                    distance_m += float(row_distance_m or 0)
+                    elevation_gain_m += float(row_elevation_gain_m or 0)
+                    work_kj += float(row_work_kj or 0)
+                    tss += float(row_tss or 0)
 
                 cur.execute(
                     """
-                    insert into daily_training_load (
-                        user_id,
-                        date,
-                        activities_count,
-                        duration_s,
-                        distance_m,
-                        elevation_gain_m,
-                        work_kj,
-                        tss,
-                        computed_at
-                    )
-                    values (%s,%s,%s,%s,%s,%s,%s,%s,now())
-                    on conflict (user_id, date) do update set
-                        activities_count = excluded.activities_count,
-                        duration_s = excluded.duration_s,
-                        distance_m = excluded.distance_m,
-                        elevation_gain_m = excluded.elevation_gain_m,
-                        work_kj = excluded.work_kj,
-                        tss = excluded.tss,
-                        computed_at = now();
+                    delete from daily_training_load
+                    where user_id = %s
+                      and date = %s::date;
                     """,
-                    (
-                        user_id,
-                        date_str,
-                        activities_count,
-                        duration_s,
-                        distance_m,
-                        elevation_gain_m,
-                        work_kj,
-                        tss,
-                    ),
+                    (user_id, date_str),
                 )
+
+                if activities_count > 0:
+                    cur.execute(
+                        """
+                        insert into daily_training_load (
+                            user_id,
+                            date,
+                            activities_count,
+                            duration_s,
+                            distance_m,
+                            elevation_gain_m,
+                            work_kj,
+                            tss,
+                            computed_at
+                        )
+                        values (%s,%s,%s,%s,%s,%s,%s,%s,now())
+                        on conflict (user_id, date) do update set
+                            activities_count = excluded.activities_count,
+                            duration_s = excluded.duration_s,
+                            distance_m = excluded.distance_m,
+                            elevation_gain_m = excluded.elevation_gain_m,
+                            work_kj = excluded.work_kj,
+                            tss = excluded.tss,
+                            computed_at = now();
+                        """,
+                        (
+                            user_id,
+                            date_str,
+                            activities_count,
+                            duration_s,
+                            distance_m,
+                            elevation_gain_m,
+                            work_kj,
+                            tss,
+                        ),
+                    )
 
                 conn.commit()
 
@@ -1309,6 +1358,17 @@ def strava_callback(
         "scope": sorted(list(accepted_scopes)),
     }
 
+
+@app.post("/telegram/webhook")
+async def telegram_webhook_receive(request: Request):
+    payload = await request.json()
+
+    if payload.get("callback_query"):
+        return handle_telegram_feedback_callback(payload)
+
+    return {"ok": True, "ignored": True}
+
+
 @app.post("/debug/daily-readiness/{user_id}")
 def debug_daily_readiness(user_id: str):
     try:
@@ -1318,6 +1378,30 @@ def debug_daily_readiness(user_id: str):
         raise HTTPException(status_code=502, detail=f"telegram error: {e}")
     except psycopg.Error as e:
         raise HTTPException(status_code=500, detail=f"db error: {e}")
+
+
+@app.post("/debug/feedback/recovery-prompt/{user_id}/{target_date}")
+def debug_send_recovery_prompt(user_id: str, target_date: str):
+    try:
+        return send_next_day_recovery_prompt(user_id=user_id, recovery_date=target_date)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"invalid date: {e}")
+    except requests.RequestException as e:
+        raise HTTPException(status_code=502, detail=f"telegram error: {e}")
+    except psycopg.Error as e:
+        raise HTTPException(status_code=500, detail=f"db error: {e}")
+
+@app.post("/debug/feedback/recovery-prompts/{target_date}")
+def debug_schedule_recovery_prompts(target_date: str):
+    try:
+        return schedule_next_day_recovery_prompts(target_date=target_date, source="debug")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"invalid date: {e}")
+    except requests.RequestException as e:
+        raise HTTPException(status_code=502, detail=f"telegram error: {e}")
+    except psycopg.Error as e:
+        raise HTTPException(status_code=500, detail=f"db error: {e}")
+
 
 @app.post("/api/v1/healthkit/ingest/{user_id}", response_model=HealthIngestResponse)
 def ingest_healthkit_payload(user_id: str, payload: HealthSyncPayload):
@@ -1422,6 +1506,11 @@ def get_readiness_daily_history_endpoint(
         user_id=user_id,
         days=days,
     )
+
+
+@app.get("/api/v1/model/readiness-daily/{user_id}/latest")
+def get_latest_readiness_daily_endpoint(user_id: str):
+    return get_latest_readiness_daily(user_id=user_id)
 
 
 @app.get("/api/v1/model/readiness-daily/{user_id}/{target_date}")

@@ -45,18 +45,18 @@ Internet
 ↓
 VPS (Caddy reverse proxy)
 ↓
-Tailscale
-↓
-Home server
-↓
 FastAPI + PostgreSQL
 ```
+
+Текущий production backend работает на VPS. `api.shchukin.de` остается техническим API-доменом, а `shchukin.de/dashboard` проксируется Caddy на internal dashboard в том же FastAPI backend process. Старый home-server deployment / watchdog context считается legacy и не является основной production-схемой.
 
 ## Реализованные backend layers
 
 ### 1. Strava ingestion
 
 - webhook endpoint
+- Telegram callback endpoint for inline post-ride and next-day recovery feedback
+- worker-driven scheduled next-day recovery prompt orchestration
 - raw storage
 - ingest jobs
 - загрузка активностей
@@ -176,6 +176,79 @@ Recovery breakdown внутри `explanation_json.recovery_explanation`:
 - `hrv_dev`
 - `rhr_dev`
 
+### 7. Subjective feedback layer
+
+Реализована таблица:
+
+- `activity_subjective_feedback`
+
+Текущий scope:
+
+- post-ride RPE feedback из Telegram
+- next-day recovery feedback из Telegram
+- activity-level и date-level subjective feedback
+- normalized queryable fields + extensible payload + historical context snapshot
+- activity-level idempotent upsert по `(strava_activity_id, feedback_type)` when `strava_activity_id is not null`
+- date-level idempotent upsert по `(user_id, activity_date, feedback_type)` when `strava_activity_id is null`
+
+Архитектурный смысл:
+
+- normalized fields нужны для stable queries и analytics
+- `feedback_payload` хранит feedback-type-specific детали без раздувания core schema
+- `context_json` хранит readiness / recommendation snapshot на момент ответа
+- snapshot сохраняется исторически для later calibration, а не пересчитывается на чтении
+
+Важно:
+
+- это не ML layer
+- feedback не влияет на core calculations
+- feedback хранится как отдельный evaluation / calibration dataset
+
+## Internal dashboard surface
+
+The internal dashboard is implemented as a backend-owned operational monitoring surface.
+
+Current properties:
+
+- route: `/dashboard`
+- public path: `https://shchukin.de/dashboard`
+- rendering: FastAPI server-side rendered HTML
+- templates: Jinja2 under `backend/backend/templates/dashboard/`
+- dashboard code: `backend/backend/dashboard/`
+- styling: minimal CSS only
+- no React, Vue, Svelte, SPA, or frontend build step
+- protected at the edge with `Caddy` Basic Auth
+
+Current sections:
+
+- `System`
+- `Connection`
+- `Ingest Jobs`
+- `Strava Activities`
+
+Current data layer:
+
+- `System`: backend status, database status via existing `get_conn()` / `SELECT 1`, server time, process started time, uptime, and database error fallback
+- `Connection`: Strava connection status, athlete id, scope, token expiry, and token state
+- `Ingest Jobs`: latest ingest jobs plus pending and failed/error counts
+- `Strava Activities`: latest locally stored activities with total count, name/type/date/distance/time
+
+Important constraints:
+
+- dashboard route remains read-only
+- database errors must not crash `/dashboard`
+- a failing dashboard section must degrade safely instead of breaking the whole page
+- dashboard reads local database/backend state; it must not call Strava API
+- dashboard must not refresh Strava tokens or perform side effects
+- dashboard must not expose `access_token`, `refresh_token`, passwords, or other secrets
+- Google OAuth restricted to an allowed user remains a future authorization improvement, not current behavior
+
+Operational role:
+
+- dashboard is the primary operational monitoring surface for the current VPS production backend
+- Telegram alerts and the old home-server watchdog are legacy/secondary and should not be developed as the main monitoring channel right now
+- dashboard is not a full alerting system; it is a read-only status and pipeline inspection surface
+
 ## HealthKit full sync pipeline
 
 Текущий orchestration pipeline:
@@ -227,6 +300,62 @@ Daily Telegram briefing в текущем backend использует `readines
 Fallback:
 
 - если `readiness_daily` для пользователя недоступен, backend может использовать старый fallback summary
+
+## Telegram post-ride feedback
+
+После `notify_training_processed` backend отправляет второе Telegram message с inline RPE buttons.
+
+Текущий callback format:
+
+- `rpe:{activity_id}:{score}`
+
+После callback backend:
+
+- валидирует activity
+- upsert-ит row в `activity_subjective_feedback`
+- сохраняет `source = telegram`
+- сохраняет `feedback_schema_version = v1_extensible`
+- сохраняет optional `feedback_payload` (для текущего RPE обычно `{}`)
+- сохраняет snapshot readiness / recommendation context
+- best-effort подтверждает callback и редактирует сообщение
+
+## Telegram next-day recovery feedback
+
+Backend может отправить next-day recovery prompt для конкретной даты, если предыдущий день выглядел как тренировочный.
+
+Prompt usefulness:
+
+- `daily_training_load.tss > 0`
+- или `daily_training_load.activities_count > 0`
+- или есть activities в `strava_activity_raw` за предыдущую дату
+
+Текущий callback format:
+
+- `recovery:{user_id}:{target_date}:{score}`
+
+После callback backend:
+
+- валидирует `target_date` и `score`
+- upsert-ит row в `activity_subjective_feedback`
+- пишет `feedback_type = next_day_recovery`
+- пишет `activity_date = target_date`
+- оставляет `strava_activity_id = null` для date-level semantics
+- сохраняет previous-day linkage в `feedback_payload`
+- сохраняет historical readiness / recommendation context, если доступно
+- best-effort подтверждает callback
+- best-effort редактирует сообщение в `Recovery feedback recorded ✓`
+
+Telegram UX philosophy:
+
+- feedback optional
+- low-friction longitudinal collection
+- one-tap answer в текущем MVP
+- максимум три taps как потолок для будущих flows
+
+Debug endpoint для ручной проверки:
+
+- `POST /debug/feedback/recovery-prompt/{user_id}/{target_date}`
+
 
 ## Технологический стек
 
@@ -345,3 +474,20 @@ API:
 
 - `http://localhost:8000`
 - health check: `http://localhost:8000/healthz`
+
+
+## Scheduled next-day recovery prompt
+
+The backend worker now schedules next-day recovery prompts once the current UTC hour matches `NEXT_DAY_RECOVERY_PROMPT_HOUR_UTC` (default `7`).
+
+Current V1 behavior:
+
+- looks at the previous UTC day for training load or activities
+- skips users who already submitted `next_day_recovery` feedback for the target date
+- persists delivery state in `subjective_feedback_prompt_log`
+- prevents duplicate sends across repeated worker loops
+- keeps the single-user debug endpoint and adds a batch debug endpoint at `POST /debug/feedback/recovery-prompts/{target_date}`
+
+Current limitation:
+
+- scheduling is UTC-based because per-user timezone orchestration is not implemented yet

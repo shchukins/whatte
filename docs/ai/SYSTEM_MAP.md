@@ -1,212 +1,584 @@
 # System Map
 
-## 1. Purpose
+Change summary:
 
-Human Engine — система, которая:
+- Reframed Human Engine as a deterministic physiological decision system, not just a backend pipeline.
+- Split the map into source, storage, model, decision, delivery, feedback, and calibration layers.
+- Marked each major layer as `implemented`, `partial`, `planned`, or `future` based on current docs and repo state as of 2026-05-20.
 
-> преобразует тренировочные и recovery-данные в readiness и downstream decision support
+## 1. Executive overview
 
----
+Human Engine is a deterministic training readiness and recovery system.
 
-## 2. End-to-end flow
+It solves one core problem:
 
-```text
-Data Sources
-↓
-Ingestion / Raw Storage
-↓
-Normalized Data
-↓
-Daily State Layers
-↓
-LoadState + RecoveryState
-↓
-Readiness
-↓
-Notification
-↓
-Recommendation / Ride Briefing
-↓
-Workout Outcome
-↓
-Feedback
+> given mixed real-world training and recovery data, determine current physiological readiness and turn that into an explainable daily training decision
+
+Why cross-ecosystem data matters:
+
+- training load often lives in Strava and connected devices
+- recovery signals often live in Apple Health / HealthKit
+- the useful daily answer depends on both load and recovery, not one ecosystem alone
+- preserving raw source data keeps the system explainable and recomputable as the model evolves
+
+Core boundary:
+
+- deterministic core first
+- AI is auxiliary for explanation, formatting, and developer workflows
+- AI does not define readiness, recovery, or recommendation logic
+
+## 2. End-to-end system flow
+
+```mermaid
+flowchart LR
+    A[Sources<br/>Strava<br/>Apple Health / HealthKit<br/>User profile<br/>Subjective feedback<br/>Future equipment<br/>Future calendar/context]
+    B[Ingestion<br/>webhooks, full sync, API payloads]
+    C[Raw storage<br/>immutable source payloads]
+    D[Normalization<br/>source-specific tables]
+    E[Derived metrics<br/>daily load, sleep, HRV, RHR, weight]
+    F[State models<br/>LoadState + RecoveryState]
+    G[Readiness<br/>daily deterministic score and explanation]
+    H[Explanation<br/>structured factors, fallback mode, data quality]
+    I[Recommendation<br/>deterministic decision layer]
+    J[Briefing / UI<br/>API, Telegram, iOS, future Today screen]
+    K[Feedback<br/>RPE, next-day recovery, future pre-ride input]
+    L[Calibration / validation<br/>snapshots, analytics, offline research]
+
+    A --> B --> C --> D --> E --> F --> G --> H --> I --> J
+    J --> K --> L
+    G --> L
+    I --> L
 ```
 
----
+ASCII view:
 
-## 3. Layer breakdown
+```text
+sources
+-> ingestion
+-> raw storage
+-> normalization
+-> derived metrics
+-> state models
+-> readiness
+-> explanation
+-> recommendation
+-> briefing / UI
+-> feedback
+-> calibration / validation
+```
 
-### 3.1 Data layer
+## 3. Data sources
 
-Отвечает за получение и хранение данных.
+### Implemented
 
-Включает:
+- Strava: workout/activity ingestion and daily load inputs
+- Apple Health / HealthKit: sleep, HRV, resting HR, weight via full-sync payloads
+- User profile: present in product scope and docs, used as a required input family for training interpretation, but not yet documented as a fully mature layer
+- Subjective feedback: Telegram-based post-ride RPE and next-day recovery collection
 
-- Strava ingestion
-- HealthKit ingestion
-- raw data storage
+### Partial
 
-Свойства:
+- User profile / athlete profile: documented in product scope, but not yet a clearly isolated, mature production layer
 
-- данные не теряются
-- данные не искажаются
+### Planned
 
----
+- Equipment data: bike, components, maintenance state for ride preparation
+- Calendar and daily context data: discussed in product direction for time-aware recommendations and morning briefings
 
-### 3.2 Normalization and processing layer
+### Future
 
-Преобразует raw payloads в прикладные таблицы и daily aggregates.
+- Additional device or equipment ecosystems beyond current Strava + Apple Health bridge
 
-Текущие артефакты:
+## 4. Backend layers
+
+### API layer
+
+Status: `implemented`
+
+- FastAPI backend is the system entry point
+- exposes sync, recompute, readiness read, notification/debug, callback paths, and the internal SSR dashboard route
+- current repo evidence:
+  - `backend/backend/app.py`
+  - `backend/backend/dashboard/`
+  - `backend/backend/templates/dashboard/`
+  - readiness API docs in `docs/api/READINESS_API.md`
+
+### Ingestion layer
+
+Status: `implemented`
+
+- Strava webhook + ingest jobs
+- HealthKit full-sync ingest and orchestration
+- feedback callback ingestion for Telegram prompts
+
+### Raw tables
+
+Status: `implemented`
+
+- raw source payloads are preserved for reproducibility
+- current documented/raw entities include:
+  - `strava_webhook_event`
+  - `strava_activity_ingest_job`
+  - `strava_activity_raw`
+  - `healthkit_ingest_raw`
+
+### Normalized tables
+
+Status: `implemented`
+
+- source payloads are normalized into explicit tables rather than used directly in product logic
+- current normalized tables include:
+  - `health_sleep_night`
+  - `health_resting_hr_daily`
+  - `health_hrv_sample`
+  - `health_weight_measurement`
+
+### Derived metric tables
+
+Status: `implemented`
 
 - `daily_training_load`
-- `health_sleep_night`
-- `health_resting_hr_daily`
-- `health_hrv_sample`
-- `health_weight_measurement`
 - `health_recovery_daily`
+- other per-day derived fields embedded in recovery and readiness explanation payloads
 
----
+### Readiness / recovery / load state
 
-### 3.3 Modeling layer
-
-Оценивает состояние человека.
-
-Текущие артефакты:
+Status: `implemented`
 
 - `load_state_daily_v2`
 - `health_recovery_daily`
 - `readiness_daily`
-- fitness / fast fatigue / slow fatigue / freshness
-- recovery score + recovery breakdown
-- readiness score
-- good day probability
 
-Цепочка:
+### Recommendation layer
 
-- Data -> LoadState -> RecoveryState -> Readiness -> Notification
+Status: `partial`
 
----
+- deterministic recommendation and briefing logic exists in backend code and readiness API responses
+- current implementation is still a narrow readiness-to-zone mapping, not a full ride preparation system
+- important separation:
+  - readiness calculates physiological state
+  - recommendation maps state into action guidance
 
-### 3.4 Decision layer
+### Notification / briefing layer
 
-Формирует вывод системы.
+Status: `partial`
 
-Сейчас частично реализован через readiness outputs:
+- Telegram daily readiness delivery exists
+- Telegram post-ride and next-day recovery prompts exist
+- readiness briefing exists as deterministic text formatting
+- broader multi-surface morning briefing orchestration is still incomplete
+
+### Observability
+
+Status: `implemented`
+
+- structured JSON logs
+- Docker stdout -> Promtail -> Loki -> Grafana
+- FastAPI SSR dashboard for current production operational state
+- observability is operational only and must not become product logic
+
+## 5. Storage and processing model
+
+```text
+external source payloads
+-> raw immutable tables
+-> normalized source tables
+-> derived daily aggregates
+-> state materializations
+-> decision and delivery outputs
+-> outcome / feedback storage
+-> calibration analytics and research exports
+```
+
+Current storage examples by layer:
+
+- Raw:
+  - `strava_activity_raw`
+  - `healthkit_ingest_raw`
+- Normalized:
+  - `health_sleep_night`
+  - `health_resting_hr_daily`
+  - `health_hrv_sample`
+  - `health_weight_measurement`
+- Derived:
+  - `daily_training_load`
+  - `health_recovery_daily`
+- State:
+  - `load_state_daily_v2`
+  - `readiness_daily`
+- Feedback / evaluation:
+  - `activity_subjective_feedback`
+  - `subjective_feedback_prompt_log`
+
+Design intent:
+
+- raw data is preserved
+- normalized and derived layers are explicitly separated
+- state models are recomputable from stored upstream layers
+- feedback is stored as outcome evidence, not as a silent modifier of production logic
+
+## 6. Model layers
+
+### LoadState
+
+Status: `implemented`
+
+Materialized in:
+
+- `load_state_daily_v2`
+
+Current role:
+
+- models training load accumulation and decay on a continuous calendar axis
+- exposes `fitness`, `fatigue_fast`, `fatigue_slow`, `fatigue_total`, `freshness`
+
+### RecoveryState
+
+Status: `implemented`
+
+Materialized in:
+
+- `health_recovery_daily`
+
+Current role:
+
+- converts sleep, HRV, resting HR, and weight-derived context into a daily recovery contour
+- stores both the aggregate score and explanation payload
+
+### Readiness
+
+Status: `implemented`
+
+Materialized in:
+
+- `readiness_daily`
+
+Current role:
+
+- combines `LoadState` and `RecoveryState`
+- remains separate from raw freshness and separate from downstream recommendation
+
+Current baseline formula:
+
+```text
+freshness_norm = clamp(50 + freshness, 0, 100)
+readiness_score_raw = 0.6 * freshness_norm + 0.4 * recovery_score_simple
+readiness_score = clamp(round(readiness_score_raw, 1), 0, 100)
+```
+
+### GoodDayProbability
+
+Status: `implemented baseline`
+
+- stored in `readiness_daily`
+- current mapping is:
+
+```text
+good_day_probability = readiness_score / 100
+```
+
+Important constraint:
+
+- this is not yet a calibrated statistical probability
+- it is a probability-like presentation layer over readiness
+
+### Confidence / freshness / data quality
+
+Status: `partial`
+
+- `data_quality` already appears in readiness API responses
+- fallback modes are already explicit in explanation payloads
+- freshness of sync and confidence semantics are important, but not yet formalized as one coherent production model
+
+This is a cross-cutting concern, not a separate model:
+
+- source freshness affects trust in the answer
+- data completeness affects fallback mode
+- continuity gaps affect interpretation
+- future calibration quality depends on storing this context explicitly
+
+### Recommendation / decision layer
+
+Status: `partial`
+
+- currently implemented as deterministic mapping and briefing templates
+- should remain downstream from readiness
+- must not recalculate physiology or silently blend in AI reasoning
+
+Current implemented basis:
+
+- recommendation zones from readiness score
+- rule-based explanation strings
+- briefing text for readiness API and Telegram
+
+Still missing for a fuller production decision system:
+
+- explicit decision objects with richer constraints
+- stable freshness/confidence-aware recommendation policy
+- integrated ride preparation context such as equipment and calendar
+
+## 7. Product loops and scenario epics
+
+The current scenario-epic framing is the best product-level view of the system.
+
+### 7.1 Morning Readiness Loop
+
+Status: `partial`
+
+System map slice:
+
+- HealthKit sync
+- normalization
+- recovery recompute
+- load state continuity
+- readiness recompute
+- freshness-aware daily delivery
+
+Current state:
+
+- core recompute path exists
+- morning answer exists
+- freshness-aware delivery/orchestration is not yet complete
+
+### 7.2 Explainable Readiness Experience
+
+Status: `partial`
+
+System map slice:
+
+- `readiness_daily`
+- explanation payloads
+- `data_quality`
+- deterministic recommendation reason
+- history API for trend context
+
+Current state:
+
+- explanation structure exists
+- Today screen UX is documented
+- final compact multi-surface explanation experience is still incomplete
+
+### 7.3 Ride Preparation and Recommendation Loop
+
+Status: `partial`
+
+System map slice:
 
 - readiness
-- probability layer
-- status text
-- explanation payload
-- Telegram daily notification
-
-Следующий слой:
-
-- recommendation
+- deterministic recommendation
 - ride briefing
+- future equipment/context constraints
 
----
+Current state:
 
-### 3.5 Feedback loop
+- baseline recommendation and briefing exist
+- broader ride preparation layer is still not implemented as a full system
 
-Система может развиваться на основе результата:
+### 7.4 Post-Workout Feedback Loop
 
-- фактическая тренировка
-- отклонение от ожидаемого состояния
-- корректировка модели
+Status: `implemented baseline`
 
-Этот слой пока не является основным реализованным контуром.
+System map slice:
 
----
+- activity ingestion
+- Telegram RPE prompt
+- next-day recovery prompt
+- prompt log
+- subjective feedback storage
 
-## 4. Key properties
+Current state:
 
-Система должна быть:
+- feedback storage and prompt orchestration exist
+- additional surfaces and richer flows remain planned
 
-### Deterministic
+### 7.5 Readiness Calibration Loop
 
-- одинаковый вход -> одинаковый результат
+Status: `partial`
 
-### Reproducible
+System map slice:
 
-- любой расчет можно повторить
+- readiness snapshots
+- recommendation context snapshots
+- subjective outcomes
+- analytics joins
+- validation exports
 
-### Observable
+Current state:
 
-- можно объяснить результат по слоям
+- the feedback dataset layer exists
+- calibration as reproducible analytics is the next step
+- production decision logic is not auto-adapting from feedback
 
----
+### 7.6 Research Sandbox
 
-## 5. What is NOT part of the core flow
+Status: `future`
 
-Не входит в основной pipeline:
+System map slice:
 
-- LLM
-- генеративные модели
-- AI-решения
+- offline dataset export
+- experimentation
+- model comparison
+- research-only validation
 
-AI может работать только как:
+Constraint:
 
-- слой объяснения
-- инструмент навигации
-- developer assistant
+- research remains separate from production decision logic
+- no hidden online ML loop should be introduced into readiness or recommendation
 
----
+Note on GitHub issues `#91-#96`:
 
-## 6. Mental model
+- direct issue metadata was not accessible from this environment during this update
+- this section therefore uses the current repo-local scenario-epic proposal as the source of truth
 
-Human Engine — это не один алгоритм.
+## 8. UI and delivery surfaces
 
-Это цепочка:
+### iOS app
 
-> данные -> LoadState -> RecoveryState -> Readiness -> Notification / decision
+Status: `partial`
 
-Если система дает неправильный результат, ошибка находится в одном из слоев:
+- iOS is part of the documented product flow and HealthKit ingestion architecture
+- Today/readiness UX is documented in `docs/ui/READINESS_TODAY_SCREEN.md`
+- the repo currently contains the Xcode project shell but not committed Swift source files, so repo-visible implementation is incomplete
 
-- данные
-- нормализация
-- модель нагрузки
-- модель восстановления
-- readiness logic
-- notification formatting / interpretation
-- decision mapping
+### Telegram bot / notifications
 
----
+Status: `implemented baseline`
 
-## 7. Current vs Future
+- daily readiness notifications
+- post-ride RPE prompt
+- next-day recovery prompt
+- callback-based feedback collection
 
-### Сейчас
+### Future Today screen / morning briefing
 
-- Strava ingestion pipeline
-- HealthKit ingestion pipeline
-- HealthKit full-sync orchestration
-- raw data storage
-- normalized health layer
-- recovery daily layer
-- baseline-aware recovery scoring
-- load state v2
-- readiness daily
-- good day probability baseline
+Status: `planned`
 
-### Далее
+- freshness-aware morning answer
+- sync status visibility
+- explicit stale/missing-data handling
 
-- расширение feature layer
-- readiness / probability calibration
-- recommendation layer
-- ride briefing layer
-- prediction
-- adaptive training
+### Internal dashboard
 
----
+Status: `implemented baseline`
 
-## 8. Simplification rule
+- current route: `/dashboard`
+- public path: `https://shchukin.de/dashboard`
+- served as FastAPI SSR HTML with Jinja2 templates and minimal CSS
+- protected by `Caddy` Basic Auth; Google OAuth remains a future authorization improvement
+- current sections:
+  - `System`: backend status, database status, server time, process start time, uptime, and database error fallback
+  - `Connection`: Strava connection status, athlete id, scope, token expiry, and token state
+  - `Ingest Jobs`: latest ingest jobs plus pending and failed/error counts
+  - `Strava Activities`: latest locally stored activities and total count
+- section errors must not break page rendering
+- dashboard is read-only, local-state-only, and must not call Strava API, refresh tokens, mutate database state, show raw payloads, or expose secrets
+- dashboard is the primary current operational monitoring surface for the VPS production backend
+- old home-server Telegram watchdog / cron monitoring is legacy and not the primary production monitoring channel
 
-При развитии системы:
+### Future dashboards
 
-> каждый новый элемент должен вписываться в схему  
-> `source -> state -> readiness -> decision`
+Status: `planned` / `future`
 
-Если не вписывается:
+- product dashboards for readiness history, calibration summaries, or research views are discussed indirectly in docs
+- current dashboards are operational observability dashboards, not product analytics surfaces
 
-- либо он лишний
-- либо схема нарушена
+## 9. Feedback and calibration
+
+Why feedback is collected:
+
+- readiness and recommendation need downstream ground truth
+- deterministic state alone does not reveal whether the athlete actually felt good, overreached, or recovered well
+- repeated low-friction observations are required for validation
+
+Current feedback families:
+
+- post-ride RPE
+- next-day recovery
+- future pre-ride subjective readiness
+
+How these relate to calibration:
+
+- RPE helps evaluate perceived training cost
+- next-day recovery helps evaluate delayed recovery impact
+- subjective readiness can later be compared with system-predicted readiness
+
+Why feedback does not directly mutate the model:
+
+- production readiness must remain deterministic and reproducible
+- feedback is currently an observed outcome layer
+- calibration should produce explicit research or rule-change decisions, not hidden online adaptation
+
+What must be stored for future validation:
+
+- feedback value and normalized score
+- feedback type and source
+- activity/date linkage
+- readiness snapshot at feedback time
+- recommendation snapshot at feedback time
+- model version
+- data quality / fallback context when available
+- prompt delivery state for longitudinal collection quality
+
+## 10. Observability and operations
+
+### Structured logs
+
+Status: `implemented`
+
+- backend emits JSON logs with stable event names
+- examples include API, HealthKit sync, readiness recompute, and error events
+
+### Grafana / Loki
+
+Status: `implemented`
+
+- Promtail parses backend logs
+- Loki stores/indexes logs
+- Grafana is the operational view for traces, event timelines, durations, and failures
+
+### Pipeline diagnostics
+
+Status: `implemented baseline`
+
+- HealthKit full-sync start/finish and payload processing events
+- readiness recompute events
+- request tracing via request IDs
+- feedback prompt delivery persistence in `subjective_feedback_prompt_log`
+
+### Future validation jobs
+
+Status: `planned`
+
+- explicit calibration joins
+- dataset export validation
+- mismatch detection and model-version comparisons
+
+Important boundary:
+
+- observability explains system behavior
+- observability does not define readiness or recommendation logic
+
+## 11. Current gaps
+
+- Recommendation layer is only partially implemented as a readiness-to-zone mapping plus briefing templates; it is not yet a full ride preparation engine.
+- Data confidence, freshness, and trust semantics are important but not yet formalized into one consistent production model.
+- HealthKit background or event-driven sync reliability is still a product/implementation gap; current docs emphasize freshness and sync-state work as active scope.
+- `good_day_probability` exists, but it is not yet a calibrated probability model.
+- Calibration is not production ML; current feedback storage supports validation, not online adaptation.
+- Research Sandbox remains future-only and should stay offline and review-gated.
+- iOS product surface is only partially visible in the repo; docs and the Xcode project exist, but committed app source is not currently present.
+
+## 12. Simplification rule
+
+Any future addition should fit this chain:
+
+```text
+source -> raw -> normalized -> derived -> state -> readiness -> decision -> delivery -> feedback -> calibration
+```
+
+If a proposed feature bypasses this chain, it should be challenged:
+
+- does it belong in deterministic production logic
+- is it actually a delivery concern
+- is it calibration/research instead of state computation
+- is it trying to hide a model change behind AI or UI wording

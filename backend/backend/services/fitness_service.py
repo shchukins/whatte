@@ -1,5 +1,3 @@
-from fastapi import HTTPException
-
 from backend.db import get_conn
 
 
@@ -34,10 +32,26 @@ def recompute_fitness_state(user_id: str) -> dict:
             rows = cur.fetchall()
 
             if not rows:
-                raise HTTPException(
-                    status_code=404,
-                    detail=f"daily_training_load not found for user_id={user_id}",
+                cur.execute(
+                    """
+                    delete from daily_fitness_state
+                    where user_id = %s
+                      and model_version = 'v1';
+                    """,
+                    (user_id,),
                 )
+                conn.commit()
+
+                return {
+                    "ok": True,
+                    "user_id": user_id,
+                    "days_processed": 0,
+                    "last_date": None,
+                    "last_daily_tss": None,
+                    "last_fitness_signal": None,
+                    "last_fatigue_signal": None,
+                    "last_freshness_signal": None,
+                }
 
     fitness_tau = 42.0
     fatigue_tau = 7.0

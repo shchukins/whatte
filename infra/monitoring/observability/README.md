@@ -1,6 +1,15 @@
 # Human Engine Observability
 
-Минимальный observability stack для логов Human Engine:
+Минимальный observability stack для логов Human Engine.
+
+Статус:
+
+- observability stack присутствует в репозитории
+- compose лежит в `infra/monitoring/observability`
+- стек operational / optional
+- Grafana присутствует в конфиге, но не считается primary runtime requirement
+
+Состав:
 
 - Grafana
 - Loki
@@ -39,6 +48,10 @@ sudo chown -R 10001:10001 /data/observability/loki
 
 ## Запуск
 
+Compose-файл:
+
+- [docker-compose.yml](/srv/human-engine/infra/monitoring/observability/docker-compose.yml)
+
 Из директории observability:
 
 ```bash
@@ -72,6 +85,18 @@ docker compose -f /srv/human-engine/infra/monitoring/observability/docker-compos
 
 ```bash
 curl http://localhost:3100/ready
+```
+
+Проверить, что Promtail жив:
+
+```bash
+docker logs human-engine-promtail --tail 20
+```
+
+Проверить, что Grafana жив:
+
+```bash
+curl http://localhost:3001/api/health
 ```
 
 Проверить, что backend пишет логи:

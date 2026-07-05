@@ -121,7 +121,7 @@ AI не участвует в:
 
 ## ADR-004: Self-hosted Infrastructure
 
-**Status:** accepted  
+**Status:** amended  
 
 ### Context
 
@@ -135,11 +135,17 @@ AI не участвует в:
 
 ### Decision
 
-Использовать:
+Изначальное решение:
 
 - home server  
 - VPS как gateway  
 - Tailscale для сети  
+
+Текущая production-схема после VPS migration:
+
+- production backend работает на VPS
+- Caddy обслуживает `shchukin.de/dashboard` и `api.shchukin.de`
+- старый home-server runtime / watchdog monitoring считается legacy context, а не основной production topology
 
 ---
 

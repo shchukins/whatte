@@ -125,9 +125,28 @@ Reason: label values create Loki streams. User-specific labels increase cardinal
 
 ---
 
-## 6. Grafana Dashboard
+## 6. Operational Surfaces
 
-The Grafana dashboard is the main operational view for backend behavior.
+The current primary production monitoring surface is the FastAPI SSR dashboard at `https://shchukin.de/dashboard`.
+
+It shows high-level production state:
+
+- System status
+- Strava connection/token state
+- ingest job status
+- latest locally stored Strava activities
+
+Dashboard constraints:
+
+- read-only
+- local backend/database state only
+- no external Strava API calls
+- no token refresh
+- no database mutations
+- no secrets or raw payloads
+- one section failure must not break the whole page
+
+Grafana/Loki remains the lower-level log analysis view for backend behavior.
 
 Panels:
 
@@ -138,7 +157,12 @@ Panels:
 - readiness recompute: shows readiness recompute events; answers "was readiness recalculated?"
 - pipeline trace: shows ordered events for a user, request, or job; answers "what happened in this processing path?"
 
-The dashboard is for analysis and operations. It should not become a source of product logic.
+Both dashboard surfaces are for analysis and operations. They should not become a source of product logic.
+
+Legacy note:
+
+- old home-server Telegram watchdog / cron monitoring is no longer the primary production monitoring channel
+- Telegram alerts may still exist as auxiliary notifications, but they are not the main monitoring strategy right now
 
 ---
 

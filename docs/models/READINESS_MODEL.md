@@ -343,7 +343,45 @@ Readiness не меняет эту логику. Она получает уже 
 
 - explainability слой
 - способ показать breakdown readiness без изменения самой readiness formula
+
+### 7.3 Input data quality indicators
+
+Readiness GET endpoints additionally expose a read-only `data_quality` block derived from the already stored `readiness_daily.explanation_json`.
+
+Current response shape:
+
+```json
+{
+  "data_quality": {
+    "sleep": "ok",
+    "hrv": "ok",
+    "resting_hr": "ok",
+    "training": "ok"
+  }
+}
+```
+
+Derivation rules in MVP:
+
+- `sleep = "ok"` if `explanation_json.recovery_explanation.sleep_minutes` is not `null`, else `"missing"`
+- `hrv = "ok"` if `explanation_json.recovery_explanation.hrv_today` is not `null`, else `"missing"`
+- `resting_hr = "ok"` if `explanation_json.recovery_explanation.rhr_today` is not `null`, else `"missing"`
+- `training = "missing"` if `explanation_json.freshness_norm` is `null` or `fallback_mode = "recovery_only"`
+- `training = "ok"` otherwise
+
+Important constraints:
+
+- this is not a confidence score
+- readiness formula does not change
+- no health-condition inference is added
+- `training = "partial"` is reserved for future explicit unsupported / continuity-only load detection
 - payload, который используется UI и Telegram notification layer
+
+Current gap for invariant coverage:
+
+- query-layer `data_quality` can expose missing recovery inputs and missing training context
+- structured staleness metadata for sleep / HRV / resting HR is not stored in `readiness_daily.explanation_json` yet
+- tests therefore protect missing-input semantics today, while stale-input semantics remain a TODO until explicit metadata exists
 
 ---
 
@@ -383,13 +421,39 @@ Source of truth:
 
 ---
 
+## 8.5 Relationship with subjective feedback
+
+`readiness_daily` remains a deterministic derived-state layer.
+
+`activity_subjective_feedback` is a separate ground truth layer used for later evaluation.
+
+The intended comparison is:
+
+- readiness / recommendation at time `t`
+- subjective outcome reported by the athlete at time `t` or `t+1 day`
+
+This separation matters because:
+
+- readiness is a model output
+- subjective feedback is an observed outcome
+- calibration requires comparing prediction and outcome without rewriting either layer
+
+Current state:
+
+- subjective feedback does not change readiness formula
+- subjective feedback does not change recommendation logic
+- `good_day_probability` still has no statistical calibration
+- the feedback dataset is being accumulated for future validation and calibration work
+
+---
+
 ## 9. Limitations
 
 Текущая модель:
 
 - использует агрегированный recovery score как вход readiness
 - пока не подает `hrv_dev`, `rhr_dev` и component scores в readiness formula напрямую
-- пока не имеет отдельной probability calibration
+- пока не имеет отдельной probability calibration against accumulated subjective feedback
 - не пересчитывает decision внутри history endpoint
 
 ---

@@ -20,5 +20,11 @@ class Settings(BaseSettings):
         default=False,
         alias="TELEGRAM_NOTIFY_ON_WEBHOOK_SUCCESS",
     )
+    next_day_recovery_prompt_hour_utc: int = Field(
+        default=7,
+        ge=0,
+        le=23,
+        alias="NEXT_DAY_RECOVERY_PROMPT_HOUR_UTC",
+    )
 
 settings = Settings()

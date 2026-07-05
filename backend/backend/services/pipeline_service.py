@@ -4,6 +4,7 @@ from typing import Any
 from fastapi import HTTPException
 
 from backend.db import get_conn
+from backend.services.activity_load_service import resolve_activity_load
 from backend.services.fitness_service import recompute_fitness_state
 from backend.services.load_service import recompute_daily_load_all
 from backend.services.metrics_service import (
@@ -500,6 +501,12 @@ def process_activity_pipeline(user_id: str, athlete_id: int, activity_id: int) -
     )
 
     metrics_result = compute_and_store_activity_metrics(activity_id=activity_id)
+    load_info = resolve_activity_load(
+        activity_type=activity.get("sport_type") or activity.get("type"),
+        tss=metrics_result["tss"],
+        normalized_power=metrics_result["normalized_power"],
+        intensity_factor=metrics_result["intensity_factor"],
+    )
 
     # Пересчитываем дневную нагрузку по реальным датам тренировок
     load_result = recompute_daily_load_all(user_id)
@@ -514,6 +521,8 @@ def process_activity_pipeline(user_id: str, athlete_id: int, activity_id: int) -
         "name": activity.get("name"),
         "streams_saved": streams_result["streams_saved"],
         "tss": metrics_result["tss"],
+        "load_source": load_info["load_source"],
+        "load_model_included": load_info["load_model_included"],
         "load_days_processed": load_result["days_processed"],
         "fitness_days_processed": fitness_result["days_processed"],
         "last_freshness_signal": fitness_result["last_freshness_signal"],
