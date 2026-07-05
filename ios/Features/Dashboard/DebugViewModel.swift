@@ -7,7 +7,6 @@ final class DebugViewModel {
         let calendar = Calendar(identifier: .gregorian)
         return calendar.date(from: DateComponents(year: 2026, month: 5, day: 23)) ?? Date.distantPast
     }()
-    private static let hasRequestedPermissionsKey = "healthkit_read_permissions_requested"
 
     // MARK: - Loaded HealthKit data
 
@@ -27,14 +26,10 @@ final class DebugViewModel {
     var isSyncInProgress: Bool = false
 
     let backendUserID: String = "sergey"
-    private var hasRequestedHealthPermissions = UserDefaults.standard.bool(forKey: hasRequestedPermissionsKey)
 
     // MARK: - Permissions
 
     func requestPermissions() {
-        hasRequestedHealthPermissions = true
-        UserDefaults.standard.set(true, forKey: Self.hasRequestedPermissionsKey)
-
         HealthKitService.shared.requestAuthorization { [weak self] result in
             guard let self else { return }
 
@@ -253,6 +248,7 @@ final class DebugViewModel {
 
     // MARK: - Backfill
 
+    // TODO: Remove this temporary migration backfill action after historical sync recovery is no longer needed.
     func performBackfillSinceMay23() {
         guard !isSyncInProgress else { return }
 
@@ -356,7 +352,7 @@ final class DebugViewModel {
     }
 
     private func readStatus(hasData: Bool) -> String {
-        if !hasRequestedHealthPermissions {
+        if !HealthKitService.shared.hasRequestedAuthorization {
             return "NOT REQUESTED"
         }
 

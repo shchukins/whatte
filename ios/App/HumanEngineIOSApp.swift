@@ -9,17 +9,11 @@ import SwiftUI
 
 @main
 struct HumanEngineIOSApp: App {
-    @Environment(\.scenePhase) private var scenePhase
-
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .onAppear {
                     SyncCoordinator.shared.start()
-                }
-                .onChange(of: scenePhase) { _, newPhase in
-                    guard newPhase == .active else { return }
-                    SyncCoordinator.shared.handleAppBecameActive()
                 }
         }
     }
