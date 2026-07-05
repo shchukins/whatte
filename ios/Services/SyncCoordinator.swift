@@ -51,7 +51,19 @@ final class SyncCoordinator {
 
         registerHealthKitObservers()
         HealthKitService.shared.enableObservers()
-        triggerSync(reason: .appLaunch)
+    }
+
+    func retryPendingSyncAfterAuthorizationIfNeeded() {
+        let syncState = syncStateStore.load()
+        hasPendingSync = syncState.hasPendingAutoSync
+        lastSyncAttemptAt = syncState.lastSyncAttemptAt
+
+        guard hasPendingSync else {
+            notificationCenter.post(name: .syncStateDidChange, object: nil)
+            return
+        }
+
+        triggerSync(reason: .pendingRetry)
     }
 
     func handleAppBecameActive() {
@@ -78,6 +90,17 @@ final class SyncCoordinator {
 
     func triggerSync(reason: AutoSyncReason) {
         print("auto_sync_triggered reason=\(reason.rawValue)")
+
+        guard HealthKitService.shared.hasRequestedAuthorization else {
+            print("auto_sync_skipped_authorization_not_requested reason=\(reason.rawValue)")
+            hasPendingSync = false
+            saveSyncState { syncState in
+                syncState.lastErrorMessage = "HealthKit permissions required"
+                syncState.hasPendingAutoSync = false
+            }
+            notificationCenter.post(name: .syncStateDidChange, object: nil)
+            return
+        }
 
         if isSyncRunning {
             shouldSyncAgainAfterCurrentRun = true

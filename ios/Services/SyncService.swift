@@ -82,6 +82,7 @@ final class SyncService {
         }
     }
 
+    // TODO: Remove this temporary migration backfill path after historical HealthKit recovery is no longer needed.
     func performBackfill(
         from startDate: Date,
         completion: @escaping (Result<FullSyncData, Error>) -> Void

@@ -11,6 +11,7 @@ import HealthKit
 
 final class HealthKitService {
     static let shared = HealthKitService()
+    private static let hasRequestedPermissionsKey = "healthkit_read_permissions_requested"
 
     private let healthStore = HKHealthStore()
 
@@ -18,6 +19,10 @@ final class HealthKitService {
 
     var isHealthDataAvailable: Bool {
         HKHealthStore.isHealthDataAvailable()
+    }
+
+    var hasRequestedAuthorization: Bool {
+        UserDefaults.standard.bool(forKey: Self.hasRequestedPermissionsKey)
     }
 
     func fetchSleepSamplesForLast7Days(completion: @escaping (Result<[SleepSample], Error>) -> Void) {
@@ -66,6 +71,8 @@ final class HealthKitService {
     
     
     func requestAuthorization(completion: @escaping (Result<Void, Error>) -> Void) {
+        UserDefaults.standard.set(true, forKey: Self.hasRequestedPermissionsKey)
+
         guard isHealthDataAvailable else {
             completion(.failure(HealthKitError.notAvailable))
             return
