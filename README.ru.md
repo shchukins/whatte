@@ -1,4 +1,4 @@
-# Human Engine
+# Whatte
 
 [English version](README.md)
 
@@ -8,29 +8,31 @@
   <img src="https://img.shields.io/badge/интеграция-Strava-FC4C02" />
   <img src="https://img.shields.io/badge/iOS-HealthKit-black" />
   <a href="https://t.me/humanengine_lab">
-    <img src="https://img.shields.io/badge/Telegram-Канал-2CA5E0?logo=telegram" />
+    <img src="https://img.shields.io/badge/Telegram-Whatte-2CA5E0?logo=telegram" />
   </a>
 </p>
 
 <p align="center">
-  <strong>Тренируйся в ритме своей жизни, а не под диктовку плана.</strong>
+  <strong>Что сегодня?</strong>
 </p>
 
 ---
 
-## Зачем Human Engine
+## Зачем Whatte
 
 Большинство тренировочных платформ предполагают, что жизнь подстраивается под тренировочный план. Сон, работа, встречи и усталость считаются помехой.
 
-Human Engine работает иначе.
+Whatte работает иначе.
 
 Система учитывает восстановление, накопленную нагрузку и доступное время, чтобы определить, какая тренировка действительно уместна сегодня — а не просто следует шаблону.
+
+Название объединяет несколько смыслов: **what today**, **watt** и главный ежедневный вопрос спортсмена — что делать сегодня?
 
 ---
 
 ## Твоя экосистема, твои данные
 
-Human Engine не требует привязки к конкретному бренду устройств или платформе.
+Whatte не требует привязки к конкретному бренду устройств или платформе.
 
 Для анализа нагрузки можно использовать то, что у тебя уже есть: Wahoo, Zwift, Rouvy, Apple Watch, Garmin, любой велостанок или устройство, которое умеет выгружать данные в Strava или Apple Health.
 
@@ -131,4 +133,4 @@ Dashboard показывает System, Connection, Ingest Jobs и Strava Activit
 
 ## Поддержка
 
-Human Engine — независимый open-source проект. Инфраструктура и разработка финансируются самостоятельно — если хочешь помочь, буду рад [Telegram Stars](https://t.me/humanengine_lab).
+Whatte — независимый open-source проект. Инфраструктура и разработка финансируются самостоятельно — если хочешь помочь, буду рад [Telegram Stars](https://t.me/humanengine_lab).

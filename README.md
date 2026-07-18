@@ -1,4 +1,4 @@
-# Human Engine
+# Whatte
 
 [Русская версия](README.ru.md)
 
@@ -8,27 +8,29 @@
   <img src="https://img.shields.io/badge/интеграция-Strava-FC4C02" />
   <img src="https://img.shields.io/badge/iOS-HealthKit-black" />
   <a href="https://t.me/humanengine_lab">
-    <img src="https://img.shields.io/badge/Telegram-Human%20Engine-2CA5E0?logo=telegram" />
+    <img src="https://img.shields.io/badge/Telegram-Whatte-2CA5E0?logo=telegram" />
   </a>
 </p>
 
 <p align="center">
-  <strong>Train around your life, not around a plan.</strong>
+  <strong>What today?</strong>
 </p>
 
 ---
 
-## Why Human Engine
+## Why Whatte
 
-Most training platforms assume you live for training. You adjust your sleep, your work, your weekends — to fit the plan. Human Engine flips this.
+Most training platforms assume you live for training. You adjust your sleep, your work, your weekends — to fit the plan. Whatte flips this.
 
 It reads your recovery, looks at your day, and tells you what kind of training makes sense *right now* — not what the template says.
+
+The name combines several ideas: **what today**, **watt**, and the question every athlete asks before training — what should I do today?
 
 ---
 
 ## Your ecosystem, your data
 
-You don't need Garmin to get Garmin-quality load analysis. Human Engine works with whatever you already use — Wahoo, Zwift, Rouvy, Apple Watch, any trainer that exports to Strava. No ecosystem lock-in. No hardware requirements.
+You don't need Garmin to get Garmin-quality load analysis. Whatte works with whatever you already use — Wahoo, Zwift, Rouvy, Apple Watch, any trainer that exports to Strava. No ecosystem lock-in. No hardware requirements.
 
 Strava and Apple Health are the connectors. Everything else is yours.
 
@@ -112,4 +114,4 @@ Operational monitoring note:
 
 ## Support
 
-Human Engine is an independent open-source project. Infrastructure and development are self-funded — if you'd like to help, Telegram Stars are welcome.
+Whatte is an independent open-source project. Infrastructure and development are self-funded — if you'd like to help, Telegram Stars are welcome.
