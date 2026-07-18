@@ -1,4 +1,4 @@
-# Human Engine — CURRENT STATE
+# Whatte — CURRENT STATE
 
 Last updated: 2026-05-21
 
@@ -6,7 +6,7 @@ Last updated: 2026-05-21
 
 ## 1. Общий статус
 
-Human Engine перешел от load-only readiness к рабочей baseline-архитектуре Model V2.
+Whatte перешел от load-only readiness к рабочей baseline-архитектуре Model V2.
 
 Текущая схема:
 

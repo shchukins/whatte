@@ -1,6 +1,6 @@
-# Human Engine Backend
+# Whatte Backend
 
-Human Engine backend — FastAPI-сервис и orchestration слой для ingestion, нормализации данных и расчета daily state.
+Whatte backend — FastAPI-сервис и orchestration слой для ingestion, нормализации данных и расчета daily state.
 
 ## Назначение
 
@@ -432,8 +432,8 @@ See:
 ### 1. Clone repository
 
 ```bash
-git clone https://github.com/shchukins/human-engine.git
-cd human-engine/backend
+git clone https://github.com/shchukins/whatte.git
+cd whatte/backend
 ```
 
 ### 2. Create environment file

@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-Этот документ описывает, как Human Engine должен формировать ride briefing поверх текущей readiness layer.
+Этот документ описывает, как Whatte должен формировать ride briefing поверх текущей readiness layer.
 
 Ride briefing — это пользовательский вывод системы перед тренировкой.
 

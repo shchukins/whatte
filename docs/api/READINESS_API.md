@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-Этот документ описывает текущие readiness endpoints в Human Engine.
+Этот документ описывает текущие readiness endpoints в Whatte.
 
 GET endpoints работают только с уже сохраненным state layer.
 

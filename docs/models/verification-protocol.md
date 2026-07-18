@@ -1,4 +1,4 @@
-# Human Engine — Verification Protocol for Load Metrics
+# Whatte — Verification Protocol for Load Metrics
 
 **Version:** v1  
 **Status:** baseline  
@@ -8,7 +8,7 @@
 
 ## 1. Назначение
 
-Данный документ описывает методику верификации расчета метрик нагрузки в Human Engine.
+Данный документ описывает методику верификации расчета метрик нагрузки в Whatte.
 
 Цели:
 - подтвердить корректность расчета NP, IF, TSS  
@@ -62,7 +62,7 @@ TSS = (sec * NP * IF) / (FTP * 3600) * 100
 - activity_id  
 - источник данных  
 - FTP (Garmin)  
-- FTP (Human Engine)  
+- FTP (Whatte)
 - duration_sec  
 - power stream (если доступен)  
 - avg power  

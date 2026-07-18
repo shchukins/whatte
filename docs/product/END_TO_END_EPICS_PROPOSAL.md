@@ -4,7 +4,7 @@ Last updated: 2026-05-19
 
 ## Executive summary
 
-Human Engine should organize planning around user-facing loops, not backend areas. The current labels (`area:readiness`, `area:feedback`, `area:calibration`, `area:ios`, `area:equipment`) are useful taxonomy, but they do not describe the product promise: a user wakes up, syncs recovery data, gets an explainable readiness answer, prepares an appropriate ride, gives feedback after training, and the system uses that evidence to validate and eventually adapt the model.
+Whatte should organize planning around user-facing loops, not backend areas. The current labels (`area:readiness`, `area:feedback`, `area:calibration`, `area:ios`, `area:equipment`) are useful taxonomy, but they do not describe the product promise: a user wakes up, syncs recovery data, gets an explainable readiness answer, prepares an appropriate ride, gives feedback after training, and the system uses that evidence to validate and eventually adapt the model.
 
 The recommended epic structure is six end-to-end scenarios:
 
@@ -170,7 +170,7 @@ The user needs to decide what training is appropriate today and what practical c
 
 **Problem statement**
 
-Human Engine needs low-friction subjective outcome data. The user should be asked for the right signal at the right time: immediate post-ride effort, next-day recovery, and optionally pre-ride readiness, while preserving source and schema semantics.
+Whatte needs low-friction subjective outcome data. The user should be asked for the right signal at the right time: immediate post-ride effort, next-day recovery, and optionally pre-ride readiness, while preserving source and schema semantics.
 
 **End-to-end flow**
 

@@ -1,4 +1,4 @@
-# Contributing to Human Engine
+# Contributing to Whatte
 
 ## Principles
 - Keep things simple

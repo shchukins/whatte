@@ -1,6 +1,6 @@
 # SQL Workspace
 
-This directory contains auxiliary SQL files used during Human Engine development.
+This directory contains auxiliary SQL files used during Whatte development.
 
 ## Purpose
 

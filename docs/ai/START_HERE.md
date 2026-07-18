@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Human Engine is a deterministic training decision support system.
+Whatte is a deterministic training decision support system.
 
 The goal is to recommend the right training on the right day using measurable physiological signals. AI assists with explanation and implementation but must not replace deterministic decision logic.
 

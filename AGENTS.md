@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Human Engine is an engineering-first system for analyzing training data and supporting workout decisions.
+Whatte is an engineering-first system for analyzing training data and supporting workout decisions.
 
 Current product priority:
 
@@ -13,14 +13,14 @@ This file is a short entrypoint for agents. Detailed workflow, style, PR, and do
 
 ## Mental model
 
-Human Engine is:
+Whatte is:
 
 - a data pipeline
 - a physiology-informed model
 - a readiness evaluation system
 - a deterministic decision-support system
 
-Human Engine is not:
+Whatte is not:
 
 - an AI-driven product core
 - a black-box decision engine

@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-Этот документ описывает текущую notification architecture в Human Engine.
+Этот документ описывает текущую notification architecture в Whatte.
 
 Цель notification layer:
 

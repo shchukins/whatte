@@ -2,13 +2,13 @@
 
 Change summary:
 
-- Reframed Human Engine as a deterministic physiological decision system, not just a backend pipeline.
+- Reframed the product as a deterministic physiological decision system, not just a backend pipeline.
 - Split the map into source, storage, model, decision, delivery, feedback, and calibration layers.
 - Marked each major layer as `implemented`, `partial`, `planned`, or `future` based on current docs and repo state as of 2026-05-20.
 
 ## 1. Executive overview
 
-Human Engine is a deterministic training readiness and recovery system.
+Whatte is a deterministic training readiness and recovery system.
 
 It solves one core problem:
 

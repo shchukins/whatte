@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-Этот документ описывает стратегию тестирования Human Engine.
+Этот документ описывает стратегию тестирования Whatte.
 
 Цель:
 
@@ -230,4 +230,3 @@ Raw data → Features → Metrics → Readiness → Ride briefing
 - метрики совпадают с ожидаемыми  
 - readiness ведет себя предсказуемо  
 - pipeline стабилен  
-

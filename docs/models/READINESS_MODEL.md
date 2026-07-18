@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-Этот документ описывает текущую readiness model в Human Engine.
+Этот документ описывает текущую readiness model в Whatte.
 
 Цель:
 

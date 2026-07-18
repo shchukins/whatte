@@ -1,6 +1,6 @@
 # Infrastructure Map
 
-This directory documents the Human Engine infrastructure layout without changing the current runtime state.
+This directory documents the Whatte infrastructure layout without changing the current runtime state.
 
 Target structure:
 

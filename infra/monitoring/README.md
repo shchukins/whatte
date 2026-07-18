@@ -1,6 +1,6 @@
 # Monitoring
 
-Human Engine's primary current production monitoring surface is the FastAPI SSR dashboard at `https://shchukin.de/dashboard`.
+Whatte's primary current production monitoring surface is the FastAPI SSR dashboard at `https://shchukin.de/dashboard`.
 
 The observability stack in [observability](/srv/human-engine/infra/monitoring/observability) remains useful for lower-level log analysis and debugging, but it is not the primary status surface after the VPS dashboard work.
 

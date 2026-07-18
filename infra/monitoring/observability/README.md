@@ -1,6 +1,6 @@
-# Human Engine Observability
+# Whatte Observability
 
-Минимальный observability stack для логов Human Engine.
+Минимальный observability stack для логов Whatte.
 
 Статус:
 

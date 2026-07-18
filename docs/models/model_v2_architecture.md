@@ -1,4 +1,4 @@
-# Human Engine — Model V2 Architecture
+# Whatte — Model V2 Architecture
 
 ## Контекст
 
@@ -351,7 +351,7 @@ Readiness хранится отдельно в `readiness_daily`.
 LoadState + RecoveryState -> Readiness -> GoodDayProbability
 ```
 
-Это и есть текущий baseline Human Engine.
+Это и есть текущий baseline Whatte.
 
 ---
 

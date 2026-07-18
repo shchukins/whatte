@@ -1,7 +1,7 @@
 # Privacy Policy
 
 ## 1. Overview
-Human Engine collects and processes personal data related to physical activity and health metrics to provide training analysis and recommendations.
+Whatte collects and processes personal data related to physical activity and health metrics to provide training analysis and recommendations.
 
 ## 2. Data we collect
 - Training data (e.g. cycling activities from Strava)

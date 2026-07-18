@@ -21,7 +21,7 @@ This is an evaluation and calibration dataset layer, not an ML decision layer.
 
 ## 2. Why it exists
 
-Human Engine already stores deterministic inputs and derived state:
+Whatte already stores deterministic inputs and derived state:
 
 - raw physiological inputs
 - daily training load
@@ -437,7 +437,7 @@ It does:
 - preserve historical system context
 - create an evaluation dataset for future calibration work
 
-This boundary keeps Human Engine deterministic while making later validation possible.
+This boundary keeps Whatte deterministic while making later validation possible.
 
 ---
 

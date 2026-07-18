@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-Этот документ описывает текущую архитектуру Human Engine.
+Этот документ описывает текущую архитектуру Whatte.
 
 Цель:
 
@@ -15,7 +15,7 @@
 
 ## 2. System overview
 
-Human Engine построен как pipeline:
+Whatte построен как pipeline:
 
 > данные -> состояние -> readiness -> решение
 

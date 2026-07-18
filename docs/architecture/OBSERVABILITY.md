@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-Observability в Human Engine нужен не как отдельный продуктовый слой, а как способ видеть работу deterministic core.
+Observability в Whatte нужен не как отдельный продуктовый слой, а как способ видеть работу deterministic core.
 
 Цели:
 

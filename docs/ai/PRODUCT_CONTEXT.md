@@ -1,6 +1,6 @@
 # Product Context
 
-## 1. What Whatte is
+## 1. Whatte at a glance
 
 Whatte — система анализа тренировочных данных и состояния человека.
 

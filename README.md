@@ -3,9 +3,9 @@
 [Русская версия](README.ru.md)
 
 <p align="center">
-  <img src="https://img.shields.io/badge/статус-активный%20прототип-blue" />
-  <img src="https://img.shields.io/badge/лицензия-MIT-yellow" />
-  <img src="https://img.shields.io/badge/интеграция-Strava-FC4C02" />
+  <img src="https://img.shields.io/badge/status-active%20prototype-blue" />
+  <img src="https://img.shields.io/badge/license-MIT-yellow" />
+  <img src="https://img.shields.io/badge/integration-Strava-FC4C02" />
   <img src="https://img.shields.io/badge/iOS-HealthKit-black" />
   <a href="https://t.me/humanengine_lab">
     <img src="https://img.shields.io/badge/Telegram-Whatte-2CA5E0?logo=telegram" />
@@ -16,92 +16,79 @@
   <strong>What today?</strong>
 </p>
 
----
+Whatte is an application and backend system that combines training load, recovery, and user context to help answer a practical daily question: should today be for high intensity, easy training, recovery, or rest?
 
-## Why Whatte
+## The problem
 
-Most training platforms assume you live for training. You adjust your sleep, your work, your weekends — to fit the plan. Whatte flips this.
+Static training plans cannot account for real life. Sleep, work, fatigue, and previous sessions change what the body is ready for, even when the calendar says otherwise.
 
-It reads your recovery, looks at your day, and tells you what kind of training makes sense *right now* — not what the template says.
+The useful question is not only what the plan prescribed, but what load is appropriate today.
 
-The name combines several ideas: **what today**, **watt**, and the question every athlete asks before training — what should I do today?
+## Whatte's answer
 
----
+Whatte:
 
-## Your ecosystem, your data
+- collects training and recovery data from Strava and Apple Health
+- calculates load, recovery, and readiness in separate, traceable layers
+- explains which factors influenced the result
+- maps readiness to a deterministic recommendation for the day
 
-You don't need Garmin to get Garmin-quality load analysis. Whatte works with whatever you already use — Wahoo, Zwift, Rouvy, Apple Watch, any trainer that exports to Strava. No ecosystem lock-in. No hardware requirements.
+## What it already does
 
-Strava and Apple Health are the connectors. Everything else is yours.
+- Strava activity ingestion and webhook processing
+- HealthKit ingestion through the iOS client
+- raw data preservation and normalized health data
+- daily load and recovery models
+- explainable daily readiness
+- deterministic recommendation categories: `recovery`, `endurance`, `moderate`, and `high_intensity`
+- compact briefing output for API, Telegram, and iOS-friendly surfaces
+- a read-only internal operational dashboard
 
----
+## What is planned
 
-## What it does
+- a broader decision layer beyond the current readiness-to-category mapping
+- calendar-aware recommendations
+- recommendations for training duration and timing
+- readiness calibration and explicit personalization
+- continued development of the user-facing mobile application
 
-**Morning readiness briefing** — the backend already produces a daily readiness result with explanation, a deterministic recommendation zone, and Telegram/iOS-friendly briefing text.
-
-**Deterministic training guidance** — the current product maps readiness into explicit training guidance like `recovery`, `endurance`, `moderate`, or `high_intensity`. Broader day-planning logic such as calendar-aware timing or duration selection remains planned.
-
-**Explainable outputs** — every recommendation shows its reasoning. HRV down, sleep short, high fatigue — you see exactly why. No black box.
-
----
+Planned capabilities are not part of the current production baseline.
 
 ## How it works
 
-```
+```text
 Strava + Apple Health
         ↓
-load model + recovery model
+load + recovery
         ↓
-readiness score + explanation
+readiness
         ↓
-training recommendation
+deterministic recommendation
         ↓
-morning briefing
+daily briefing
 ```
-
-The core is deterministic and reproducible. AI is an auxiliary layer, not the product — every output can be traced back to a formula and a data point.
-
----
 
 ## Principles
 
-- your data stays yours — self-hosted, no third-party cloud
-- deterministic core: same inputs always produce the same outputs
-- explainability over accuracy theatre — know why, not just what
-- ecosystem-agnostic: works with any hardware that talks to Strava or Apple Health
+- **Deterministic core.** The same inputs produce the same result.
+- **Explainability.** Recommendations can be traced to data, metrics, and rules.
+- **Reproducibility.** Raw inputs are preserved and derived state can be recomputed.
+- **Ecosystem independence.** Strava and Apple Health are connectors, not a hardware lock-in.
+- **AI is auxiliary.** It may help with explanation and text, but it is not the calculation or decision engine.
 
----
+## Current status
 
-## Status
+Whatte is an active prototype. The end-to-end backend pipeline is working: Strava and HealthKit data feed normalized health data, daily load, recovery, readiness, deterministic recommendation categories, and briefing output.
 
-Active prototype. Core pipeline is working end-to-end: Strava and HealthKit data flow into daily load, recovery, readiness, and deterministic recommendation outputs. Daily readiness is available through the API and Telegram delivery. Broader planning and calibration work remain in active development.
+The current recommendation layer is deliberately narrow. It supports daily decision-making, but it is not yet a full training planner.
 
-## Operational Surfaces
+## Operational surfaces
 
-- `shchukin.de` is the main web domain for user/admin web surfaces.
-- `shchukin.de/dashboard` serves the internal dashboard as a FastAPI server-side rendered HTML page.
-- `api.shchukin.de` remains the technical API domain for FastAPI endpoints, Strava OAuth callback, Telegram webhook, HealthKit sync, `/healthz`, and API docs when enabled.
+- [`shchukin.de`](https://shchukin.de) — main web domain
+- [`shchukin.de/dashboard`](https://shchukin.de/dashboard) — internal FastAPI SSR operational dashboard
+- [`api.shchukin.de`](https://api.shchukin.de) — technical API domain
 
-Current dashboard implementation:
-
-- FastAPI SSR route: `/dashboard`
-- Jinja2 templates with minimal CSS
-- no SPA and no frontend build step
-- current sections: System, Connection, Ingest Jobs, and Strava Activities
-- the dashboard reads local backend/database state only; it does not call Strava, refresh tokens, modify database rows, or expose access/refresh tokens or secrets
-
-Security note:
-
-- the internal dashboard is protected at the edge with `Caddy` Basic Auth
-- Google OAuth restricted to a single allowed user email remains the preferred future authorization model
-
-Operational monitoring note:
-
-- the FastAPI SSR dashboard is the primary operational monitoring surface for the current VPS production backend
-- the old home-server Telegram watchdog / cron-style monitoring is legacy and should not be treated as the main production monitoring channel
-
----
+The dashboard shows local backend and database state for System, Connection, Ingest Jobs, and Strava Activities. It is read-only, does not call Strava or refresh tokens, and is protected at the edge with Caddy Basic Auth.
 
 ## Documentation
 
@@ -114,4 +101,4 @@ Operational monitoring note:
 
 ## Support
 
-Whatte is an independent open-source project. Infrastructure and development are self-funded — if you'd like to help, Telegram Stars are welcome.
+Whatte is an independent open-source project. Infrastructure and development are self-funded. If you would like to support the project, [Telegram Stars](https://t.me/humanengine_lab) are welcome.
