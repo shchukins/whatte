@@ -1,6 +1,7 @@
-# Indoor Activity Deduplication Proposal
+# Indoor activity deduplication
 
-Status: implementation proposal for the first deterministic MyWhoosh/Garmin increment.
+Status: implemented deterministic MyWhoosh/Garmin baseline. This document
+records the current contract; it is not a proposal or a deployment runbook.
 
 ## Problem
 
@@ -8,7 +9,7 @@ One physical indoor ride can reach Strava twice: once from MyWhoosh and once fro
 Garmin. Both raw records must remain auditable, while only the MyWhoosh activity
 contributes to load, notifications, and subjective feedback.
 
-## Existing source fields
+## Source fields
 
 `strava_activity_raw` persists these useful columns directly:
 
@@ -24,7 +25,7 @@ classification can therefore inspect `sport_type`, `type`, `trainer`,
 `device_name`, `external_id`, `upload_id`, and any app/upload metadata returned
 by Strava. Activity name is a fallback signal, not the primary classifier.
 
-## Minimal data model
+## Persisted state
 
 Add deduplication state to `strava_activity_raw`:
 
@@ -47,7 +48,7 @@ atomic post-ride and RPE delivery claims. The current `notification_log` has a
 date-based uniqueness contract for daily readiness and cannot safely represent
 multiple rides on the same day.
 
-## Deterministic matching
+## Matching contract
 
 The detector evaluates activities belonging to the same user by actual workout
 time, never by Strava upload order.
@@ -105,43 +106,9 @@ message is deferred: it requires persisting chat/message coordinates and
 editing that historical message after MyWhoosh arrives. No non-working buttons
 are emitted meanwhile.
 
-## Migration and rollback
+## Schema note
 
-Migration `db-init/007_indoor_activity_deduplication.sql` only adds nullable or
-defaulted columns, checks, indexes, and the delivery-log table. It does not
-backfill automatic matches and is not applied by application startup.
-
-Rollback is an explicit operator action: drop the new indexes/table, then drop
-the added columns. Rolling application code back before dropping schema is the
-safe order.
-
-Production apply (from the repository root on the VPS, after backup):
-
-```bash
-docker compose exec -T postgres sh -c \
-  'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' \
-  < db-init/007_indoor_activity_deduplication.sql
-```
-
-Rollback after application code has been rolled back:
-
-```sql
-drop index if exists uq_activity_subjective_feedback_canonical_type;
-drop index if exists ix_activity_subjective_feedback_canonical_activity_id;
-alter table if exists activity_subjective_feedback
-    drop column if exists canonical_activity_id;
-drop table if exists activity_delivery_log;
-drop index if exists ix_strava_activity_raw_excluded;
-drop index if exists ix_strava_activity_raw_duplicate_of;
-drop index if exists ix_strava_activity_raw_user_dedup_candidates;
-alter table if exists strava_activity_raw
-    drop column if exists duplicate_candidate_activity_id,
-    drop column if exists deduplication_manual_override,
-    drop column if exists duplicate_detection_version,
-    drop column if exists duplicate_detected_at,
-    drop column if exists duplicate_reason,
-    drop column if exists duplicate_confidence,
-    drop column if exists exclusion_reason,
-    drop column if exists is_excluded,
-    drop column if exists duplicate_of_activity_id;
-```
+Migration `db-init/007_indoor_activity_deduplication.sql` defines the additive
+schema used by this contract. Application startup does not apply migrations to
+an existing volume. Schema removal is a separate, destructive operator change
+and is intentionally not documented as a routine rollback.

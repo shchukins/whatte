@@ -14,8 +14,9 @@ The goal is to recommend the right training on the right day using measurable ph
 2. Read only the documentation relevant to the task.
 3. Search for existing implementations before creating new ones.
 4. Reuse existing architecture whenever possible.
-5. Propose a short implementation plan.
-6. If the task affects architecture or public APIs, wait for approval before making changes.
+5. State a short, bounded implementation plan when scope is ambiguous or
+   crosses an architecture or public-API boundary.
+6. Verify affected behavior with tests or an equivalent focused check.
 
 ---
 
@@ -30,7 +31,6 @@ Architecture:
 
 Current product direction:
 - docs/ai/CURRENT_PRIORITIES.md
-- docs/ai/CURRENT_FOCUS.md
 - docs/ai/PRODUCT_CONTEXT.md
 
 Terminology:

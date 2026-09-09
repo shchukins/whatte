@@ -95,7 +95,3 @@ Dashboard показывает локальное состояние backend и 
 - [Продуктовые сценарии](docs/product/SCENARIOS.md)
 - [Backend](backend/README.md)
 - [Contributing](CONTRIBUTING.md)
-
-## Поддержка
-
-Whatte — независимый open-source проект. Инфраструктура и разработка финансируются самостоятельно. Поддержать проект можно через [Telegram Stars](https://t.me/humanengine_lab).

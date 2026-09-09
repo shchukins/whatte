@@ -51,7 +51,7 @@ Boundary rule:
 | `< 40` | `recovery` | Recovery or rest |
 | `40 <= score < 60` | `endurance` | Easy endurance |
 | `60 <= score <= 75` | `moderate` | Moderate aerobic or controlled tempo |
-| `> 75` | `high_intensity` | High intensity if planned |
+| `> 75` | `high_intensity` | Интенсивная работа допустима, если она есть в плане |
 
 ---
 

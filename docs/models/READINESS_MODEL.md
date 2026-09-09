@@ -201,7 +201,7 @@ Raw RPE, session-RPE load, TSS, duration, absolute power и absolute HR не в�
 
 Missing physiology имеет state `unavailable`, contribution `0` и никогда не
 интерпретируется как плохое recovery. Полное обоснование composition зафиксировано в
-`docs/architecture/READINESS_SIGNAL_COMPOSITION_PROPOSAL.md`.
+`backend/backend/services/readiness_composition.py`.
 
 ### 4.4 Final outputs
 
@@ -449,11 +449,11 @@ Important constraints:
 - `training = "partial"` is reserved for future explicit unsupported / continuity-only load detection
 - payload, который используется UI и Telegram notification layer
 
-Current gap for invariant coverage:
-
-- query-layer `data_quality` can expose missing recovery inputs and missing training context
-- structured staleness metadata for sleep / HRV / resting HR is not stored in `readiness_daily.explanation_json` yet
-- tests therefore protect missing-input semantics today, while stale-input semantics remain a TODO until explicit metadata exists
+Source-data freshness is a separate API contract. Each current computation
+snapshots its recovery and training source dates plus `WHATTE_TIMEZONE` in
+`explanation_json.source_timestamps`; read endpoints expose
+`freshness_state` and `freshness_reason_codes`. It must not be confused with
+the physiological load metric `freshness` or with `data_quality`.
 
 ---
 

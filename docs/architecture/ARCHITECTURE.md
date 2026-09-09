@@ -69,10 +69,11 @@ PostgreSQL
 
 FastAPI сервис.
 
-Backend now serves two distinct surface families through the same application process:
+Backend serves three distinct surface families through the same application process:
 
 - technical API endpoints on `api.shchukin.de`
 - internal SSR dashboard at `shchukin.de/dashboard`
+- protected Web Today and dated-profile forms at `shchukin.de/today`
 
 Ответственность:
 
@@ -298,8 +299,8 @@ readiness API / Web Today / Telegram
 
 - decision layer не пересчитывает readiness formula
 - decision layer не использует ML или LLM
-- `notification_service` использует `readiness_daily`
-- notification layer использует deterministic readiness briefing как основной комментарий
+- `notification_service` is orchestration only and consumes the canonical
+  persisted readiness briefing contract
 
 ---
 
@@ -495,7 +496,7 @@ LoadState + Response + Feeling + optional Physiology -> Readiness -> GoodDayProb
 - либо он лишний
 - либо архитектура нарушена
 
-## 9. Recovery prompt scheduling flow
+## 14. Recovery prompt scheduling flow
 
 ```text
 worker loop

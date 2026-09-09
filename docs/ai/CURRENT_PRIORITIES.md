@@ -1,16 +1,16 @@
-# Current Priorities
+# Current priorities
 
 ## 1. Current phase
 
 Whatte находится в фазе:
 
-> стабилизация и согласование реализованного baseline
+> эксплуатационная проверка и калибровка реализованного baseline
 
 Основной фокус:
 
-- убрать устаревшие описания
-- сделать поведение системы предсказуемым
-- зафиксировать архитектурные границы
+- сохранить предсказуемое поведение production baseline
+- собрать проверяемые данные morning-loop pilot
+- устранить документированные расхождения между decision и delivery слоями
 
 ---
 
@@ -30,13 +30,14 @@ Whatte находится в фазе:
 
 ## 3. What is priority NOW
 
-### 3.1 Backend stabilization
+### 3.1 Evidence before model changes
 
-- удержать deterministic core стабильным
-- не размывать текущую architecture baseline
-- улучшать только подтвержденные backend layers
+- завершить и разобрать 14 последовательных локальных дней #108 pilot
+- не менять веса, пороги или смысл readiness до явного решения по данным pilot
+- хранить контекст решения и feedback как evidence, а не как скрытую
+  онлайн-адаптацию
 
-Backend должен выполнять:
+Backend baseline уже выполняет:
 
 - ingestion
 - хранение данных
@@ -49,7 +50,7 @@ Backend должен выполнять:
 
 - readiness logic должна быть явной
 - recovery scoring должен оставаться прозрачным
-- ride briefing, если появится, должен быть детерминированным
+- recommendation и briefing должны оставаться детерминированными
 - никакой скрытой логики
 
 Нельзя:
@@ -57,26 +58,21 @@ Backend должен выполнять:
 - переносить логику в LLM
 - заменять формулы текстом
 
-### 3.3 Architecture boundaries
+### 3.3 Product gaps with bounded scope
 
 Жесткое разделение:
 
-Core:
-
-- backend
-- postgres
-- доменная логика
-
-AI:
-
-- отдельный слой
-- не влияет на расчеты
+- свести Telegram formatting к shared `decision_engine` contract;
+- определить один поддерживаемый non-cycling Strava load slice до расширения
+  multisport coverage;
+- не выводить optional physiology, source freshness или unsupported load как
+  нормальные/нулевые данные.
 
 ---
 
-## 4. RAG (experimental direction)
+## 4. AI and research boundary
 
-RAG рассматривается как:
+RAG и другие AI-инструменты рассматриваются как:
 
 > инструмент разработчика, не продукт
 
@@ -190,12 +186,15 @@ RAG рассматривается как:
 
 Система считается готовой к следующему этапу, когда:
 
-- wearable-independent daily loop стабильно проходит end-to-end
-- load / recovery / readiness layers детерминированы и согласованы
-- probability layer явно описан как baseline mapping
-- документация отражает реальное состояние системы
+- 14-day pilot имеет полный, интерпретируемый report и зафиксированные
+  решения о качестве/калибровке;
+- delivery surfaces используют один persisted readiness/decision contract;
+- документация отражает реализованные, historical и planned границы;
+- first non-cycling load work имеет отдельный согласованный contract, либо
+  не начато.
 
 После этого можно:
 
-- калибровать readiness / probability
-- добавлять decision layer поверх текущего baseline
+- калибровать readiness / probability по зафиксированной методике;
+- добавлять только подтверждённые planning capabilities поверх текущего
+  baseline.

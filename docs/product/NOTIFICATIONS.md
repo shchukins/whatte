@@ -314,13 +314,13 @@ Expected response includes:
 
 ---
 
-## 10. Future notification roadmap
+## 10. Bounded next steps
 
 Возможные дальнейшие шаги:
 
-- morning recovery scheduler
-- sport-specific second-tap feedback
-- richer Web subjective feedback collection
+- move the UTC scheduler to an explicit user-timezone contract
+- decide whether another feedback tap has a documented calibration use
+- extend Web feedback only when it shares the same persistence contract
 - richer reminder policies
 - recommendation calibration loops based on accumulated feedback
 

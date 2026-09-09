@@ -11,13 +11,23 @@
 - `readiness_daily`
 - `good_day_probability` baseline
 - wearable-independent daily readiness pipeline
-- scheduled Web/Telegram daily loop
+- Web Today feedback and dated profile management
+- Telegram daily readiness, post-ride RPE, and next-day recovery flows
+- deterministic recommendation and shared briefing contract for API, Web Today,
+  and Telegram delivery
+- pilot-report and decision-context snapshot storage for calibration evidence
 
 ## Next steps
 
-- activity streams ingestion
-- feature extraction expansion
-- readiness / probability calibration
-- personalization
-- decision outputs and ride briefing integration
-- performance / prediction model
+- complete and review the 14-day morning-loop pilot before changing model
+  weights or thresholds
+- readiness / probability calibration from stored evidence; the current
+  `good_day_probability` remains `readiness_score / 100`, not a calibrated
+  probability
+- resolve the remaining notification-formatting drift so delivery code consumes
+  only the canonical decision contract
+- define a bounded first non-cycling Strava load slice; unsupported activities
+  must remain explicit rather than estimated
+- expand derived features only when a concrete deterministic consumer exists
+- evaluate personalization or prediction only after calibration criteria and
+  validation data are agreed

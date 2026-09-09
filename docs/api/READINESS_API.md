@@ -216,11 +216,7 @@ GET /api/v1/model/readiness-daily/{user_id}/latest
     "freshness": 4.0,
     "freshness_norm": 54.0,
     "recovery_score_simple": 58.2,
-    "weights": {
-      "freshness_norm": 0.6,
-      "recovery_score_simple": 0.4
-    },
-    "formula": "0.6 * freshness_norm + 0.4 * recovery_score_simple",
+    "formula": "signal_weighted_response_v1",
     "recovery_explanation": {
       "sleep_score": 82.8,
       "hrv_score": 42.1,

@@ -1,360 +1,71 @@
-# Open Decisions
+# Open decisions
 
-Этот документ фиксирует архитектурные и продуктовые вопросы,
-которые еще не имеют окончательного решения.
-
-Цель:
-
-- сохранить контекст размышлений
-- отделить уже реализованное от еще не решенного
-- поддерживать осознанное развитие системы
-
----
+This document records only choices that can change the product contract. It is
+not a backlog: implementation starts only after a bounded decision is made and
+the affected model, API, and data documents are updated.
 
 ## OD-001: Readiness calibration
 
-### Context
+**Current fact:** `v2_signal_composition_response_v1` is deterministic, and
+`good_day_probability = readiness_score / 100` is a presentation mapping, not
+a calibrated probability.
 
-Базовая структура readiness в model v2 уже реализована:
+**Decision needed:** after the 14-day morning-loop pilot, decide whether the
+evidence supports changing signal weights, score zones, probability wording, or
+none of them. The decision must name the evidence, version any changed model,
+and preserve prior rows.
 
-- `LoadState + RecoveryState -> Readiness -> GoodDayProbability`
-- load state использует `fitness`, `fatigue_fast`, `fatigue_slow`, `fatigue_total`, `freshness`
-- recovery state использует sleep / HRV / resting HR / weight aggregates
-- readiness baseline использует формулу `0.6 * freshness_norm + 0.4 * recovery_score_simple`
+**Status:** waiting for pilot evidence.
 
-Но все еще не определены окончательно:
+## OD-002: Canonical delivery formatting
 
-- калибровка весов
-- калибровка status thresholds
-- калибровка probability interpretation
+**Current fact:** `decision_engine.build_persisted_readiness_briefing` is the
+canonical recommendation, reason, and briefing contract for materialized
+current readiness. Telegram orchestration consumes it.
 
----
+**Decision needed:** identify and remove any remaining notification-only
+wording that can change the decision meaning. Delivery-specific metadata may
+remain, but it must not derive a second recommendation.
 
-### Options
+**Status:** implementation follow-up.
 
-1. Оставить текущую baseline formula и калибровать пороги
-2. Расширить readiness input через `sleep_score_simple`, `hrv_dev`, `rhr_dev`
-3. Ввести более явное versioning readiness calibration
+## OD-003: First non-cycling load input
 
----
+**Current fact:** cycling activities with valid power-based TSS form the
+production load baseline. Unsupported or missing load is explicit; it is never
+invented as zero or estimated.
 
-### Open questions
+**Decision needed:** select at most one non-cycling Strava activity type,
+define its deterministic input and validation method, and specify how it joins
+daily load without changing the cycling contract.
 
-- как калибровать веса без black-box логики
-- какие thresholds считать стабильными для user-facing layer
-- как versioning readiness model отражать в storage и docs
+**Status:** not started.
 
----
+## OD-004: Source expansion
 
-### Status
+**Current fact:** active inputs are Strava, dated user profile, and
+Web/Telegram subjective feedback. HealthKit data is historical exact-date
+physiology only; ingestion and the iOS client are retired.
 
-partially resolved
+**Decision needed:** before adding any source, define ownership, timezone,
+normalization, conflict rules, historical replay, and missing-data behavior.
 
----
+**Status:** deferred.
 
-## OD-002: Feature layer expansion
+## OD-005: User-facing planning layer
 
-### Context
+**Current fact:** the current decision layer maps materialized readiness to
+`recovery`, `endurance`, `moderate`, or `high_intensity`. It is not a workout
+planner.
 
-Базовый feature / derived layer уже частично реализован:
+**Decision needed:** define a bounded planning capability—such as duration,
+timing, or a plan-aware constraint—without moving calculation into UI or AI.
 
-- `daily_training_load`
-- preserved historical HealthKit normalized tables
-- historical `health_recovery_daily`
-
-Открытым остается вопрос расширения feature layer и его границ.
-
----
-
-### Options
-
-1. SQL-based aggregates
-2. Python pipeline
-3. Гибрид
-
----
-
-### Open questions
-
-- где хранить дополнительные derived features
-- как делать массовый перерасчет
-- как versioning расширенных features отражать в storage
-
----
-
-### Status
-
-partially resolved
-
----
-
-## OD-003: Prediction model
-
-### Context
-
-Система предполагает прогноз:
-
-- как тренировка повлияет на состояние
-
-Но предиктивная модель пока не реализована.
-
----
-
-### Options
-
-1. Простая эвристика
-2. Физиологическая модель
-3. ML-подход
-
----
-
-### Open questions
-
-- нужен ли ML вообще
-- как валидировать прогноз
-- какие метрики использовать
-
----
-
-### Status
-
-open
-
----
-
-## OD-004: Multi-source data strategy
-
-### Context
-
-Сейчас активно используются:
-
-- Strava
-- Web/Telegram subjective feedback
-
-HealthKit сохранён только как historical exact-date physiology; ingestion retired.
-
-Следующий уровень сложности:
-
-- расширение источников
-- source priority
-- conflict resolution
-
----
-
-### Options
-
-1. Strava + subjective feedback как основная схема
-2. Optional physiology provider с явным source priority
-3. Multi-source aggregation с правилами консолидации
-
----
-
-### Open questions
-
-- что считать источником истины для пересекающихся метрик
-- как синхронизировать даты и timezone-sensitive данные
-- как решать конфликты при расширении источников
-
----
-
-### Status
-
-partially resolved
-
----
-
-## OD-005: Ride briefing format
-
-### Context
-
-Ride briefing — важный output системы.
-
-Что уже реализовано:
-
-- baseline deterministic `recommendation`
-- baseline deterministic `reason`
-- baseline deterministic `briefing`
-- readiness API response с decision output
-
-Что остается незафиксированным окончательно:
-
-- окончательный multi-surface формат user-facing briefing
-- уровень детализации на разных surfaces
-- граница между `decision_engine` и legacy notification formatting
-
----
-
-### Options
-
-1. Короткий structured block
-2. Rule-based briefing with explanation templates
-3. Более подробный plan layer поверх deterministic core
-
----
-
-### Open questions
-
-- насколько детализирован должен быть вывод
-- какие ограничения выводить первыми
-- как не потерять детерминированность
-
----
-
-### Status
-
-partially resolved
-
----
-
-## OD-008: Decision formatting unification
-
-### Context
-
-В текущем backend уже есть явный `decision_engine` для recommendation / briefing.
-
-Одновременно часть legacy notification formatting logic продолжает жить в `notification_service`.
-
-Это не нарушает boundary между AI и deterministic core, но создает риск постепенного drift:
-
-- тексты могут начать расходиться
-- пороги и формулировки могут дублироваться
-- ответственность decision layer станет менее явной
-
-### Minimal correction strategy
-
-1. Считать `decision_engine` canonical source для readiness-to-guidance mapping
-2. Постепенно свести user-facing readiness wording к одному formatting path
-3. Оставить `notification_service` orchestration-слоем, а не вторым decision-слоем
-
-### Open questions
-
-- какие notification-specific embellishments допустимы вне canonical decision path
-- нужно ли выделять отдельный formatter module между decision и delivery
-- как покрыть унификацию tests без избыточной связанности
-
-### Status
-
-open
-
----
-
-## OD-006: UI / Visualization layer
-
-### Context
-
-Visualization layer пока не является основной частью реализованного product core.
-
-Operational clarification:
-
-- internal FastAPI SSR dashboard at `shchukin.de/dashboard` is already implemented as a read-only monitoring surface
-- this open decision is about future product/user visualization, not the existing operational dashboard
-
----
-
-### Options
-
-1. Product web dashboard
-2. Mobile-first
-3. Минималистичный readiness-first интерфейс
-
----
-
-### Open questions
-
-- что показывать в первую очередь
-- какие метрики критичны
-- как не превратить систему в dashboard без решения
-
----
-
-### Status
-
-open
-
----
-
-## OD-007: Storage strategy for derived data
-
-### Context
-
-Уже существуют derived данные:
-
-- normalized health tables
-- `health_recovery_daily`
-- `load_state_daily_v2`
-- `readiness_daily`
-
-Но еще не зафиксирована общая стратегия:
-
-- что хранить постоянно
-- что пересчитывать
-- как versioning делать единообразно
-
----
-
-### Options
-
-1. Хранить все derived layers
-2. Пересчитывать часть state on demand
-3. Гибрид
-
----
-
-### Open questions
-
-- баланс storage vs compute
-- как обеспечивать консистентность между слоями
-- как оформлять versioning derived tables
-
----
-
-### Status
-
-open
-
----
-
-## OD-008: AI reintroduction strategy
-
-### Context
-
-AI остается вне deterministic core.
-
-Возможный будущий use-case:
-
-- explainability
-- documentation
-- structured summaries
-
----
-
-### Options
-
-1. Только RAG
-2. AI как explainability слой
-3. Ограниченные AI endpoints вне core
-
----
-
-### Open questions
-
-- где проходит граница допустимого
-- как не нарушить deterministic core
-- какие use-cases действительно полезны
-
----
-
-### Status
-
-deferred
-
----
+**Status:** deferred until calibration evidence is reviewed.
 
 ## Lifecycle
 
-`open -> decision -> ADR`
+`open decision -> bounded contract -> implementation -> ADR or canonical docs`
 
-После принятия решения:
-
-- перенос в `ARCHITECTURE_DECISIONS.md`
-- обновление архитектуры и data/model docs
+Do not describe a decision as implemented before its code, tests, and canonical
+documentation land together.

@@ -4,7 +4,7 @@ Change summary:
 
 - Reframed the product as a deterministic physiological decision system, not just a backend pipeline.
 - Split the map into source, storage, model, decision, delivery, feedback, and calibration layers.
-- Marked each major layer as `implemented`, `partial`, `planned`, `historical`, or `future` based on current repo state as of 2026-09-01.
+- Marked each major layer as `implemented`, `partial`, `planned`, `historical`, or `future` based on current repository state as of 2026-09-10.
 
 ## 1. Executive overview
 
@@ -71,7 +71,9 @@ sources
 ### Implemented
 
 - Strava: workout/activity ingestion and daily load inputs
-- User profile: present in product scope and docs, used as a required input family for training interpretation, but not yet documented as a fully mature layer
+- Dated user profile: FTP and weight histories are managed through protected
+  Web Today forms. FTP is resolved on or before each activity's local date;
+  profile edits can trigger an explicit stored-data-only recomputation.
 - Subjective feedback: Telegram-based post-ride RPE and next-day recovery collection
 
 ### Historical
@@ -79,10 +81,6 @@ sources
 - Apple Health / HealthKit raw, normalized, and recovery rows are preserved
 - collection endpoints and the iOS client are retired
 - an exact-date historical recovery row may enrich readiness for that date only
-
-### Partial
-
-- User profile / athlete profile: documented in product scope, but not yet a clearly isolated, mature production layer
 
 ### Planned
 
