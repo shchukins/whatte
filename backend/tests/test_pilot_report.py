@@ -1,6 +1,10 @@
 from datetime import date, datetime, timezone
 
-from backend.services.pilot_report import build_pilot_report
+from backend.services.pilot_report import (
+    PILOT_QUERY,
+    build_pilot_report,
+    render_pilot_report_markdown,
+)
 
 
 def _row(day: date, **overrides):
@@ -19,11 +23,20 @@ def _row(day: date, **overrides):
         "computed_at": datetime(2026, 9, 1, 5, tzinfo=timezone.utc),
         "notification_status": "sent", "previous_activities": 1,
         "previous_tss": 50.0, "prompt_status": "sent",
-        "recovery_feedback": True, "activities": 1, "rpe_prompts": 1,
-        "rpe_responses": 1,
-        "before": {"readiness_score": 60.0, "recommendation": "moderate"},
-        "after": {"readiness_score": 70.0, "recommendation": "moderate"},
-        "delivery": {"readiness_score": 70.0}, "ingest_failures": 0,
+        "recovery_feedback": True, "activities": 1, "rpe_eligible": 1,
+        "rpe_eligibility_unknown": 0, "rpe_prompts": 1,
+        "rpe_failed_or_incomplete_prompts": 0, "rpe_missing_prompts": 0,
+        "rpe_prompted_responses": 1, "rpe_recorded_responses": 1,
+        "rpe_unprompted_responses": 0,
+        "before": {"snapshot": {
+            "readiness_score": 60.0, "recommendation": "moderate",
+        }, "captured_at": "2026-09-01T06:00:00+00:00"},
+        "after": {"snapshot": {
+            "readiness_score": 70.0, "recommendation": "moderate",
+        }, "captured_at": "2026-09-01T06:05:00+00:00"},
+        "delivery": {"snapshot": {"readiness_score": 70.0},
+                     "captured_at": "2026-09-01T05:00:00+00:00"},
+        "ingest_failures": 0,
         "delivery_failures": 0,
     }
     values.update(overrides)
@@ -32,8 +45,13 @@ def _row(day: date, **overrides):
         values["status_text"], values["explanation"], values["computed_at"],
         values["notification_status"], values["previous_activities"],
         values["previous_tss"], values["prompt_status"],
-        values["recovery_feedback"], values["activities"], values["rpe_prompts"],
-        values["rpe_responses"], values["before"], values["after"],
+        values["recovery_feedback"], values["activities"],
+        values["rpe_eligible"], values["rpe_eligibility_unknown"],
+        values["rpe_prompts"],
+        values["rpe_failed_or_incomplete_prompts"],
+        values["rpe_missing_prompts"],
+        values["rpe_prompted_responses"], values["rpe_recorded_responses"],
+        values["rpe_unprompted_responses"], values["before"], values["after"],
         values["delivery"], values["ingest_failures"], values["delivery_failures"],
     )
 
@@ -44,7 +62,8 @@ def test_report_uses_explicit_denominators_and_signal_availability():
         _row(date(2026, 9, 2), readiness_score=None, good_day_probability=None,
              status_text=None, explanation={}, previous_activities=0,
              previous_tss=0, prompt_status=None, recovery_feedback=False,
-             activities=0, rpe_prompts=0, rpe_responses=0, before=None,
+             activities=0, rpe_eligible=0, rpe_prompts=0,
+             rpe_prompted_responses=0, rpe_recorded_responses=0, before=None,
              after=None, delivery=None, ingest_failures=1, delivery_failures=1),
     ]
     report = build_pilot_report(user_id="user-1", date_from=date(2026, 9, 1),
@@ -68,8 +87,9 @@ def test_report_uses_explicit_denominators_and_signal_availability():
 
 def test_report_does_not_claim_rates_without_denominators():
     row = _row(date(2026, 9, 1), readiness_score=None, previous_activities=0,
-               previous_tss=0, recovery_feedback=False, rpe_prompts=0,
-               rpe_responses=0, before=None, after=None)
+               previous_tss=0, recovery_feedback=False, rpe_eligible=0,
+               rpe_prompts=0, rpe_prompted_responses=0,
+               rpe_recorded_responses=0, before=None, after=None, delivery=None)
     report = build_pilot_report(user_id="user-1", date_from=date(2026, 9, 1),
                                 date_to=date(2026, 9, 1), timezone="Europe/Moscow",
                                 rows=[row])
@@ -78,3 +98,159 @@ def test_report_does_not_claim_rates_without_denominators():
     assert metrics["morning_recovery_response"]["rate"] is None
     assert metrics["post_workout_rpe_completion"]["rate"] is None
     assert metrics["recommendation_changes_after_checkin"]["rate"] is None
+    assert report["days"][0]["decision_states"]["delivery"]["snapshot"] is None
+    assert report["days"][0]["decision_states"]["current_persisted"][
+        "readiness_score"
+    ] is None
+
+
+def test_query_uses_first_before_and_last_after_for_daily_comparison():
+    assert "order by captured_at\n" in PILOT_QUERY
+    assert "order by captured_at desc\n" in PILOT_QUERY
+    assert "filter (where event_type = 'recovery_checkin_before')" in PILOT_QUERY
+    assert "filter (where event_type = 'recovery_checkin_after')" in PILOT_QUERY
+
+
+def test_report_separates_score_and_category_changes():
+    rows = [
+        _row(date(2026, 9, 1)),
+        _row(
+            date(2026, 9, 2),
+            before={"readiness_score": 70.0, "recommendation": "moderate"},
+            after={"readiness_score": 70.0, "recommendation": "high_intensity"},
+        ),
+        _row(
+            date(2026, 9, 3),
+            before={"readiness_score": 70.0, "recommendation": "moderate"},
+            after={"readiness_score": 70.0, "recommendation": "moderate"},
+        ),
+    ]
+    report = build_pilot_report(
+        user_id="user-1",
+        date_from=date(2026, 9, 1),
+        date_to=date(2026, 9, 3),
+        timezone="Europe/Moscow",
+        rows=rows,
+    )
+
+    assert report["metrics"]["recommendation_changes_after_checkin"] == {
+        "numerator": 2, "denominator": 3, "rate": 0.6667,
+    }
+    assert report["metrics"]["readiness_score_changes_after_checkin"] == {
+        "numerator": 1, "denominator": 3, "rate": 0.3333,
+    }
+    assert report["metrics"]["recommendation_category_changes_after_checkin"] == {
+        "numerator": 1, "denominator": 3, "rate": 0.3333,
+    }
+    assert report["days"][0]["checkin_score_delta"] == 10.0
+    assert report["days"][1]["checkin_category_transition"] == {
+        "from": "moderate", "to": "high_intensity",
+    }
+    assert report["days"][2]["checkin_decision_changed"] is False
+
+
+def test_report_uses_field_specific_denominators_for_incomplete_snapshots():
+    rows = [
+        _row(
+            date(2026, 9, 1),
+            before={"readiness_score": 60.0},
+            after={"readiness_score": 65.0},
+        ),
+        _row(
+            date(2026, 9, 2),
+            before={"recommendation": "endurance"},
+            after={"recommendation": "moderate"},
+        ),
+        _row(date(2026, 9, 3), before={"status_text": "Good"}, after={}),
+    ]
+    report = build_pilot_report(
+        user_id="user-1",
+        date_from=date(2026, 9, 1),
+        date_to=date(2026, 9, 3),
+        timezone="Europe/Moscow",
+        rows=rows,
+    )
+
+    assert report["metrics"]["recommendation_changes_after_checkin"] == {
+        "numerator": 2, "denominator": 2, "rate": 1.0,
+    }
+    assert report["metrics"]["readiness_score_changes_after_checkin"] == {
+        "numerator": 1, "denominator": 1, "rate": 1.0,
+    }
+    assert report["metrics"]["recommendation_category_changes_after_checkin"] == {
+        "numerator": 1, "denominator": 1, "rate": 1.0,
+    }
+    assert report["days"][0]["checkin_category_transition"] is None
+    assert report["days"][2]["checkin_decision_changed"] is None
+
+
+def test_report_exposes_rpe_funnel_and_unknown_unprompted_feedback():
+    row = _row(
+        date(2026, 9, 1),
+        activities=4,
+        rpe_eligible=3,
+        rpe_eligibility_unknown=1,
+        rpe_prompts=2,
+        rpe_failed_or_incomplete_prompts=0,
+        rpe_missing_prompts=1,
+        rpe_prompted_responses=1,
+        rpe_recorded_responses=2,
+        rpe_unprompted_responses=1,
+    )
+    report = build_pilot_report(
+        user_id="user-1",
+        date_from=date(2026, 9, 1),
+        date_to=date(2026, 9, 1),
+        timezone="Europe/Moscow",
+        rows=[row],
+    )
+
+    assert report["metrics"]["post_workout_rpe_funnel"] == {
+        "eligible_canonical_activities": 3,
+        "eligibility_unknown": 1,
+        "successfully_prompted": 2,
+        "failed_or_incomplete_prompts": 0,
+        "missing_prompt_records": 1,
+        "not_successfully_prompted": 1,
+        "recorded_responses": 2,
+        "prompted_responses": 1,
+        "unanswered_prompts": 1,
+        "unprompted_responses": 1,
+    }
+    assert report["metrics"]["post_workout_rpe_completion"]["rate"] == 0.5
+
+
+def test_report_keeps_snapshots_and_current_state_separate():
+    report = build_pilot_report(
+        user_id="user-1",
+        date_from=date(2026, 9, 1),
+        date_to=date(2026, 9, 1),
+        timezone="Europe/Moscow",
+        rows=[_row(date(2026, 9, 1))],
+    )
+    states = report["days"][0]["decision_states"]
+
+    assert states["delivery"]["captured_at"] == "2026-09-01T05:00:00+00:00"
+    assert states["checkin_daily_comparison"]["semantics"] == (
+        "first_before_to_last_after_not_individually_paired"
+    )
+    assert states["current_persisted"]["readiness_score"] == 70.0
+    assert states["delivery"]["snapshot"] is not states["current_persisted"]
+
+
+def test_markdown_output_includes_scope_funnel_daily_rows_and_limitations():
+    report = build_pilot_report(
+        user_id="user-1",
+        date_from=date(2026, 9, 1),
+        date_to=date(2026, 9, 1),
+        timezone="Europe/Moscow",
+        rows=[_row(date(2026, 9, 1))],
+    )
+
+    markdown = render_pilot_report_markdown(report)
+
+    assert "# Morning Loop pilot report" in markdown
+    assert "Timezone: Europe/Moscow" in markdown
+    assert "## Post-workout RPE funnel" in markdown
+    assert "| 2026-09-01 | 70.0 | moderate | not available |" in markdown
+    assert "does not claim individual check-ins are paired" in markdown
