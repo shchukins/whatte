@@ -37,6 +37,34 @@ JSON remains the default and existing metric names retain their original
 definitions. Markdown is a rendering of the same in-memory report; it does not
 run a second query or change stored data.
 
+## Training-load coverage (#123)
+
+The report adds a read-only `load_coverage` section to JSON and Markdown. It
+assesses stored Strava activities for each report-local day using the current
+`activity_metrics` `v1` row and the same `resolve_activity_load` rule used by
+daily load aggregation. It is a current assessment, not a snapshot of what was
+included when a historical readiness decision was delivered. The coverage
+query makes no provider requests and does not recompute or write load.
+
+`canonical_activities` excludes deleted records, linked duplicates, and
+user-excluded records. Those categories are counted separately in
+`excluded_records`, with priority deleted, duplicate, then user-excluded if a
+record has more than one flag. For canonical activities, `included` means the
+resolver accepts the activity; `not_included` means it rejects an activity with
+an available metrics row; and `unknown_assessment` means the `v1` metrics row
+is absent. These three counts sum to `canonical_activities`. The activity list
+contains both known not-included and unknown assessments, with distinct reasons:
+`unsupported_sport`, `missing_required_power_metrics`, or
+`unavailable_metrics_record`.
+
+The daily state distinguishes `no_recorded_activity`, `excluded_only`,
+`supported_measured_load`, `recorded_unmodeled_activity`,
+`unknown_assessment`, and `mixed_coverage`. A day with an unsupported or unknown
+activity is not reported as measured zero load or proof of rest. Activities
+without a stored start time cannot be assigned to a local report day. Coverage
+does not change the existing pilot metrics, their denominators, daily-load
+aggregation, readiness, or notification behavior.
+
 ## Metric definitions
 
 | Metric | Numerator | Denominator | Stored source |

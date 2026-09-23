@@ -1,10 +1,138 @@
 from datetime import date, datetime, timezone
 
+from backend.services import pilot_report
 from backend.services.pilot_report import (
+    LOAD_COVERAGE_QUERY,
     PILOT_QUERY,
+    build_load_coverage,
     build_pilot_report,
+    generate_pilot_report,
     render_pilot_report_markdown,
 )
+
+
+def _coverage_row(
+    day, activity_id, sport="Ride", *, local_start=None, duration_s=3600,
+    deleted=False, excluded=False, duplicate_of=None, has_metrics=True,
+    tss=50.0, normalized_power=180.0, intensity_factor=0.8,
+):
+    return (
+        day, activity_id, sport, local_start or datetime.combine(day, datetime.min.time()),
+        duration_s, deleted, excluded, duplicate_of, has_metrics, tss,
+        normalized_power, intensity_factor,
+    )
+
+
+def test_load_coverage_classifies_mixed_activity_and_exclusions():
+    first = date(2026, 9, 1)
+    second = date(2026, 9, 2)
+    rows = [
+        _coverage_row(first, 1),
+        _coverage_row(first, 2, "Run"),
+        _coverage_row(first, 3, tss=None),
+        _coverage_row(first, 4, has_metrics=False, tss=None),
+        _coverage_row(first, 5, deleted=True),
+        _coverage_row(first, 6, excluded=True, duplicate_of=1),
+        _coverage_row(first, 7, excluded=True),
+        _coverage_row(second, 8, has_metrics=False, tss=None),
+    ]
+
+    coverage = build_load_coverage(date_from=first, date_to=date(2026, 9, 3), rows=rows)
+    mixed, unknown, empty = coverage["days"]
+    assert (mixed["canonical_activities"], mixed["included"],
+            mixed["not_included"], mixed["unknown_assessment"]) == (4, 1, 2, 1)
+    assert mixed["excluded_records"] == {
+        "deleted": 1, "duplicate": 1, "user_excluded": 1,
+    }
+    assert mixed["coverage_state"] == "mixed_coverage"
+    assert [activity["reason"] for activity in mixed["not_included_activities"]] == [
+        "unsupported_sport", "missing_required_power_metrics",
+        "unavailable_metrics_record",
+    ]
+    assert unknown["coverage_state"] == "unknown_assessment"
+    assert empty["coverage_state"] == "no_recorded_activity"
+
+
+def test_load_coverage_preserves_local_day_and_zero_tss_resolver_semantics():
+    day = date(2026, 9, 2)
+    local_start = datetime(2026, 9, 2, 1, 30)
+    coverage = build_load_coverage(
+        date_from=day, date_to=day,
+        rows=[_coverage_row(day, 1, local_start=local_start, tss=0.0)],
+    )
+    assert coverage["days"][0]["included"] == 1
+    assert coverage["days"][0]["coverage_state"] == "supported_measured_load"
+    assert "at time zone %s" in LOAD_COVERAGE_QUERY
+    assert "m.version = 'v1'" in LOAD_COVERAGE_QUERY
+    assert "m.user_id = r.user_id" in LOAD_COVERAGE_QUERY
+
+
+def test_load_coverage_markdown_explains_unknown_and_historical_limit():
+    day = date(2026, 9, 1)
+    report = build_pilot_report(
+        user_id="user-1", date_from=day, date_to=day,
+        timezone="Europe/Moscow", rows=[_row(day)],
+    )
+    report["load_coverage"] = build_load_coverage(
+        date_from=day, date_to=day,
+        rows=[_coverage_row(day, 9, "Run|Trail", has_metrics=False)],
+    )
+    markdown = render_pilot_report_markdown(report)
+    assert "## Training-load coverage" in markdown
+    assert "Run\\|Trail" in markdown
+    assert "unavailable_metrics_record" in markdown
+    assert "not evidence of load inclusion when a historical decision was made" in markdown
+    assert markdown.index("## Rates") > markdown.index("## Training-load coverage")
+
+
+def test_generate_report_reads_coverage_without_changing_pilot_rows(monkeypatch):
+    day = date(2026, 9, 1)
+    pilot_rows = [_row(day)]
+    coverage_rows = [_coverage_row(day, 1)]
+
+    class Cursor:
+        def __init__(self):
+            self.queries = []
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def execute(self, query, params):
+            self.queries.append((query, params))
+
+        def fetchall(self):
+            return pilot_rows if len(self.queries) == 1 else coverage_rows
+
+    class Connection:
+        def __init__(self):
+            self.cursor_instance = Cursor()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def cursor(self):
+            return self.cursor_instance
+
+    connection = Connection()
+    monkeypatch.setattr(pilot_report, "get_conn", lambda: connection)
+    report = generate_pilot_report(
+        user_id="user-1", date_from=day, date_to=day,
+        timezone="Europe/Moscow",
+    )
+    assert report["days"][0]["activities"] == 1
+    assert report["load_coverage"]["days"][0]["included"] == 1
+    assert [query for query, _ in connection.cursor_instance.queries] == [
+        PILOT_QUERY, LOAD_COVERAGE_QUERY,
+    ]
+    assert connection.cursor_instance.queries[1][1] == (
+        "Europe/Moscow", "Europe/Moscow", "user-1", "Europe/Moscow", day, day,
+    )
 
 
 def _row(day: date, **overrides):

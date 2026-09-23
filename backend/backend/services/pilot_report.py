@@ -1,11 +1,15 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 from typing import Any
 
 from backend.config import settings
 from backend.db import get_conn
 from backend.services.decision_engine import build_recommendation
+from backend.services.activity_load_service import (
+    is_supported_cycling_activity,
+    resolve_activity_load,
+)
 from backend.services.readiness_composition import READINESS_MODEL_VERSION
 
 
@@ -149,6 +153,121 @@ left join snapshot_stats on snapshot_stats.day = days.day
 left join ingest_failures on ingest_failures.day = days.day
 order by days.day;
 """
+
+
+LOAD_COVERAGE_QUERY = """
+select
+    (r.start_date at time zone %s)::date as local_day,
+    r.strava_activity_id,
+    r.activity_type,
+    r.start_date at time zone %s as local_start,
+    coalesce(m.duration_s, r.moving_time_s, r.elapsed_time_s) as duration_s,
+    r.is_deleted,
+    r.is_excluded,
+    r.duplicate_of_activity_id,
+    m.id is not null as has_metrics,
+    m.tss,
+    m.normalized_power,
+    m.intensity_factor
+from strava_activity_raw r
+left join activity_metrics m
+  on m.strava_activity_id = r.strava_activity_id
+ and m.user_id = r.user_id
+ and m.version = 'v1'
+where r.user_id = %s
+  and (r.start_date at time zone %s)::date between %s::date and %s::date
+order by local_day, local_start, r.strava_activity_id;
+"""
+
+
+def build_load_coverage(
+    *,
+    date_from: date,
+    date_to: date,
+    rows: list[tuple[Any, ...]],
+) -> dict[str, Any]:
+    """Assess current stored load coverage without reconstructing past decisions."""
+    days: dict[str, dict[str, Any]] = {}
+    day = date_from
+    while day <= date_to:
+        days[day.isoformat()] = {
+            "date": day.isoformat(),
+            "canonical_activities": 0,
+            "included": 0,
+            "not_included": 0,
+            "unknown_assessment": 0,
+            "excluded_records": {"deleted": 0, "duplicate": 0, "user_excluded": 0},
+            "not_included_activities": [],
+        }
+        day += timedelta(days=1)
+
+    for row in rows:
+        (
+            local_day, activity_id, activity_type, local_start, duration_s,
+            is_deleted, is_excluded, duplicate_of_activity_id, has_metrics,
+            tss, normalized_power, intensity_factor,
+        ) = row
+        entry = days[local_day.isoformat()]
+        if is_deleted:
+            entry["excluded_records"]["deleted"] += 1
+            continue
+        if duplicate_of_activity_id is not None:
+            entry["excluded_records"]["duplicate"] += 1
+            continue
+        if is_excluded:
+            entry["excluded_records"]["user_excluded"] += 1
+            continue
+
+        entry["canonical_activities"] += 1
+        if not has_metrics:
+            reason = "unavailable_metrics_record"
+            entry["unknown_assessment"] += 1
+        else:
+            assessment = resolve_activity_load(
+                activity_type=activity_type,
+                tss=tss,
+                normalized_power=normalized_power,
+                intensity_factor=intensity_factor,
+            )
+            if assessment["load_model_included"]:
+                entry["included"] += 1
+                continue
+            reason = (
+                "unsupported_sport"
+                if not is_supported_cycling_activity(activity_type)
+                else "missing_required_power_metrics"
+            )
+            entry["not_included"] += 1
+        entry["not_included_activities"].append({
+            "activity_id": activity_id,
+            "sport": activity_type,
+            "local_start": local_start,
+            "duration_s": duration_s,
+            "reason": reason,
+        })
+
+    for entry in days.values():
+        counted = entry["canonical_activities"]
+        classified = sum(entry["excluded_records"].values())
+        if not counted:
+            entry["coverage_state"] = (
+                "excluded_only" if classified else "no_recorded_activity"
+            )
+        elif sum(int(entry[key] > 0) for key in (
+            "included", "not_included", "unknown_assessment"
+        )) > 1:
+            entry["coverage_state"] = "mixed_coverage"
+        elif entry["included"]:
+            entry["coverage_state"] = "supported_measured_load"
+        elif entry["not_included"]:
+            entry["coverage_state"] = "recorded_unmodeled_activity"
+        else:
+            entry["coverage_state"] = "unknown_assessment"
+
+    return {
+        "semantics": "current_stored_assessment_not_historical_decision_evidence",
+        "days": list(days.values()),
+    }
 
 
 def _as_dict(value: Any) -> dict[str, Any]:
@@ -512,13 +631,22 @@ def generate_pilot_report(
         with conn.cursor() as cur:
             cur.execute(PILOT_QUERY, params)
             rows = cur.fetchall()
-    return build_pilot_report(
+            cur.execute(LOAD_COVERAGE_QUERY, (
+                report_timezone, report_timezone, user_id, report_timezone,
+                date_from, date_to,
+            ))
+            coverage_rows = cur.fetchall()
+    report = build_pilot_report(
         user_id=user_id,
         date_from=date_from,
         date_to=date_to,
         timezone=report_timezone,
         rows=rows,
     )
+    report["load_coverage"] = build_load_coverage(
+        date_from=date_from, date_to=date_to, rows=coverage_rows,
+    )
+    return report
 
 
 def render_pilot_report_markdown(report: dict[str, Any]) -> str:
@@ -535,11 +663,55 @@ def render_pilot_report_markdown(report: dict[str, Any]) -> str:
         "",
         "> Fourteen calendar rows do not by themselves prove successful pilot completion.",
         "",
+    ]
+    coverage = report.get("load_coverage")
+    if coverage is not None:
+        lines.extend([
+            "## Training-load coverage",
+            "",
+            "Current assessment from stored canonical activities and v1 metrics; "
+            "it is not evidence of load inclusion when a historical decision was made.",
+            "Unknown means the metrics record is absent. Known not included means "
+            "the current load resolver rejects the activity. Neither means measured zero load or rest.",
+            "",
+            "| Date | State | Canonical | Included | Not included | Unknown | "
+            "Deleted / duplicate / user-excluded |",
+            "|---|---|---:|---:|---:|---:|---:|",
+        ])
+        for day in coverage["days"]:
+            excluded = day["excluded_records"]
+            lines.append(
+                f"| {day['date']} | {day['coverage_state']} | "
+                f"{day['canonical_activities']} | {day['included']} | "
+                f"{day['not_included']} | {day['unknown_assessment']} | "
+                f"{excluded['deleted']} / {excluded['duplicate']} / "
+                f"{excluded['user_excluded']} |"
+            )
+        lines.extend([
+            "",
+            "### Activities without assessed included load",
+            "",
+            "| Date and time (report timezone) | Activity ID | Sport | Duration (s) | Reason |",
+            "|---|---:|---|---:|---|",
+        ])
+        for day in coverage["days"]:
+            for activity in day["not_included_activities"]:
+                sport = str(activity["sport"] or "unknown").replace("|", "\\|").replace("\n", " ")
+                duration = activity["duration_s"]
+                lines.append(
+                    f"| {activity['local_start']} | {activity['activity_id']} | "
+                    f"{sport} | {duration if duration is not None else 'unknown'} | "
+                    f"{activity['reason']} |"
+                )
+        if not any(day["not_included_activities"] for day in coverage["days"]):
+            lines.append("| — | — | — | — | none |")
+        lines.append("")
+    lines.extend([
         "## Rates",
         "",
         "| Metric | Numerator | Denominator | Rate |",
         "|---|---:|---:|---:|",
-    ]
+    ])
     rate_keys = (
         ("Valid morning recommendations", "valid_morning_recommendations"),
         ("Valid recommendations without physiology", "valid_recommendations_without_physiology"),
