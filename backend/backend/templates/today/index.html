@@ -311,6 +311,17 @@
 
         .error { color: var(--danger); }
 
+        .history-group + .history-group { margin-top: 24px; }
+        .history-version { margin: 0 0 8px; font-size: 0.9rem; }
+        .history-scroll { max-width: 100%; overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }
+        .history-scroll:focus-visible { outline: 2px solid var(--lime); outline-offset: 2px; }
+        .history-table { width: 100%; min-width: 490px; border-collapse: collapse; font-size: 0.84rem; }
+        .history-table th, .history-table td { padding: 9px 11px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+        .history-table thead th { color: var(--muted); font-weight: 650; }
+        .history-table tbody tr:last-child th, .history-table tbody tr:last-child td { border-bottom: 0; }
+        .history-table tbody th { font-variant-numeric: tabular-nums; white-space: nowrap; font-weight: 600; }
+        .history-missing { color: var(--muted); }
+
         @media (max-width: 420px) {
             .shell { padding-inline: 12px; }
             .card { padding: 17px; border-radius: 17px; }
@@ -438,6 +449,40 @@
             </div>
             {% else %}
             <p class="empty">Explanation factors will appear with readiness.</p>
+            {% endif %}
+        </section>
+
+        <section class="card" aria-labelledby="history-title">
+            <div class="section-head">
+                <div>
+                    <h2 id="history-title">Last 14 days</h2>
+                    <p class="hint">Current persisted daily history. Values may change after recomputation; these are not immutable morning decisions or delivered messages.</p>
+                    <p class="hint">On a narrow screen, scroll the table sideways.</p>
+                </div>
+            </div>
+            {% if history_section.status == "error" %}
+            <p class="error">History is temporarily unavailable. {{ history_section.error }}</p>
+            {% else %}
+            {% for group in history_groups %}
+            <div class="history-group">
+                <h3 class="history-version">Model {{ group.version }}{% if not group.supported %} · Historical version; recommendation not mapped{% endif %}</h3>
+                <div class="history-scroll" role="region" aria-label="Readiness history for model {{ group.version }}" tabindex="0">
+                    <table class="history-table">
+                        <thead><tr><th scope="col">Date</th><th scope="col">Readiness</th><th scope="col">Recommendation</th><th scope="col">Morning recovery</th></tr></thead>
+                        <tbody>
+                        {% for row in group.rows %}
+                        <tr>
+                            <th scope="row">{{ row.date }}</th>
+                            <td>{% if row.readiness_score is not none %}{{ row.readiness_score }}{% else %}<span class="history-missing">No readiness</span>{% endif %}</td>
+                            <td>{% if row.recommendation %}{{ row.recommendation | replace('_', ' ') }}{% elif not group.supported and row.readiness_score is not none %}<span class="history-missing">Not mapped</span>{% else %}<span class="history-missing">No recommendation</span>{% endif %}</td>
+                            <td>{% if row.recovery_score is not none %}{{ row.recovery_score }}/5 · {{ row.recovery_value }}{% else %}<span class="history-missing">No feedback</span>{% endif %}</td>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endfor %}
             {% endif %}
         </section>
     </div>

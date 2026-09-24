@@ -111,6 +111,30 @@ def test_readiness_history_endpoint_returns_ascending_points(monkeypatch):
     ]
 
 
+def test_calendar_history_reads_date_window_and_maps_only_supported_version(monkeypatch):
+    class Cursor(_FakeHistoryCursor):
+        def fetchall(self):
+            return [
+                (date(2026, 5, 2), readiness_query.READINESS_MODEL_VERSION,
+                 61.5, "Хорошая готовность", {"fallback_mode": None}),
+                (date(2026, 5, 2), "v2", 61.5, "Хорошая готовность", {}),
+            ]
+
+    cursor = Cursor()
+    monkeypatch.setattr(readiness_query, "get_conn", lambda: _FakeHistoryConn(cursor))
+
+    points = readiness_query.get_readiness_daily_calendar_history(
+        "sergey", date(2026, 4, 19), date(2026, 5, 2))
+
+    assert points[0]["recommendation"] == "moderate"
+    assert points[1]["recommendation"] is None
+    query, params = cursor.execute_calls[0]
+    assert "date >= %s" in query
+    assert "date <= %s" in query
+    assert "version = %s" not in query
+    assert params == ("sergey", date(2026, 4, 19), date(2026, 5, 2))
+
+
 def test_latest_readiness_endpoint_returns_latest_row(monkeypatch):
     def fake_get_latest_readiness_daily(*, user_id):
         assert user_id == "sergey"

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -9,7 +9,11 @@ from fastapi import HTTPException
 
 from backend.config import settings
 from backend.db import get_conn
-from backend.services.readiness_query import get_latest_readiness_daily
+from backend.services.readiness_composition import READINESS_MODEL_VERSION
+from backend.services.readiness_query import (
+    get_latest_readiness_daily,
+    get_readiness_daily_calendar_history,
+)
 from backend.services.subjective_feedback_service import (
     FEEDBACK_TYPE_NEXT_DAY_RECOVERY,
     FEEDBACK_TYPE_POST_RIDE_RPE,
@@ -25,6 +29,7 @@ SIGNAL_FAMILY_LABELS = {
     "load": "Training load",
 }
 MAX_SECTION_ERROR_LENGTH = 220
+HISTORY_DAYS = 14
 
 
 @dataclass(frozen=True)
@@ -53,6 +58,22 @@ class TodaySection:
 
 
 @dataclass(frozen=True)
+class TodayHistoryRow:
+    date: str
+    readiness_score: float | None
+    recommendation: str | None
+    recovery_score: int | None
+    recovery_value: str | None
+
+
+@dataclass(frozen=True)
+class TodayHistoryGroup:
+    version: str
+    supported: bool
+    rows: list[TodayHistoryRow]
+
+
+@dataclass(frozen=True)
 class TodayData:
     user_id: str
     today: str
@@ -63,6 +84,8 @@ class TodayData:
     recovery_section: TodaySection
     activity: TodayActivity | None
     activity_section: TodaySection
+    history_groups: list[TodayHistoryGroup]
+    history_section: TodaySection
 
 
 def _bounded_error(exc: Exception) -> str:
@@ -146,6 +169,60 @@ def _get_today_recovery(user_id: str, target_date: date) -> TodayFeedback | None
         value=str(row[1]),
         updated_at=_format_timestamp(row[2]),
     )
+
+
+def _get_recovery_history(
+    user_id: str, start_date: date, end_date: date
+) -> dict[date, tuple[int, str]]:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                select activity_date, feedback_score, feedback_value
+                from activity_subjective_feedback
+                where user_id = %s
+                  and activity_date >= %s
+                  and activity_date <= %s
+                  and feedback_type = %s
+                  and strava_activity_id is null;
+                """,
+                (user_id, start_date, end_date, FEEDBACK_TYPE_NEXT_DAY_RECOVERY),
+            )
+            rows = cur.fetchall()
+    return {row_date: (int(score), str(value)) for row_date, score, value in rows}
+
+
+def get_today_history(user_id: str, target_date: date) -> list[TodayHistoryGroup]:
+    start_date = target_date - timedelta(days=HISTORY_DAYS - 1)
+    points = get_readiness_daily_calendar_history(user_id, start_date, target_date)
+    feedback = _get_recovery_history(user_id, start_date, target_date)
+    by_version = {
+        (point["version"], point["date"]): point for point in points
+    }
+    versions = [READINESS_MODEL_VERSION, *sorted({
+        point["version"] for point in points
+        if point["version"] != READINESS_MODEL_VERSION
+    })]
+    days = [target_date - timedelta(days=offset) for offset in range(HISTORY_DAYS)]
+    groups = []
+    for version in versions:
+        rows = []
+        for day in days:
+            point = by_version.get((version, day))
+            recovery = feedback.get(day)
+            rows.append(TodayHistoryRow(
+                date=day.isoformat(),
+                readiness_score=point["readiness_score"] if point else None,
+                recommendation=point["recommendation"] if point else None,
+                recovery_score=recovery[0] if recovery else None,
+                recovery_value=recovery[1] if recovery else None,
+            ))
+        groups.append(TodayHistoryGroup(
+            version=version,
+            supported=version == READINESS_MODEL_VERSION,
+            rows=rows,
+        ))
+    return groups
 
 
 def _activity_where(preferred_activity_id: int | None) -> tuple[str, tuple[Any, ...]]:
@@ -249,6 +326,13 @@ def get_today_data(
     except Exception as exc:
         activity_section = TodaySection(status="error", error=_bounded_error(exc))
 
+    history_groups: list[TodayHistoryGroup] = []
+    history_section = TodaySection(status="ok", error=None)
+    try:
+        history_groups = get_today_history(user_id, target_date)
+    except Exception as exc:
+        history_section = TodaySection(status="error", error=_bounded_error(exc))
+
     return TodayData(
         user_id=user_id,
         today=target_date.isoformat(),
@@ -259,4 +343,6 @@ def get_today_data(
         recovery_section=recovery_section,
         activity=activity,
         activity_section=activity_section,
+        history_groups=history_groups,
+        history_section=history_section,
     )

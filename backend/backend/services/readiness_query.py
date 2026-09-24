@@ -229,3 +229,46 @@ def get_readiness_daily_history(user_id: str, days: int) -> dict[str, Any]:
         "days": days,
         "points": points,
     }
+
+
+def get_readiness_daily_calendar_history(
+    user_id: str, start_date: date, end_date: date
+) -> list[dict[str, Any]]:
+    """Read persisted rows for a date window, including older model versions.
+
+    The public history endpoint limits row count for trend consumers. Today needs
+    a calendar window so missing dates remain visible and versions stay distinct.
+    """
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                select date, version, readiness_score, status_text, explanation_json
+                from readiness_daily
+                where user_id = %s
+                  and date >= %s
+                  and date <= %s
+                order by version, date desc;
+                """,
+                (user_id, start_date, end_date),
+            )
+            rows = cur.fetchall()
+
+    points = []
+    for row_date, version, score, status_text, explanation_json in rows:
+        recommendation = None
+        if version == READINESS_MODEL_VERSION and score is not None:
+            recommendation = build_persisted_readiness_briefing(
+                readiness_score=score,
+                status_text=status_text,
+                explanation=_as_dict(explanation_json),
+            )["recommendation"]
+        points.append(
+            {
+                "date": row_date,
+                "version": version,
+                "readiness_score": score,
+                "recommendation": recommendation,
+            }
+        )
+    return points
