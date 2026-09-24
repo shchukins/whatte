@@ -83,7 +83,8 @@
 - readiness score
 - status text
 - recommendation
-- readiness trend
+- compact 14-local-day table of persisted readiness, recommendation category,
+  and morning recovery feedback
 - freshness signal
 - optional physiology signal
 - historical physiology breakdown when the same-date record exists:
@@ -94,7 +95,8 @@
 ### Implemented data sources
 
 - `GET /api/v1/model/readiness-daily/{user_id}/{date}`
-- `GET /api/v1/model/readiness-daily/{user_id}/history?days=7`
+- internal calendar-window read of `readiness_daily` and
+  `activity_subjective_feedback` for the protected Today page
 - `readiness_daily`
 - `explanation.recovery_explanation`
 
@@ -103,6 +105,13 @@
 - Web Today displays current backend state
 - recommendation is deterministic
 - UI does not run model logic locally
+- history covers today and the preceding 13 dates in the configured local
+  timezone; missing dates and feedback remain visible as missing
+- the table is current persisted history, which may change after recomputation;
+  it is not an immutable record of morning decisions or delivered messages
+- model versions are shown separately, and recommendation categories are mapped
+  only for the supported current version through the shared decision contract
+- a history read failure affects only the history section
 
 ---
 

@@ -90,6 +90,8 @@ def _today_data():
             rpe_value=None,
         ),
         activity_section=today_service.TodaySection(status="ok", error=None),
+        history_groups=[],
+        history_section=today_service.TodaySection(status="ok", error=None),
     )
 
 
@@ -151,6 +153,74 @@ def test_get_today_data_degrades_sections_independently(monkeypatch):
     assert result.recovery_section.status == "error"
     assert result.recovery_section.error == "feedback db failed"
     assert result.activity_section.status == "ok"
+
+
+def test_today_history_keeps_calendar_gaps_and_missing_feedback(monkeypatch):
+    target = date(2026, 8, 30)
+    version = today_service.READINESS_MODEL_VERSION
+    calls = []
+
+    def history(user_id, start_date, end_date):
+        calls.append((user_id, start_date, end_date))
+        return [{"date": target, "version": version, "readiness_score": 68.0,
+                 "recommendation": "moderate"}]
+
+    monkeypatch.setattr(today_service, "get_readiness_daily_calendar_history", history)
+    monkeypatch.setattr(today_service, "_get_recovery_history",
+                        lambda *args: {target: (4, "fresh")})
+
+    groups = today_service.get_today_history("sergey", target)
+
+    assert calls == [("sergey", date(2026, 8, 17), target)]
+    assert len(groups) == 1
+    assert len(groups[0].rows) == 14
+    assert groups[0].rows[0].date == "2026-08-30"
+    assert groups[0].rows[0].recommendation == "moderate"
+    assert groups[0].rows[0].recovery_score == 4
+    assert groups[0].rows[1].date == "2026-08-29"
+    assert groups[0].rows[1].readiness_score is None
+    assert groups[0].rows[1].recovery_score is None
+
+
+def test_today_history_empty_and_older_version_separate(monkeypatch):
+    target = date(2026, 8, 30)
+    monkeypatch.setattr(today_service, "_get_recovery_history", lambda *args: {})
+    monkeypatch.setattr(today_service, "get_readiness_daily_calendar_history", lambda *args: [])
+
+    groups = today_service.get_today_history("sergey", target)
+    assert len(groups) == 1
+    assert groups[0].supported is True
+    assert all(row.readiness_score is None for row in groups[0].rows)
+
+    monkeypatch.setattr(today_service, "get_readiness_daily_calendar_history",
+                        lambda *args: [{"date": target, "version": "v2", "readiness_score": 65.0,
+                                        "recommendation": None}])
+    groups = today_service.get_today_history("sergey", target)
+    assert len(groups) == 2
+    assert groups[0].supported is True
+    assert groups[1].version == "v2"
+    assert groups[1].supported is False
+    assert groups[1].rows[0].readiness_score == 65.0
+    assert groups[1].rows[0].recommendation is None
+
+
+def test_history_failure_does_not_break_today_sections(monkeypatch):
+    monkeypatch.setattr(today_service, "get_latest_readiness_daily",
+                        lambda user_id, evaluation_at: _readiness())
+    monkeypatch.setattr(today_service, "_get_today_recovery", lambda *args: None)
+    monkeypatch.setattr(today_service, "get_today_activity", lambda *args, **kwargs: None)
+    monkeypatch.setattr(today_service, "get_today_history",
+                        lambda *args: (_ for _ in ()).throw(RuntimeError("history failed")))
+
+    result = today_service.get_today_data(
+        "sergey", now=datetime(2026, 8, 30, 9, tzinfo=MOSCOW_TZ))
+
+    assert result.readiness_section.status == "ok"
+    assert result.readiness["readiness_score"] == 68.0
+    assert result.recovery_section.status == "ok"
+    assert result.activity_section.status == "ok"
+    assert result.history_section.status == "error"
+    assert result.history_groups == []
 
 
 class _ActivityCursor:
@@ -244,6 +314,35 @@ def test_today_page_renders_mobile_working_surface(monkeypatch):
     assert "/today/rpe/17855535922/5" in response.text
     assert 'formmethod="post"' in response.text
     assert "X-Requested-With" in response.text
+
+
+def test_today_history_table_renders_versions_and_missing_values(monkeypatch):
+    data = _today_data()
+    data = today_service.TodayData(
+        **{**data.__dict__, "history_groups": [
+            today_service.TodayHistoryGroup(
+                version=today_service.READINESS_MODEL_VERSION,
+                supported=True,
+                rows=[today_service.TodayHistoryRow("2026-08-30", 68.0, "moderate", 4, "fresh"),
+                      today_service.TodayHistoryRow("2026-08-29", None, None, None, None)],
+            ),
+            today_service.TodayHistoryGroup(
+                version="v2", supported=False,
+                rows=[today_service.TodayHistoryRow("2026-08-30", 60.0, None, 4, "fresh")],
+            ),
+        ]})
+    monkeypatch.setattr(today_service, "get_today_data", lambda *args, **kwargs: data)
+
+    response = TestClient(app_module.app).get("/today")
+
+    assert response.status_code == 200
+    assert "Current persisted daily history" in response.text
+    assert "No readiness" in response.text
+    assert "No feedback" in response.text
+    assert "Not mapped" in response.text
+    assert "moderate" in response.text
+    assert 'scope="col"' in response.text
+    assert 'tabindex="0"' in response.text
 
 
 def test_today_recovery_submission_uses_web_source_and_redirects(monkeypatch):
