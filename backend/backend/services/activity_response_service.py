@@ -11,8 +11,8 @@ from backend.db import get_conn
 from backend.services.metrics_service import compute_deltas
 
 
-RESPONSE_METRICS_VERSION = "v1"
-RESPONSE_FORMULA_VERSION = "activity_response_v1"
+RESPONSE_METRICS_VERSION = "v2_rpe_1_10"
+RESPONSE_FORMULA_VERSION = "activity_response_v1_rpe_1_10"
 BASELINE_MAX_SAMPLES = 20
 BASELINE_MIN_SAMPLES = 3
 DECOUPLING_MIN_DURATION_S = 30 * 60
@@ -335,20 +335,13 @@ def compute_and_store_activity_response(activity_id: int) -> dict[str, Any]:
                     m.intensity_factor,
                     m.tss,
                     m.variability_index,
-                    f.feedback_score
+                    er.effective_score
                 from strava_activity_raw r
                 join activity_metrics m
                   on m.strava_activity_id = r.strava_activity_id
                  and m.version = 'v1'
-                left join activity_subjective_feedback f
-                  on (
-                       f.canonical_activity_id = r.strava_activity_id
-                       or (
-                           f.canonical_activity_id is null
-                           and f.strava_activity_id = r.strava_activity_id
-                       )
-                  )
-                 and f.feedback_type = 'post_ride_rpe'
+                left join activity_rpe_resolution er
+                  on er.canonical_activity_id = r.strava_activity_id
                 where r.strava_activity_id = %s
                   and r.is_deleted = false
                   and r.is_excluded = false
@@ -420,6 +413,7 @@ def compute_and_store_activity_response(activity_id: int) -> dict[str, Any]:
             "formula_version": RESPONSE_FORMULA_VERSION,
         },
         "decoupling": metrics["decoupling_details"],
+        "rpe_scale_version": "rpe_1_10",
         "thresholds": {
             "decoupling_min_duration_s": DECOUPLING_MIN_DURATION_S,
             "decoupling_max_variability_index": DECOUPLING_MAX_VARIABILITY_INDEX,
@@ -513,6 +507,7 @@ def compute_and_store_activity_response(activity_id: int) -> dict[str, Any]:
         "user_id": user_id,
         "activity_id": strava_activity_id,
         "activity_date": activity_date.isoformat() if activity_date else None,
+        "activity_type": activity_type,
         "version": RESPONSE_METRICS_VERSION,
         **{key: value for key, value in metrics.items() if key != "decoupling_details"},
         "baseline": baseline,
@@ -552,6 +547,46 @@ def recompute_readiness_for_response_window(
     return [str(target_date) for target_date in dates]
 
 
+def recompute_later_comparable_responses(
+    *, user_id: str, activity_id: int, activity_date: str, activity_type: str | None,
+    intensity_band: str | None,
+) -> list[dict[str, Any]]:
+    """Refresh baseline snapshots that can include the changed activity.
+
+    A comparable baseline uses at most the 20 preceding sessions, so only the
+    next 20 comparable rows can depend on this observation.
+    """
+    if not activity_type or not intensity_band:
+        return []
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                select arm.strava_activity_id
+                from activity_response_metrics arm
+                join strava_activity_raw r
+                  on r.strava_activity_id = arm.strava_activity_id
+                where arm.user_id = %s
+                  and arm.strava_activity_id <> %s
+                  and arm.activity_date > %s
+                  and arm.activity_type = %s
+                  and arm.intensity_band = %s
+                  and arm.version = %s
+                  and r.is_deleted = false
+                  and r.is_excluded = false
+                  and r.duplicate_of_activity_id is null
+                order by arm.activity_date, arm.strava_activity_id
+                limit %s;
+                """,
+                (
+                    user_id, activity_id, activity_date, activity_type,
+                    intensity_band, RESPONSE_METRICS_VERSION, BASELINE_MAX_SAMPLES,
+                ),
+            )
+            activity_ids = [row[0] for row in cur.fetchall()]
+    return [compute_and_store_activity_response(next_id) for next_id in activity_ids]
+
+
 def load_recent_response_context(
     cur: Any,
     *,
@@ -579,14 +614,18 @@ def load_recent_response_context(
           on r.strava_activity_id = arm.strava_activity_id
         where arm.user_id = %s
           and arm.activity_date between (%s::date - interval '7 days') and %s::date
-          and arm.version = %s
+          and arm.version in (%s, 'v1')
           and r.is_deleted = false
           and r.is_excluded = false
           and r.duplicate_of_activity_id is null
-        order by arm.activity_date desc, arm.strava_activity_id desc
+        order by arm.activity_date desc, arm.strava_activity_id desc,
+                 case when arm.version = %s then 0 else 1 end
         limit 1;
         """,
-        (user_id, target_date, target_date, RESPONSE_METRICS_VERSION),
+        (
+            user_id, target_date, target_date, RESPONSE_METRICS_VERSION,
+            RESPONSE_METRICS_VERSION,
+        ),
     )
     row = cur.fetchone()
     if row is None:

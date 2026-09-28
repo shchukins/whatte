@@ -13,9 +13,10 @@ from pydantic import ValidationError
 from starlette.concurrency import run_in_threadpool
 
 from backend.config import settings
+from backend.services.rpe_service import RPE_LABELS
 from backend.services.subjective_feedback_service import (
     FEEDBACK_SOURCE_WEB,
-    upsert_activity_subjective_feedback,
+    upsert_activity_rpe_v2,
     upsert_next_day_recovery_feedback,
 )
 
@@ -27,6 +28,7 @@ templates = Jinja2Templates(
     directory=str(Path(__file__).resolve().parents[1] / "templates")
 )
 FeedbackScore = Annotated[int, FastAPIPath(ge=1, le=5)]
+RpeScore = Annotated[int, FastAPIPath(ge=1, le=10)]
 
 
 def _reject_cross_site_request(request: Request) -> None:
@@ -63,6 +65,7 @@ def today_index(
         context={
             "page_title": "Whatte Today",
             "saved": saved if saved in {"recovery", "rpe"} else None,
+            "rpe_options": [(score, str(score), label) for score, label in RPE_LABELS.items()],
             **asdict(data),
         },
     )
@@ -85,7 +88,7 @@ def submit_recovery(request: Request, score: FeedbackScore):
 def submit_rpe(
     request: Request,
     activity_id: Annotated[int, FastAPIPath(ge=1)],
-    score: FeedbackScore,
+    score: RpeScore,
 ):
     _reject_cross_site_request(request)
     activity = today_service.get_today_activity(
@@ -94,7 +97,7 @@ def submit_rpe(
     )
     if activity is None:
         raise HTTPException(status_code=404, detail="eligible activity not found")
-    upsert_activity_subjective_feedback(
+    upsert_activity_rpe_v2(
         activity_id=activity_id,
         score=score,
         source=FEEDBACK_SOURCE_WEB,

@@ -23,6 +23,14 @@ def _cleanup() -> None:
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute(
+                "delete from activity_rpe_resolution where canonical_activity_id = %s;",
+                (TEST_ACTIVITY_ID,),
+            )
+            cur.execute(
+                "delete from activity_rpe_observation where canonical_activity_id = %s;",
+                (TEST_ACTIVITY_ID,),
+            )
+            cur.execute(
                 "delete from activity_response_metrics where strava_activity_id = %s;",
                 (TEST_ACTIVITY_ID,),
             )
@@ -133,6 +141,7 @@ def _fake_activity():
         "trainer": True,
         "commute": False,
         "manual": False,
+        "perceived_exertion": 7,
     }
 
 
@@ -220,16 +229,27 @@ def test_process_activity_pipeline_is_idempotent(
                     select count(*)
                     from activity_response_metrics
                     where strava_activity_id = %s
-                      and version = 'v1';
+                      and version = 'v2_rpe_1_10'
+                      and rpe_score = 7;
                     """,
                     (TEST_ACTIVITY_ID,),
                 )
                 response_count = cur.fetchone()[0]
+                cur.execute(
+                    """
+                    select count(*) from activity_rpe_observation
+                    where canonical_activity_id = %s and source = 'strava'
+                      and score = 7 and scale_version = 'rpe_1_10';
+                    """,
+                    (TEST_ACTIVITY_ID,),
+                )
+                strava_rpe_count = cur.fetchone()[0]
 
         assert raw_count == 1
         assert streams_count == 3
         assert metrics_count == 1
         assert response_count == 1
+        assert strava_rpe_count == 1
 
     finally:
         _cleanup()

@@ -92,6 +92,7 @@ def test_parse_rpe_callback_data_valid():
         "score": 4,
         "value": "hard",
         "source": "telegram",
+        "scale_version": "rpe_1_5",
     }
 
 
@@ -99,6 +100,29 @@ def test_parse_rpe_callback_data_invalid_payload():
     assert feedback_service.parse_rpe_callback_data("rpe:bad:4") is None
     assert feedback_service.parse_rpe_callback_data("rpe:18403528422:9") is None
     assert feedback_service.parse_rpe_callback_data("oops") is None
+
+
+def test_legacy_rpe_callback_requests_reentry_without_writing(monkeypatch):
+    writes = []
+    answers = []
+    monkeypatch.setattr(
+        feedback_service, "upsert_activity_subjective_feedback",
+        lambda **kwargs: writes.append(kwargs),
+    )
+    monkeypatch.setattr(
+        feedback_service, "answer_telegram_callback",
+        lambda callback_query_id, text=None: answers.append(text),
+    )
+    result = feedback_service.handle_telegram_feedback_callback({
+        "callback_query": {
+            "id": "old-callback",
+            "data": "rpe:42:4",
+            "message": {"message_id": 1, "chat": {"id": 2}},
+        }
+    })
+    assert result == {"ok": False, "reason": "legacy_rpe_prompt_expired"}
+    assert writes == []
+    assert "1-10" in answers[0]
 
 
 def test_parse_recovery_callback_data_valid():
@@ -125,10 +149,11 @@ def test_parse_recovery_callback_data_invalid_payload():
 def test_build_post_ride_rpe_keyboard_uses_expected_score_mapping():
     keyboard = feedback_service.build_post_ride_rpe_keyboard(42)
 
-    assert keyboard["inline_keyboard"][0][0]["text"] == "😌 Very easy"
-    assert keyboard["inline_keyboard"][0][0]["callback_data"] == "rpe:42:1"
-    assert keyboard["inline_keyboard"][-1][0]["text"] == "☠️ Very hard"
-    assert keyboard["inline_keyboard"][-1][0]["callback_data"] == "rpe:42:5"
+    assert keyboard["inline_keyboard"][0][0]["text"] == "1 Very easy"
+    assert keyboard["inline_keyboard"][0][0]["callback_data"] == "rpe10:42:1"
+    assert keyboard["inline_keyboard"][-1][0]["text"] == "10 Maximal"
+    assert keyboard["inline_keyboard"][-1][0]["callback_data"] == "rpe10:42:10"
+    assert feedback_service.parse_rpe_callback_data("rpe10:42:10")["scale_version"] == "rpe_1_10"
 
 
 def test_build_next_day_recovery_keyboard_uses_expected_score_mapping():
@@ -363,7 +388,7 @@ def test_upsert_activity_subjective_feedback_updates_existing_row(monkeypatch):
     assert result["feedback_payload"] == {}
 
 
-def test_rpe_update_recomputes_response_and_affected_readiness_dates(monkeypatch):
+def test_legacy_rpe_update_keeps_response_v2_untouched(monkeypatch):
     response_calls = []
     readiness_calls = []
     monkeypatch.setattr(
@@ -403,11 +428,9 @@ def test_rpe_update_recomputes_response_and_affected_readiness_dates(monkeypatch
         score=4,
     )
 
-    assert response_calls == [42]
-    assert readiness_calls == [
-        {"user_id": "user-1", "activity_date": "2026-08-30"}
-    ]
-    assert result["response_readiness_dates"] == ["2026-08-30"]
+    assert response_calls == []
+    assert readiness_calls == []
+    assert "response_readiness_dates" not in result
 
 
 def test_upsert_next_day_recovery_feedback_uses_date_level_uniqueness(monkeypatch):
@@ -729,7 +752,7 @@ def test_handle_telegram_feedback_callback_best_effort_when_telegram_ack_fails(m
 
     monkeypatch.setattr(
         feedback_service,
-        "upsert_activity_subjective_feedback",
+        "upsert_activity_rpe_v2",
         lambda **kwargs: {
             "id": 7,
             "user_id": "user-1",
@@ -770,7 +793,7 @@ def test_handle_telegram_feedback_callback_best_effort_when_telegram_ack_fails(m
         {
             "callback_query": {
                 "id": "fake-callback",
-                "data": "rpe:17855535922:3",
+                "data": "rpe10:17855535922:3",
                 "message": {
                     "message_id": 77,
                     "chat": {"id": 9001},
@@ -880,7 +903,7 @@ def test_handle_telegram_feedback_callback_is_safe_for_duplicate_callbacks(monke
     edited_messages: list[tuple[int, int, str]] = []
     upsert_calls: list[tuple[int, int, str]] = []
 
-    def fake_upsert(*, activity_id, score, source):
+    def fake_upsert(*, activity_id, score, source, payload=None):
         upsert_calls.append((activity_id, score, source))
         return {
             "user_id": "user-1",
@@ -898,7 +921,7 @@ def test_handle_telegram_feedback_callback_is_safe_for_duplicate_callbacks(monke
             "was_update": len(upsert_calls) > 1,
         }
 
-    monkeypatch.setattr(feedback_service, "upsert_activity_subjective_feedback", fake_upsert)
+    monkeypatch.setattr(feedback_service, "upsert_activity_rpe_v2", fake_upsert)
     monkeypatch.setattr(
         feedback_service,
         "answer_telegram_callback",
@@ -913,7 +936,7 @@ def test_handle_telegram_feedback_callback_is_safe_for_duplicate_callbacks(monke
     payload = {
         "callback_query": {
             "id": "cb-1",
-            "data": "rpe:17855535922:3",
+            "data": "rpe10:17855535922:3",
             "message": {
                 "message_id": 77,
                 "chat": {"id": 9001},

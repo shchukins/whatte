@@ -337,6 +337,30 @@ def _transfer_canonical_metadata(
     canonical_activity_id: int,
     duplicate_activity_id: int,
 ) -> None:
+    from backend.services.rpe_service import refresh_rpe_resolution
+
+    cur.execute(
+        """
+        update activity_rpe_observation observation
+        set canonical_activity_id = %s
+        where observation.canonical_activity_id = %s
+          and not exists (
+              select 1 from activity_rpe_observation existing
+              where existing.canonical_activity_id = %s
+                and existing.source = observation.source
+          );
+        """,
+        (canonical_activity_id, duplicate_activity_id, canonical_activity_id),
+    )
+    cur.execute(
+        "select user_id from strava_activity_raw where strava_activity_id = %s;",
+        (canonical_activity_id,),
+    )
+    owner = cur.fetchone()
+    if owner:
+        refresh_rpe_resolution(
+            cur, user_id=owner[0], activity_id=canonical_activity_id
+        )
     cur.execute(
         """
         update activity_subjective_feedback

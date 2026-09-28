@@ -183,17 +183,20 @@ Best-effort behavior:
 
 Callback format:
 
-- `rpe:{activity_id}:{score}`
+- `rpe10:{activity_id}:{score}` (score 1–10)
 
 Example:
 
-- `rpe:18403528422:4`
+- `rpe10:18403528422:4`
 
 Semantics:
 
 - feedback type: `post_ride_rpe`
 - activity-level feedback
-- natural key: `strava_activity_id + feedback_type`
+- source observation key: `canonical_activity_id + source`
+
+Old `rpe:` callbacks encode the historical 1–5 scale and return an explicit
+re-entry instruction. They do not write a 1–10 observation.
 
 После callback backend:
 

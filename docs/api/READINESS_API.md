@@ -37,6 +37,10 @@ POST /api/v1/model/readiness-daily/{user_id}/{date}
 - используется текущая версия `v2_signal_composition_response_v1`
 - readiness сохраняется в `readiness_daily`
 - fallback mode отражает, какой контур был доступен при расчете
+- response signal предпочитает current `activity_response_metrics` version
+  `v2_rpe_1_10` для той же активности и может читать историческую `v1`,
+  пока она остается последним доступным activity context. Baseline разных
+  версий не смешивается. Вес и пороги readiness не меняются.
 
 ---
 

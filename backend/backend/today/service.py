@@ -49,6 +49,10 @@ class TodayActivity:
     duration: str
     rpe_score: int | None
     rpe_value: str | None
+    rpe_disagreement: bool = False
+    rpe_strava_score: int | None = None
+    rpe_manual_score: int | None = None
+    rpe_web_score: int | None = None
 
 
 @dataclass(frozen=True)
@@ -248,18 +252,21 @@ def get_today_activity(
                     r.start_date,
                     r.distance_m,
                     coalesce(r.moving_time_s, r.elapsed_time_s),
-                    f.feedback_score,
-                    f.feedback_value
+                    er.effective_score,
+                    er.effective_source,
+                    er.disagreement,
+                    sr.score,
+                    coalesce(tr.score, wr.score),
+                    wr.score
                 from strava_activity_raw r
-                left join activity_subjective_feedback f
-                  on (
-                       f.canonical_activity_id = r.strava_activity_id
-                       or (
-                           f.canonical_activity_id is null
-                           and f.strava_activity_id = r.strava_activity_id
-                       )
-                  )
-                 and f.feedback_type = %s
+                left join activity_rpe_resolution er
+                  on er.canonical_activity_id = r.strava_activity_id
+                left join activity_rpe_observation sr
+                  on sr.canonical_activity_id = r.strava_activity_id and sr.source = 'strava'
+                left join activity_rpe_observation tr
+                  on tr.canonical_activity_id = r.strava_activity_id and tr.source = 'telegram'
+                left join activity_rpe_observation wr
+                  on wr.canonical_activity_id = r.strava_activity_id and wr.source = 'web'
                 where r.user_id = %s
                   and r.is_deleted = false
                   and r.is_excluded = false
@@ -270,7 +277,7 @@ def get_today_activity(
                     r.strava_activity_id desc
                 limit 1;
                 """,
-                (FEEDBACK_TYPE_POST_RIDE_RPE, user_id, *preferred_params),
+                (user_id, *preferred_params),
             )
             row = cur.fetchone()
 
@@ -285,6 +292,10 @@ def get_today_activity(
         duration=_format_duration(row[5]),
         rpe_score=int(row[6]) if row[6] is not None else None,
         rpe_value=str(row[7]) if row[7] is not None else None,
+        rpe_disagreement=bool(row[8]) if row[8] is not None else False,
+        rpe_strava_score=int(row[9]) if row[9] is not None else None,
+        rpe_manual_score=int(row[10]) if row[10] is not None else None,
+        rpe_web_score=int(row[11]) if row[11] is not None else None,
     )
 
 

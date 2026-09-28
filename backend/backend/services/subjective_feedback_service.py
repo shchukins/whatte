@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
 import requests
@@ -27,6 +27,7 @@ from backend.services.activity_response_service import (
 from backend.services.decision_engine import build_recommendation
 from backend.services.decision_context_snapshot import capture_decision_context_snapshot
 from backend.services.readiness_composition import READINESS_MODEL_VERSION
+from backend.services.rpe_service import RPE_LABELS
 from backend.services.daily_readiness_pipeline import recompute_daily_readiness
 from backend.services.telegram_service import (
     answer_telegram_callback,
@@ -49,6 +50,7 @@ PROMPT_STATUS_PENDING = "pending"
 PROMPT_STATUS_SENT = "sent"
 PROMPT_STATUS_FAILED = "failed"
 RPE_CALLBACK_PREFIX = "rpe"
+RPE10_CALLBACK_PREFIX = "rpe10"
 RECOVERY_CALLBACK_PREFIX = "recovery"
 DEDUPLICATION_CALLBACK_PREFIX = "dedup"
 RPE_CONFIRMATION_TEXT = "WHATTE\n\nFeedback recorded ✓"
@@ -62,13 +64,7 @@ RPE_SCORE_TO_VALUE = {
     5: "very_hard",
 }
 
-RPE_BUTTON_LABELS = {
-    1: "😌 Very easy",
-    2: "🙂 Easy",
-    3: "😐 Moderate",
-    4: "🥵 Hard",
-    5: "☠️ Very hard",
-}
+RPE_BUTTON_LABELS = {score: f"{score} {label}" for score, label in RPE_LABELS.items()}
 
 RECOVERY_SCORE_TO_VALUE = {
     1: "exhausted",
@@ -121,12 +117,18 @@ def build_rpe_callback_data(activity_id: int, score: int) -> str:
     return f"{RPE_CALLBACK_PREFIX}:{activity_id}:{score}"
 
 
+def build_rpe10_callback_data(activity_id: int, score: int) -> str:
+    if not 1 <= score <= 10:
+        raise ValueError("RPE 1-10 score out of range")
+    return f"{RPE10_CALLBACK_PREFIX}:{activity_id}:{score}"
+
+
 def parse_rpe_callback_data(data: str | None) -> dict[str, Any] | None:
     if not data:
         return None
 
     parts = data.split(":")
-    if len(parts) != 3 or parts[0] != RPE_CALLBACK_PREFIX:
+    if len(parts) != 3 or parts[0] not in {RPE_CALLBACK_PREFIX, RPE10_CALLBACK_PREFIX}:
         return None
 
     try:
@@ -135,15 +137,17 @@ def parse_rpe_callback_data(data: str | None) -> dict[str, Any] | None:
     except ValueError:
         return None
 
-    if activity_id <= 0 or score not in RPE_SCORE_TO_VALUE:
+    is_current = parts[0] == RPE10_CALLBACK_PREFIX
+    if activity_id <= 0 or not (1 <= score <= (10 if is_current else 5)):
         return None
 
     return {
         "feedback_type": FEEDBACK_TYPE_POST_RIDE_RPE,
         "activity_id": activity_id,
         "score": score,
-        "value": map_rpe_score_to_value(score),
+        "value": str(score) if is_current else map_rpe_score_to_value(score),
         "source": FEEDBACK_SOURCE_TELEGRAM,
+        "scale_version": "rpe_1_10" if is_current else "rpe_1_5",
     }
 
 
@@ -256,7 +260,7 @@ def build_post_ride_rpe_keyboard(activity_id: int) -> dict[str, Any]:
             [
                 {
                     "text": RPE_BUTTON_LABELS[score],
-                    "callback_data": build_rpe_callback_data(activity_id, score),
+                    "callback_data": build_rpe10_callback_data(activity_id, score),
                 }
             ]
             for score in sorted(RPE_BUTTON_LABELS)
@@ -292,9 +296,18 @@ def send_post_ride_rpe_request(activity_id: int) -> bool:
                 from activity_subjective_feedback
                 where canonical_activity_id = %s
                   and feedback_type = %s
+                union all
+                select 1
+                from activity_rpe_observation
+                where canonical_activity_id = %s
+                  and source in ('telegram', 'web')
                 limit 1;
                 """,
-                (canonical_activity_id, FEEDBACK_TYPE_POST_RIDE_RPE),
+                (
+                    canonical_activity_id,
+                    FEEDBACK_TYPE_POST_RIDE_RPE,
+                    canonical_activity_id,
+                ),
             )
             if cur.fetchone() is not None:
                 return False
@@ -947,6 +960,10 @@ def upsert_activity_subjective_feedback(
     feedback_schema_version: str = FEEDBACK_SCHEMA_VERSION_EXTENSIBLE,
     activity_date: str | None = None,
 ) -> dict[str, Any]:
+    # This path is the historical 1-5 contract. Old Telegram messages must
+    # remain unambiguous and must never enter the new 1-10 response series.
+    if score not in RPE_SCORE_TO_VALUE:
+        raise ValueError("legacy RPE must be from 1 to 5")
     user_id = _load_activity_user_id(activity_id)
     if not user_id:
         raise ValueError(f"activity not found: {activity_id}")
@@ -972,19 +989,39 @@ def upsert_activity_subjective_feedback(
         context=build_feedback_context_snapshot(user_id),
         feedback_schema_version=feedback_schema_version,
     )
-    # RPE is an input to the deterministic response layer. Recompute only
-    # after the idempotent feedback write commits so readers never observe a
-    # response row that references feedback which was not persisted.
-    result["response_metrics"] = compute_and_store_activity_response(
-        canonical_activity_id
-    )
-    response_date = result["response_metrics"].get("activity_date")
-    if response_date is not None:
-        result["response_readiness_dates"] = recompute_readiness_for_response_window(
-            user_id=user_id,
-            activity_date=response_date,
-        )
     return result
+
+
+def upsert_activity_rpe_v2(
+    *, activity_id: int, score: int, source: str,
+    payload: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    from backend.services.rpe_service import upsert_rpe_observation
+
+    user_id = _load_activity_user_id(activity_id)
+    if not user_id:
+        raise ValueError(f"activity not found: {activity_id}")
+    canonical_activity_id = resolve_canonical_activity(activity_id)
+    result = upsert_rpe_observation(
+        user_id=user_id,
+        canonical_activity_id=canonical_activity_id,
+        source=source,
+        score=score,
+        source_payload={
+            "source_activity_id": activity_id,
+            "score": score,
+            **(payload or {}),
+            "context": build_feedback_context_snapshot(user_id),
+        },
+        observed_at=datetime.now(timezone.utc),
+    )
+    return {
+        **result,
+        "user_id": user_id,
+        "activity_id": canonical_activity_id,
+        "activity_date": result.get("response_metrics", {}).get("activity_date"),
+        "feedback_type": FEEDBACK_TYPE_POST_RIDE_RPE,
+    }
 
 
 def upsert_next_day_recovery_feedback(
@@ -1351,13 +1388,34 @@ def handle_telegram_feedback_callback(payload: dict[str, Any]) -> dict[str, Any]
             )
         return {"ok": False, "reason": "invalid_callback"}
 
+    if (
+        parsed["feedback_type"] == FEEDBACK_TYPE_POST_RIDE_RPE
+        and parsed["scale_version"] == "rpe_1_5"
+    ):
+        if callback_query_id:
+            _safe_answer_telegram_callback(
+                callback_query_id,
+                text="This 1-5 RPE prompt expired. Enter RPE 1-10 at shchukin.de/today.",
+                activity_id=parsed["activity_id"],
+                source=FEEDBACK_SOURCE_TELEGRAM,
+            )
+        return {"ok": False, "reason": "legacy_rpe_prompt_expired"}
+
     try:
         if parsed["feedback_type"] == FEEDBACK_TYPE_POST_RIDE_RPE:
-            result = upsert_activity_subjective_feedback(
-                activity_id=parsed["activity_id"],
-                score=parsed["score"],
-                source=parsed["source"],
+            handler = (
+                upsert_activity_rpe_v2
+                if parsed["scale_version"] == "rpe_1_10"
+                else upsert_activity_subjective_feedback
             )
+            kwargs = {
+                "activity_id": parsed["activity_id"],
+                "score": parsed["score"],
+                "source": parsed["source"],
+            }
+            if parsed["scale_version"] == "rpe_1_10":
+                kwargs["payload"] = {"callback_data": callback_data}
+            result = handler(**kwargs)
         else:
             result = upsert_next_day_recovery_feedback(
                 user_id=parsed["user_id"],
