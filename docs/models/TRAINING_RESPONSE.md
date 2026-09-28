@@ -15,19 +15,24 @@ from readiness scoring.
 - canonical, non-deleted, non-excluded `strava_activity_raw` row
 - `activity_metrics` version `v1`
 - `time`, `watts`, and `heartrate` raw streams when present
-- canonical `post_ride_rpe` feedback when present
+- resolved 1-10 RPE from `activity_rpe_resolution` when present
 
 Missing inputs remain unavailable. They are never converted to zero.
 
-## 3. Version 1 metrics
+## 3. Metrics and version boundary
 
-Version `v1` persists:
+Historical version `v1` used 1-5 Whatte feedback. Current version
+`v2_rpe_1_10` uses only 1-10 source observations. The objective formulas
+are unchanged; the RPE cost metrics use the new scale. No old 1-5 feedback is
+converted or included in the new version's comparable baseline.
+
+The response rows persist:
 
 - average and normalized power
 - average heart rate
 - average-power / HR and normalized-power / HR ratios
 - aerobic decoupling for eligible steady workouts
-- RPE on the existing 1-5 Whatte scale
+- effective RPE on the version's declared scale
 - session-RPE load: `duration_minutes * RPE`
 - RPE / intensity factor
 - session-RPE load / TSS
@@ -77,23 +82,29 @@ For every metric independently:
 - deviation is `(current / baseline - 1) * 100`
 
 The snapshot stores sample counts and explicit insufficient-sample reasons. No
-synthetic aggregate `response_score` is created in version 1.
+synthetic aggregate `response_score` is created in either version.
 
 ## 5. Lifecycle
 
 The row is upserted:
 
 - after activity metrics and canonical deduplication in the Strava pipeline
-- after post-ride RPE is inserted or edited through Telegram or Web Today
+- after effective 1-10 RPE changes through Strava, Telegram, or Web Today
 
-An RPE update also recomputes existing readiness rows in the activity's
-seven-day response window so stored readiness explanations receive the current
-response context.
+Only a change of effective score recomputes response rows and their affected
+seven-day readiness windows. A score change also refreshes up to 20 later
+comparable baseline snapshots. Equal Strava and Telegram observations retain
+both sources without repeating the calculation.
 
 ## 6. Readiness boundary
 
 The latest response row from the preceding seven days is exposed in the stable
 `response` signal family:
+
+During the version transition, a historical `v1` row can still describe an
+older activity when no current-version row exists for it. For an activity with
+both versions, `v2_rpe_1_10` wins. Each row's baseline remains within its
+own version; the two RPE scales are never compared.
 
 - `availability = available`
 - baseline-backed normalized power / HR, aerobic decoupling, and one normalized
@@ -105,7 +116,7 @@ The latest response row from the preceding seven days is exposed in the stable
 - scoring weight fades after the first day and reaches zero on day seven
 
 Readiness model `v2_signal_composition_response_v1` owns the aggregate response
-score and weighting. Activity response rows remain version `v1`; no synthetic
+score and weighting. Current activity response rows use `v2_rpe_1_10`; no synthetic
 aggregate is persisted back into `activity_response_metrics`.
 
 ### 6.1 Component normalization

@@ -30,7 +30,11 @@ create table if not exists activity_response_metrics (
     constraint uq_activity_response_metrics
         unique (strava_activity_id, version),
     constraint chk_activity_response_metrics_rpe
-        check (rpe_score is null or rpe_score between 1 and 5)
+        check (
+            rpe_score is null
+            or (version = 'v1' and rpe_score between 1 and 5)
+            or (version <> 'v1' and rpe_score between 1 and 10)
+        )
 );
 
 create index if not exists ix_activity_response_metrics_user_date

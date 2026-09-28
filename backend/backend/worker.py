@@ -9,6 +9,7 @@ from backend.services.ingest_service import process_one_strava_ingest_job
 from backend.services.daily_readiness_pipeline import recompute_daily_readiness
 from backend.services.notification_service import send_daily_readiness
 from backend.services.subjective_feedback_service import schedule_next_day_recovery_prompts
+from backend.services.rpe_service import reconcile_recent_strava_rpe
 
 
 configure_logging()
@@ -21,6 +22,7 @@ NEXT_DAY_RECOVERY_PROMPT_HOUR_UTC = settings.next_day_recovery_prompt_hour_utc
 WHATTE_TIMEZONE = settings.whatte_timezone
 
 _last_daily_readiness_date: date | None = None
+_last_rpe_reconciliation_date: date | None = None
 
 
 def _local_date(now: datetime) -> date:
@@ -77,6 +79,19 @@ def maybe_schedule_next_day_recovery_prompts() -> None:
     )
 
 
+def maybe_reconcile_recent_rpe() -> None:
+    global _last_rpe_reconciliation_date
+    now = datetime.now(timezone.utc)
+    today = _local_date(now)
+    if now.hour != DAILY_READINESS_FALLBACK_HOUR_UTC:
+        return
+    if _last_rpe_reconciliation_date == today:
+        return
+    _last_rpe_reconciliation_date = today
+    result = reconcile_recent_strava_rpe(DAILY_READINESS_USER_ID)
+    log_event(logger, "strava_rpe_reconciled", user_id=DAILY_READINESS_USER_ID, **result)
+
+
 def main() -> None:
     log_event(logger, "worker_started")
 
@@ -84,7 +99,16 @@ def main() -> None:
         try:
             maybe_send_daily_readiness()
             maybe_schedule_next_day_recovery_prompts()
-
+            try:
+                maybe_reconcile_recent_rpe()
+            except Exception as error:
+                log_event(
+                    logger,
+                    "strava_rpe_reconciliation_failed",
+                    level=logging.ERROR,
+                    error_type=type(error).__name__,
+                    error=str(error),
+                )
             result = process_one_strava_ingest_job()
 
             if result.get("message") == "no pending jobs":

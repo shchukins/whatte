@@ -401,9 +401,12 @@
                     <h2 id="rpe-title">How did the workout feel?</h2>
                     <p class="hint">Your latest eligible activity. You can update its RPE.</p>
                 </div>
-                {% if activity and activity.rpe_score %}<span class="badge badge-used">RPE {{ activity.rpe_score }}</span>{% endif %}
+                {% if activity and activity.rpe_score %}<span class="badge badge-used">RPE {{ activity.rpe_score }}/10 ({{ activity.rpe_value }})</span>{% endif %}
             </div>
             {% if saved == "rpe" %}<p class="saved" role="status">RPE updated.</p>{% endif %}
+            {% if activity and activity.rpe_disagreement %}
+            <p class="hint">RPE sources differ{% if activity.rpe_strava_score is not none and activity.rpe_manual_score is not none %}: Strava {{ activity.rpe_strava_score }}, Whatte {{ activity.rpe_manual_score }}{% endif %}. {{ activity.rpe_value }} is used for response metrics.</p>
+            {% endif %}
             {% if activity_section.status == "error" %}
             <p class="error">Activity feedback is temporarily unavailable. {{ activity_section.error }}</p>
             {% elif activity %}
@@ -414,11 +417,10 @@
                 <li>{{ activity.duration }}</li>
                 <li>{{ activity.distance }}</li>
             </ul>
-            <div class="scale" aria-label="Perceived exertion from one to five">
-                {% set rpe_options = [(1, '😌', 'Very easy'), (2, '🙂', 'Easy'), (3, '😐', 'Moderate'), (4, '🥵', 'Hard'), (5, '☠️', 'Very hard')] %}
+            <div class="scale" aria-label="Perceived exertion from one to ten">
                 {% for score, emoji, label in rpe_options %}
                 <form method="post" action="/today/rpe/{{ activity.activity_id }}/{{ score }}" data-feedback-form>
-                    <button class="scale-button" type="submit" formmethod="post" formaction="/today/rpe/{{ activity.activity_id }}/{{ score }}" aria-label="RPE: {{ label }}" aria-pressed="{{ 'true' if activity.rpe_score == score else 'false' }}">
+                    <button class="scale-button" type="submit" formmethod="post" formaction="/today/rpe/{{ activity.activity_id }}/{{ score }}" aria-label="RPE {{ score }}: {{ label }}" aria-pressed="{{ 'true' if activity.rpe_web_score == score else 'false' }}">
                         <span class="emoji" aria-hidden="true">{{ emoji }}</span>
                         <span class="scale-label">{{ label }}</span>
                     </button>

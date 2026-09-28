@@ -16,8 +16,10 @@ readiness, recommendation, or missing-data fallbacks in the browser.
 - Lets the user create or edit today's one-tap next-day recovery score.
   The backend recomputes readiness for that date after the idempotent upsert.
 - Lets the user create or edit RPE for the latest eligible canonical activity.
-  RPE updates the response path through backend services; raw RPE is not a
-  direct readiness score.
+  The form uses the 1-10 scale. The displayed effective RPE identifies its
+  source and shows a discrepancy when Strava differs from Whatte input.
+  A changed effective score updates the response path through backend
+  services; raw RPE is not a direct readiness score.
 - Provides dated FTP/weight profile history and an explicit stored-data-only
   recomputation action. It is not a multi-user account API.
 

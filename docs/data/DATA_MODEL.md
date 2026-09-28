@@ -339,7 +339,7 @@ Sources:
 - canonical `strava_activity_raw`
 - `activity_metrics` version `v1`
 - raw power / HR / time streams
-- optional canonical `post_ride_rpe`
+- optional effective 1-10 RPE from `activity_rpe_resolution`
 
 Key fields:
 
@@ -356,6 +356,20 @@ Key fields:
 The natural key is `(strava_activity_id, version)`. Baselines use earlier
 canonical activities of the same activity type and intensity band. Version 1
 stores per-metric medians and deviations but no aggregate response score.
+Historical `v1` uses the 1-5 scale; current `v2_rpe_1_10` uses only 1-10
+observations and comparable rows of its own version.
+
+### 5.9a Source RPE observations
+
+`activity_rpe_observation` stores independent `telegram`, `web`, and
+`strava` 1-10 scores for a canonical activity, with `scale_version`,
+`observed_at`, `received_at`, and `source_payload`. Its key is
+`(canonical_activity_id, source)`. `schema_version` identifies the
+observation payload contract independently of `scale_version`.
+`activity_rpe_resolution` persists one
+effective score/source and the disagreement flag. Strava has precedence,
+followed by Telegram and Web. The historical 1-5
+`activity_subjective_feedback` rows are retained, not converted.
 
 Full formula and eligibility contract:
 [`docs/models/TRAINING_RESPONSE.md`](../models/TRAINING_RESPONSE.md).
@@ -423,7 +437,9 @@ Active sources:
 
 - normalized fields остаются основным query surface
 - `feedback_payload` добавляет extensible JSON-слой и не заменяет нормализованную модель
-- новые записи пишутся с `feedback_schema_version = v1_extensible`
+- historical 1-5 RPE and current next-day recovery rows use
+  `feedback_schema_version = v1_extensible`; current RPE uses the separate
+  source-observation table
 - `feedback_schema_version` version-ит payload semantics, а не базовые normalized поля
 - `context_json` хранит historical readiness / recommendation snapshot на момент feedback
 - snapshot хранится исторически, чтобы будущие model changes не переписывали observed past state
@@ -609,14 +625,14 @@ Strava activity notification
 ↓
 Telegram inline callback
 ↓
-activity_subjective_feedback
+activity_rpe_observation (1-10) + historical activity_subjective_feedback (1-5)
 ```
 
 Комментарий:
 
 - субъективный feedback хранится отдельно от deterministic model state
 - snapshot в `context_json` фиксирует состояние модели на момент ответа
-- post-ride RPE запускает versioned response/readiness recompute после commit
+- изменение effective 1-10 RPE запускает versioned response/readiness recompute после commit
 - date-level `next_day_recovery` читается новой readiness composition как
   explicit `feeling` signal; upsert запускает deterministic recompute, но не
   переписывает feedback snapshot или legacy readiness version

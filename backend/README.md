@@ -187,7 +187,7 @@ Recovery breakdown внутри `explanation_json.recovery_explanation`:
 
 - `activity_response_metrics`
 
-Текущий scope `v1`:
+Текущий scope `v2_rpe_1_10`; `v1` остаётся историческим 1–5:
 
 - average / normalized power и average HR
 - power-to-HR relationships
@@ -196,9 +196,10 @@ Recovery breakdown внутри `explanation_json.recovery_explanation`:
 - median baseline по предыдущим comparable activities
 - per-metric availability и reason codes
 
-Response пересчитывается после activity pipeline и после idempotent RPE upsert.
+Response пересчитывается после activity pipeline и при изменении effective
+RPE 1–10.
 Readiness получает latest seven-day response context и строит aggregate score
-внутри readiness formula. `activity_response_metrics v1` по-прежнему не хранит
+внутри readiness formula. Response rows по-прежнему не хранят
 synthetic aggregate response score.
 
 Подробный контракт: [`docs/models/TRAINING_RESPONSE.md`](../docs/models/TRAINING_RESPONSE.md).
@@ -208,11 +209,12 @@ synthetic aggregate response score.
 Реализованы таблицы:
 
 - `activity_subjective_feedback`
+- `activity_rpe_observation` и `activity_rpe_resolution`
 - `decision_context_snapshot`
 
 Текущий scope:
 
-- post-ride RPE feedback из Telegram
+- source-aware post-ride RPE 1–10 из Telegram, Web и Strava
 - next-day recovery feedback из Telegram
 - activity-level и date-level subjective feedback
 - normalized queryable fields + extensible payload + historical context snapshot
@@ -230,8 +232,8 @@ synthetic aggregate response score.
 Важно:
 
 - это не ML layer
-- post-ride RPE остается observed feedback и используется versioned response
-  layer без изменения исходной feedback semantics
+- исторический post-ride RPE 1–5 остаётся в исходной таблице; новый
+  effective RPE 1–10 используется отдельной версией response
 - date-level `next_day_recovery` является явным `feeling` input для
   `v2_signal_composition_response_v1`; после upsert readiness пересчитывается
   детерминированно
@@ -301,11 +303,12 @@ The two write paths reuse the existing subjective-feedback services:
 
 - today's `next_day_recovery` on the 1-5 scale; an idempotent upsert is followed
   by deterministic readiness recomputation for the same date;
-- `post_ride_rpe` for the latest eligible canonical activity, displaying its
-  existing RPE when present and preserving an explicitly selected activity for edit.
+- `post_ride_rpe` on the 1-10 scale for the latest eligible canonical
+  activity, displaying its effective score/source and preserving an explicitly
+  selected activity for edit.
 
-Both feedback types use `source=web`. Repeated submissions update the existing
-natural-key row rather than creating duplicates. Native forms validate scores
+Both feedback types use `source=web`. Repeated RPE submissions update the
+Web observation while recovery submissions update their date-level row. Native forms validate scores
 server-side, reject cross-site submissions, and use POST/redirect/GET.
 
 ## Daily readiness pipeline
@@ -380,17 +383,18 @@ MyWhoosh/Garmin.
 
 Текущий callback format:
 
-- `rpe:{activity_id}:{score}`
+- `rpe10:{activity_id}:{score}` для шкалы 1–10
+- старый `rpe:{activity_id}:{score}` однозначно распознаётся как 1–5 и
+  отклоняется с просьбой повторить ввод в Web Today
 
 После callback backend:
 
 - валидирует activity
 - разрешает старый Garmin activity id до canonical MyWhoosh id
-- upsert-ит row в `activity_subjective_feedback`
-- сохраняет `source = telegram`
-- сохраняет `feedback_schema_version = v1_extensible`
-- сохраняет optional `feedback_payload` (для текущего RPE обычно `{}`)
-- сохраняет snapshot readiness / recommendation context
+- upsert-ит независимое наблюдение в `activity_rpe_observation`
+- сохраняет `source = telegram`, `scale_version = rpe_1_10`, payload и время
+- разрешает один effective RPE с приоритетом Strava
+- пересчитывает response/readiness только при изменении effective score
 - best-effort подтверждает callback и редактирует сообщение
 
 Indoor дедупликация запускается после сохранения raw/metrics и до пересчёта
@@ -574,3 +578,8 @@ Web Today includes `/today/profile` for independent dated FTP and weight inputs
 and explicit historical recalculation. Apply migration `011_user_profile.sql`
 before deploying this version to backend and worker. See
 [profile behavior and deployment](../docs/product/USER_PROFILE.md).
+
+Перед выпуском RPE 1–10 применить `db-init/012_rpe_observations.sql` к
+существующей БД, затем обновить backend и worker вместе. Миграция оставляет
+исторические feedback 1–5 и response `v1` без преобразования; новый response
+`v2_rpe_1_10` собирает собственный comparable baseline.

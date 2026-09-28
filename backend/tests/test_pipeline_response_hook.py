@@ -10,6 +10,7 @@ def test_activity_pipeline_materializes_response_before_daily_recompute(monkeypa
             "sport_type": "Ride",
             "name": "Steady ride",
             "start_date": "2026-08-30T06:00:00Z",
+            "perceived_exertion": 7,
         },
     )
     monkeypatch.setattr(
@@ -38,6 +39,14 @@ def test_activity_pipeline_materializes_response_before_daily_recompute(monkeypa
     )
     monkeypatch.setattr(
         pipeline_service,
+        "import_strava_rpe",
+        lambda **kwargs: calls.append((
+            "rpe", kwargs["canonical_activity_id"],
+            kwargs["activity"]["perceived_exertion"], kwargs["recompute"],
+        )),
+    )
+    monkeypatch.setattr(
+        pipeline_service,
         "compute_and_store_activity_response",
         lambda activity_id: calls.append(("response", activity_id))
         or {"ok": True, "activity_id": activity_id},
@@ -55,6 +64,7 @@ def test_activity_pipeline_materializes_response_before_daily_recompute(monkeypa
     result = pipeline_service.process_activity_pipeline("user-1", 7, 99)
 
     assert calls == [
+        ("rpe", 42, 7, False),
         ("response", 42),
         ("daily", "user-1", "2026-08-30"),
     ]

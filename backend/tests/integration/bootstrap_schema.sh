@@ -51,3 +51,4 @@ psql -v ON_ERROR_STOP=1 "$DATABASE_URL" -f "$REPO_ROOT/db-init/009_activity_resp
 psql -v ON_ERROR_STOP=1 "$DATABASE_URL" -f "$REPO_ROOT/db-init/010_decision_context_snapshot.sql"
 
 psql -v ON_ERROR_STOP=1 "$DATABASE_URL" -f "$REPO_ROOT/db-init/011_user_profile.sql"
+psql -v ON_ERROR_STOP=1 "$DATABASE_URL" -f "$REPO_ROOT/db-init/012_rpe_observations.sql"

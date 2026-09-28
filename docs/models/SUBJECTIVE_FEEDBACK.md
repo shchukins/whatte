@@ -62,6 +62,29 @@ Important:
 
 ### 3.1 `post_ride_rpe`
 
+Current RPE observations are in `activity_rpe_observation`, keyed by
+`(canonical_activity_id, source)`. Each row retains its 1-10 score,
+`rpe_1_10` scale version, `rpe_observation_v1` schema version, observed
+time when known, received time, and raw
+source payload. `activity_rpe_resolution` persists the effective score,
+chosen source, and disagreement flag. Strava wins when present; Telegram is
+the fallback, then Web. Missing RPE remains unavailable. A Strava detailed
+activity's `perceived_exertion` is imported when present; a once-daily bounded
+14-day check finds late Strava entries without depending on update webhooks.
+Strava provides no guaranteed RPE edit timestamp, so its `observed_at` is
+null and `received_at` records import time.
+
+Telegram now emits `rpe10:{activity_id}:{score}` callbacks and Web Today
+accepts 1-10. Old `rpe:{activity_id}:{score}` callbacks are recognized as
+1-5 and rejected with an explicit re-entry instruction. Historical 1-5 rows
+below remain unchanged and cannot enter the new response baseline.
+
+The 1-10 labels are: 1 Very easy, 2 Easy, 3 Light, 4 Comfortable,
+5 Moderate, 6 Steady, 7 Hard, 8 Very hard, 9 Extremely hard, 10 Maximal.
+Labels aid entry only; the integer score is the deterministic input.
+
+Historical 1-5 contract:
+
 Purpose:
 
 - capture immediate perceived exertion for a completed activity
@@ -88,8 +111,7 @@ Telegram labels:
 - `🥵 Hard`
 - `☠️ Very hard`
 
-Web Today uses the same canonical score/value mapping and labels. Its native
-form route is transport-specific; stored feedback semantics are unchanged.
+These labels describe only the historical series.
 
 Callback format:
 
@@ -358,28 +380,27 @@ training processed notification
 ↓
 Telegram RPE prompt
 ↓
-callback: rpe:{activity_id}:{score}
+callback: rpe10:{activity_id}:{score}
 ↓
-upsert activity-level row
+upsert source observation and resolve effective RPE
 ↓
 best-effort Telegram confirmation
 ```
 
-Example row shape:
+Current observation shape (illustrative):
 
 ```json
 {
-  "strava_activity_id": 17855535922,
-  "activity_date": "2026-05-14",
-  "feedback_type": "post_ride_rpe",
-  "feedback_value": "hard",
-  "feedback_score": 4,
+  "canonical_activity_id": 17855535922,
   "source": "telegram",
-  "feedback_schema_version": "v1_extensible",
-  "feedback_payload": {},
-  "context_json": {
-    "readiness_score": 63.5,
-    "recommendation": "moderate"
+  "score": 7,
+  "scale_version": "rpe_1_10",
+  "schema_version": "rpe_observation_v1",
+  "observed_at": "2026-09-28T07:00:00Z",
+  "received_at": "2026-09-28T07:00:01Z",
+  "source_payload": {
+    "callback_data": "rpe10:17855535922:7",
+    "context": {"readiness_score": 63.5}
   }
 }
 ```

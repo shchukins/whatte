@@ -12,6 +12,7 @@ from backend.services.activity_deduplication_service import (
 )
 from backend.services.activity_load_service import resolve_activity_load
 from backend.services.activity_response_service import compute_and_store_activity_response
+from backend.services.rpe_service import import_strava_rpe
 from backend.services.metrics_service import (
     compute_deltas,
     compute_hr_zones,
@@ -488,6 +489,12 @@ def process_activity_pipeline(user_id: str, athlete_id: int, activity_id: int) -
     deduplication_result = detect_and_apply_duplicate(activity_id)
     canonical_activity_id = (
         deduplication_result.get("canonical_activity_id") or activity_id
+    )
+    import_strava_rpe(
+        user_id=user_id,
+        canonical_activity_id=canonical_activity_id,
+        activity=activity,
+        recompute=False,
     )
     response_result = compute_and_store_activity_response(canonical_activity_id)
     start_date = activity.get("start_date")

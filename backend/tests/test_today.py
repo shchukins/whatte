@@ -268,6 +268,10 @@ def test_today_activity_query_selects_latest_and_scopes_user(monkeypatch):
             4980,
             None,
             None,
+            None,
+            None,
+            None,
+            None,
         )
     )
     monkeypatch.setattr(today_service, "get_conn", lambda: _ActivityConn(cursor))
@@ -277,7 +281,7 @@ def test_today_activity_query_selects_latest_and_scopes_user(monkeypatch):
     assert result.activity_id == 17855535922
     assert result.duration == "1h 23m"
     assert result.distance == "42.5 km"
-    assert cursor.params == ("post_ride_rpe", "sergey")
+    assert cursor.params == ("sergey",)
     assert "where r.user_id = %s" in cursor.query
     assert "order by r.start_date desc nulls last" in cursor.query
     assert "case when f.feedback_score is null" not in cursor.query
@@ -291,7 +295,7 @@ def test_today_activity_preferred_edit_remains_user_scoped(monkeypatch):
     result = today_service.get_today_activity("sergey", preferred_activity_id=123)
 
     assert result is None
-    assert cursor.params == ("post_ride_rpe", "sergey", 123)
+    assert cursor.params == ("sergey", 123)
     assert "and r.strava_activity_id = %s" in cursor.query
 
 
@@ -378,7 +382,7 @@ def test_today_rpe_submission_validates_activity_owner_and_redirects(monkeypatch
     )
     monkeypatch.setattr(
         today_router_module,
-        "upsert_activity_subjective_feedback",
+        "upsert_activity_rpe_v2",
         lambda **kwargs: calls.append(kwargs),
     )
     client = TestClient(app_module.app)
