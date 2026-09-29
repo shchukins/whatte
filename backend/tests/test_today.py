@@ -338,6 +338,33 @@ def test_today_page_renders_mobile_working_surface(monkeypatch):
     assert "X-Requested-With" in response.text
 
 
+def test_today_editorial_metrics_and_figure_use_persisted_values(monkeypatch):
+    data = _today_data()
+    data = replace(
+        data,
+        readiness={**data.readiness, "good_day_probability": 0.73},
+        history_groups=[
+            today_service.TodayHistoryGroup(
+                version=today_service.READINESS_MODEL_VERSION,
+                supported=True,
+                rows=[
+                    today_service.TodayHistoryRow("2026-08-30", 68.0, "moderate", 4, "fresh"),
+                    today_service.TodayHistoryRow("2026-08-29", None, None, None, None),
+                ],
+            )
+        ],
+    )
+    monkeypatch.setattr(today_service, "get_today_data", lambda *args, **kwargs: data)
+
+    response = TestClient(app_module.app).get("/today")
+
+    assert response.status_code == 200
+    assert "Good day probability" in response.text
+    assert 'class="score">73<span class="unit">%</span>' in response.text
+    assert '--bar-height: 68.0%' in response.text
+    assert 'class="plot-missing"' in response.text
+
+
 def test_today_rpe_scale_is_numeric_and_shows_source_resolution(monkeypatch):
     data = _today_data()
     activity = replace(

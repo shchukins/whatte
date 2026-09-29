@@ -2,15 +2,22 @@
 
 ## Purpose
 
-`/today` is the protected, mobile-first FastAPI/Jinja2 surface for the
+`/today` is the protected, responsive FastAPI/Jinja2 surface for the
 single-user daily loop. It renders backend-owned state; it does not calculate
 readiness, recommendation, or missing-data fallbacks in the browser.
+
+Its visual language follows [Whatte visual identity](VISUAL_IDENTITY.md):
+the daily reading is presented as an editorial issue, with the stored
+decision first, supporting signals and feedback next, and 14-day history as
+an annotated figure and exact-value table.
 
 ## Current behavior
 
 - Shows the latest current-version materialized readiness, its deterministic
   recommendation, reason, briefing, signal availability, source-data freshness,
-  and a compact history.
+  and a 14-day calendar history. Good-day probability is shown only when the
+  stored backend field is available; otherwise the stored readiness score is
+  labeled as such. Neither value is recalculated by the browser.
 - Shows optional historical physiology only when it belongs to the same date;
   unavailable physiology is not an error and is not rendered as a fake score.
 - Lets the user create or edit today's one-tap next-day recovery score.
@@ -41,7 +48,8 @@ readiness, recommendation, or missing-data fallbacks in the browser.
 
 - No SPA, frontend build step, OAuth account system, or client-side model logic.
 - No workout construction, duration prescription, calendar-aware planning, or
-  trend chart beyond the existing compact history.
+  HRV or 28-day load figure without a real backend data contract. The 14-day
+  readiness figure uses the existing history rows and marks missing dates.
 - No additional sleep, stress, motivation, or fatigue questionnaire without a
   documented persistence and calibration use.
 
