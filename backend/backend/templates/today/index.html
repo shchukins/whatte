@@ -236,6 +236,52 @@
             text-overflow: ellipsis;
         }
 
+        .rpe-scroll {
+            overflow-x: auto;
+            padding: 4px 3px 10px;
+            scrollbar-color: var(--muted) var(--surface-raised);
+        }
+
+        .rpe-scroll:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+        .rpe-track { min-width: 500px; }
+        .rpe-scale { display: grid; grid-template-columns: repeat(10, minmax(44px, 1fr)); gap: 5px; }
+        .rpe-scale form { min-width: 44px; }
+
+        .rpe-button {
+            width: 100%;
+            min-height: 48px;
+            border: 2px solid transparent;
+            border-radius: 10px;
+            background: var(--rpe-color);
+            color: #10150e;
+            font-size: 1.2rem;
+            font-weight: 760;
+            font-variant-numeric: tabular-nums;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+
+        .rpe-button:hover { border-color: #10150e; }
+        .rpe-button:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
+        .rpe-button[aria-pressed="true"] { box-shadow: inset 0 0 0 2px #10150e, 0 0 0 2px var(--text); }
+        .rpe-button:disabled { cursor: wait; opacity: 0.65; }
+        .rpe-button[data-score="1"] { --rpe-color: #8fd9b3; }
+        .rpe-button[data-score="2"] { --rpe-color: #a4df9c; }
+        .rpe-button[data-score="3"] { --rpe-color: #b8e387; }
+        .rpe-button[data-score="4"] { --rpe-color: #d2e277; }
+        .rpe-button[data-score="5"] { --rpe-color: #e9d875; }
+        .rpe-button[data-score="6"] { --rpe-color: #f4ca70; }
+        .rpe-button[data-score="7"] { --rpe-color: #f5b66b; }
+        .rpe-button[data-score="8"] { --rpe-color: #f4a06d; }
+        .rpe-button[data-score="9"] { --rpe-color: #ed8a73; }
+        .rpe-button[data-score="10"] { --rpe-color: #e97872; }
+
+        .rpe-anchors { display: flex; justify-content: space-between; gap: 8px; margin-top: 8px; color: var(--muted); font-size: 0.7rem; }
+        .rpe-anchors span { flex: 1; text-align: center; }
+        .rpe-anchors span:first-child { text-align: left; }
+        .rpe-anchors span:last-child { text-align: right; }
+        .rpe-scroll-hint { display: none; margin: 5px 3px 0; color: var(--muted); font-size: 0.75rem; }
+
         .activity-name {
             margin: 0;
             font-size: 1.25rem;
@@ -332,6 +378,10 @@
             .scale-label { font-size: 0.61rem; }
         }
 
+        @media (max-width: 580px) {
+            .rpe-scroll-hint { display: block; }
+        }
+
         @media (prefers-reduced-motion: no-preference) {
             .scale-button { transition: transform 120ms ease, border-color 120ms ease, background 120ms ease; }
         }
@@ -401,11 +451,11 @@
                     <h2 id="rpe-title">How did the workout feel?</h2>
                     <p class="hint">Your latest eligible activity. You can update its RPE.</p>
                 </div>
-                {% if activity and activity.rpe_score %}<span class="badge badge-used">RPE {{ activity.rpe_score }}/10 ({{ activity.rpe_value }})</span>{% endif %}
+                {% if activity and activity.rpe_score %}<span class="badge badge-used">RPE {{ activity.rpe_score }}/10 · {% if activity.rpe_value == 'strava' %}Strava{% elif activity.rpe_value == 'telegram' %}Telegram fallback{% elif activity.rpe_value == 'web' %}Web fallback{% endif %}</span>{% endif %}
             </div>
             {% if saved == "rpe" %}<p class="saved" role="status">RPE updated.</p>{% endif %}
             {% if activity and activity.rpe_disagreement %}
-            <p class="hint">RPE sources differ{% if activity.rpe_strava_score is not none and activity.rpe_manual_score is not none %}: Strava {{ activity.rpe_strava_score }}, Whatte {{ activity.rpe_manual_score }}{% endif %}. {{ activity.rpe_value }} is used for response metrics.</p>
+            <p class="hint">RPE sources differ: {% if activity.rpe_strava_score is not none %}Strava {{ activity.rpe_strava_score }}/10{% endif %}{% if activity.rpe_telegram_score is not none %}{% if activity.rpe_strava_score is not none %}, {% endif %}Telegram {{ activity.rpe_telegram_score }}/10{% endif %}{% if activity.rpe_web_score is not none %}{% if activity.rpe_strava_score is not none or activity.rpe_telegram_score is not none %}, {% endif %}Web {{ activity.rpe_web_score }}/10{% endif %}. Effective RPE uses Strava first, then Telegram, then Web.</p>
             {% endif %}
             {% if activity_section.status == "error" %}
             <p class="error">Activity feedback is temporarily unavailable. {{ activity_section.error }}</p>
@@ -417,16 +467,20 @@
                 <li>{{ activity.duration }}</li>
                 <li>{{ activity.distance }}</li>
             </ul>
-            <div class="scale" aria-label="Perceived exertion from one to ten">
-                {% for score, emoji, label in rpe_options %}
-                <form method="post" action="/today/rpe/{{ activity.activity_id }}/{{ score }}" data-feedback-form>
-                    <button class="scale-button" type="submit" formmethod="post" formaction="/today/rpe/{{ activity.activity_id }}/{{ score }}" aria-label="RPE {{ score }}: {{ label }}" aria-pressed="{{ 'true' if activity.rpe_web_score == score else 'false' }}">
-                        <span class="emoji" aria-hidden="true">{{ emoji }}</span>
-                        <span class="scale-label">{{ label }}</span>
-                    </button>
-                </form>
-                {% endfor %}
+            {% if activity.rpe_web_score is not none %}<p class="hint">Your Web selection: {{ activity.rpe_web_score }}/10.</p>{% endif %}
+            <div class="rpe-scroll" role="group" aria-label="Perceived exertion, 1 to 10. Swipe or use arrow keys to see all scores." tabindex="0">
+                <div class="rpe-track">
+                    <div class="rpe-scale">
+                        {% for score, label in rpe_options %}
+                        <form method="post" action="/today/rpe/{{ activity.activity_id }}/{{ score }}" data-feedback-form>
+                            <button class="rpe-button" data-score="{{ score }}" type="submit" aria-label="RPE {{ score }}: {{ label }}" aria-pressed="{{ 'true' if activity.rpe_web_score == score else 'false' }}">{{ score }}</button>
+                        </form>
+                        {% endfor %}
+                    </div>
+                    <div class="rpe-anchors" aria-hidden="true"><span>Very easy</span><span>Easy</span><span>Moderate</span><span>Hard</span><span>Maximal</span></div>
+                </div>
             </div>
+            <p class="rpe-scroll-hint">Swipe horizontally to see all 10 scores on a narrow screen.</p>
             {% else %}
             <p class="empty">No eligible activity needs feedback right now.</p>
             {% endif %}

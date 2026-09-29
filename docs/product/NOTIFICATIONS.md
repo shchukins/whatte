@@ -181,6 +181,10 @@ Best-effort behavior:
 1. activity processed message
 2. отдельный Telegram prompt с inline RPE buttons
 
+The prompt summarizes the activity, asks `Rate perceived exertion, 1–10.`,
+and explains `1 = very easy · 5 = moderate · 10 = maximal`. Its numeric-only
+buttons are arranged as `1…5` and `6…10` in two rows.
+
 Callback format:
 
 - `rpe10:{activity_id}:{score}` (score 1–10)

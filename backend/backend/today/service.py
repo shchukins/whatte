@@ -53,6 +53,7 @@ class TodayActivity:
     rpe_strava_score: int | None = None
     rpe_manual_score: int | None = None
     rpe_web_score: int | None = None
+    rpe_telegram_score: int | None = None
 
 
 @dataclass(frozen=True)
@@ -257,7 +258,8 @@ def get_today_activity(
                     er.disagreement,
                     sr.score,
                     coalesce(tr.score, wr.score),
-                    wr.score
+                    wr.score,
+                    tr.score
                 from strava_activity_raw r
                 left join activity_rpe_resolution er
                   on er.canonical_activity_id = r.strava_activity_id
@@ -296,6 +298,7 @@ def get_today_activity(
         rpe_strava_score=int(row[9]) if row[9] is not None else None,
         rpe_manual_score=int(row[10]) if row[10] is not None else None,
         rpe_web_score=int(row[11]) if row[11] is not None else None,
+        rpe_telegram_score=int(row[12]) if row[12] is not None else None,
     )
 
 

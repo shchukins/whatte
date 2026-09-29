@@ -79,6 +79,11 @@ accepts 1-10. Old `rpe:{activity_id}:{score}` callbacks are recognized as
 1-5 and rejected with an explicit re-entry instruction. Historical 1-5 rows
 below remain unchanged and cannot enter the new response baseline.
 
+The Telegram RPE prompt keeps the activity summary, asks for perceived
+exertion on a 1-10 scale, and gives 1/5/10 anchors. Its numeric-only inline
+buttons occupy two rows of five. Web Today uses one horizontal numeric scale
+with the effective source and any conflicting source scores visible.
+
 The 1-10 labels are: 1 Very easy, 2 Easy, 3 Light, 4 Comfortable,
 5 Moderate, 6 Steady, 7 Hard, 8 Very hard, 9 Extremely hard, 10 Maximal.
 Labels aid entry only; the integer score is the deterministic input.

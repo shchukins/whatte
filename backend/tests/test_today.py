@@ -1,4 +1,6 @@
 import importlib
+import re
+from dataclasses import replace
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
@@ -272,6 +274,7 @@ def test_today_activity_query_selects_latest_and_scopes_user(monkeypatch):
             None,
             None,
             None,
+            None,
         )
     )
     monkeypatch.setattr(today_service, "get_conn", lambda: _ActivityConn(cursor))
@@ -299,6 +302,21 @@ def test_today_activity_preferred_edit_remains_user_scoped(monkeypatch):
     assert "and r.strava_activity_id = %s" in cursor.query
 
 
+def test_today_activity_keeps_telegram_and_web_observations_separate(monkeypatch):
+    cursor = _ActivityCursor((
+        42, "Ride", "Ride", None, None, None,
+        7, "telegram", True, None, 7, 4, 7,
+    ))
+    monkeypatch.setattr(today_service, "get_conn", lambda: _ActivityConn(cursor))
+
+    activity = today_service.get_today_activity("sergey")
+
+    assert activity.rpe_score == 7
+    assert activity.rpe_value == "telegram"
+    assert activity.rpe_telegram_score == 7
+    assert activity.rpe_web_score == 4
+
+
 def test_today_page_renders_mobile_working_surface(monkeypatch):
     monkeypatch.setattr(today_service, "get_today_data", lambda *args, **kwargs: _today_data())
     client = TestClient(app_module.app)
@@ -318,6 +336,64 @@ def test_today_page_renders_mobile_working_surface(monkeypatch):
     assert "/today/rpe/17855535922/5" in response.text
     assert 'formmethod="post"' in response.text
     assert "X-Requested-With" in response.text
+
+
+def test_today_rpe_scale_is_numeric_and_shows_source_resolution(monkeypatch):
+    data = _today_data()
+    activity = replace(
+        data.activity,
+        rpe_score=8,
+        rpe_value="strava",
+        rpe_disagreement=True,
+        rpe_strava_score=8,
+        rpe_telegram_score=6,
+        rpe_web_score=5,
+    )
+    monkeypatch.setattr(today_service, "get_today_data", lambda *args, **kwargs: replace(data, activity=activity))
+
+    response = TestClient(app_module.app).get("/today")
+
+    assert response.status_code == 200
+    assert re.findall(r'<button class="rpe-button"[^>]*>(\d+)</button>', response.text) == [
+        str(score) for score in range(1, 11)
+    ]
+    assert 'aria-label="RPE 5: Moderate" aria-pressed="true"' in response.text
+    assert 'aria-label="RPE 8: Very hard" aria-pressed="false"' in response.text
+    assert "RPE 8/10 · Strava" in response.text
+    assert "Strava 8/10" in response.text
+    assert "Telegram 6/10" in response.text
+    assert "Web 5/10" in response.text
+    assert "Strava first, then Telegram, then Web" in response.text
+    assert "Your Web selection: 5/10" in response.text
+
+
+def test_today_rpe_telegram_fallback_is_identified(monkeypatch):
+    data = _today_data()
+    activity = replace(data.activity, rpe_score=7, rpe_value="telegram", rpe_telegram_score=7)
+    monkeypatch.setattr(today_service, "get_today_data", lambda *args, **kwargs: replace(data, activity=activity))
+
+    response = TestClient(app_module.app).get("/today")
+
+    assert "RPE 7/10 · Telegram fallback" in response.text
+    assert "RPE sources differ" not in response.text
+
+
+def test_today_rpe_disagreement_without_strava_shows_both_manual_sources(monkeypatch):
+    data = _today_data()
+    activity = replace(
+        data.activity,
+        rpe_score=7,
+        rpe_value="telegram",
+        rpe_disagreement=True,
+        rpe_telegram_score=7,
+        rpe_web_score=4,
+    )
+    monkeypatch.setattr(today_service, "get_today_data", lambda *args, **kwargs: replace(data, activity=activity))
+
+    response = TestClient(app_module.app).get("/today")
+
+    assert "Telegram 7/10, Web 4/10" in response.text
+    assert "RPE 7/10 · Telegram fallback" in response.text
 
 
 def test_today_history_table_renders_versions_and_missing_values(monkeypatch):
@@ -434,3 +510,5 @@ def test_today_scores_are_limited_to_documented_scale():
 
     assert client.post("/today/recovery/0").status_code == 422
     assert client.post("/today/recovery/6").status_code == 422
+    assert client.post("/today/rpe/123/0").status_code == 422
+    assert client.post("/today/rpe/123/11").status_code == 422
