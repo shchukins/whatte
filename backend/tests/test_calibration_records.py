@@ -91,6 +91,8 @@ def test_local_day_multiple_activities_and_shared_recovery():
     assert [r["decision"]["source_id"] for r in records] == [1, 2]
     assert records[0]["next_day_recovery"]["source_id"] == records[1]["next_day_recovery"]["source_id"]
     assert records[0]["next_day_recovery"]["target_local_date"] == date(2026, 9, 2)
+    assert records[0]["outcome"]["targets"]["next_day_recovery"]["unit"] == "training_day"
+    assert records[0]["outcome"]["targets"]["next_day_recovery"]["source_id"] == records[1]["outcome"]["targets"]["next_day_recovery"]["source_id"]
 
 
 def test_missing_and_incompatible_feedback_and_load():
@@ -155,6 +157,44 @@ def test_current_rpe_precedes_legacy_without_mixing_scales():
     assert result["post_ride_rpe"]["source"] == "strava"
     assert result["legacy_post_ride_rpe"]["scale"] == "1-5"
     assert result["post_ride_rpe"]["source_id"] == 101
+    assert result["outcome"]["contract_version"] == "workout_outcome_v1"
+    assert result["outcome"]["targets"]["post_workout_rpe"]["scale"] == "1-10"
+
+
+def test_outcome_targets_remain_independent_when_feedback_is_missing_or_edited():
+    original = report([activity(rpe_id=None, recovery_id=None)], [snapshot()])[0]
+    targets = original["outcome"]["targets"]
+    assert targets["post_workout_rpe"]["status"] == "missing"
+    assert targets["next_day_recovery"]["status"] == "missing"
+    assert targets["subjective_result"] == {
+        "unit": "activity", "status": "not_collected", "value": None,
+    }
+    assert targets["completion_ratio"]["status"] == "no_plan_source"
+    edited = report([activity(current_rpe=9, recovery_score=4)], [snapshot()])[0]
+    assert edited["outcome"]["targets"]["post_workout_rpe"]["score"] == 9
+    assert edited["outcome"]["targets"]["next_day_recovery"]["score"] == 4
+    assert edited["outcome"]["targets"]["completion_state"]["status"] == "not_collected"
+
+
+def test_outcome_evaluation_counts_recovery_once_per_training_day():
+    result = build_calibration_records(
+        user_id="u", date_from=date(2026, 9, 1), date_to=date(2026, 9, 2),
+        timezone="Europe/Moscow",
+        activities=[activity(1, current_rpe=8),
+                    activity(2, start=datetime(2026, 9, 1, 9, tzinfo=UTC),
+                             rpe_id=None, current_rpe=None)],
+        snapshots=[snapshot()], generated_at=datetime(2026, 9, 3, tzinfo=UTC),
+    )
+    counts = result["outcome_evaluation"]
+    assert counts["contract_version"] == "workout_outcome_v1"
+    assert counts["activity_target_states"]["post_workout_rpe"] == {
+        "available": 1, "missing": 1,
+    }
+    assert counts["activity_target_states"]["subjective_result"] == {
+        "not_collected": 2,
+    }
+    assert counts["training_day_count"] == 1
+    assert counts["next_day_recovery_states"] == {"available": 1}
 
 
 def test_evaluation_uses_distinct_activity_and_recovery_day_units():

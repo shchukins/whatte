@@ -371,6 +371,12 @@ effective score/source and the disagreement flag. Strava has precedence,
 followed by Telegram and Web. The historical 1-5
 `activity_subjective_feedback` rows are retained, not converted.
 
+Read-only calibration records expose `workout_outcome_v1` as independent
+activity and training-day targets. Its source, scale, missingness, and temporal
+eligibility rules are documented in
+[`CALIBRATION_RECORDS.md`](CALIBRATION_RECORDS.md). No outcome table or new
+feedback write path is introduced by this contract.
+
 Full formula and eligibility contract:
 [`docs/models/TRAINING_RESPONSE.md`](../models/TRAINING_RESPONSE.md).
 
