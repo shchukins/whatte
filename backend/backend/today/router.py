@@ -65,7 +65,7 @@ def today_index(
         context={
             "page_title": "Whatte Today",
             "saved": saved if saved in {"recovery", "rpe"} else None,
-            "rpe_options": [(score, str(score), label) for score, label in RPE_LABELS.items()],
+            "rpe_options": list(RPE_LABELS.items()),
             **asdict(data),
         },
     )

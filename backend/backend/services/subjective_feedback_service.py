@@ -27,7 +27,6 @@ from backend.services.activity_response_service import (
 from backend.services.decision_engine import build_recommendation
 from backend.services.decision_context_snapshot import capture_decision_context_snapshot
 from backend.services.readiness_composition import READINESS_MODEL_VERSION
-from backend.services.rpe_service import RPE_LABELS
 from backend.services.daily_readiness_pipeline import recompute_daily_readiness
 from backend.services.telegram_service import (
     answer_telegram_callback,
@@ -64,7 +63,6 @@ RPE_SCORE_TO_VALUE = {
     5: "very_hard",
 }
 
-RPE_BUTTON_LABELS = {score: f"{score} {label}" for score, label in RPE_LABELS.items()}
 
 RECOVERY_SCORE_TO_VALUE = {
     1: "exhausted",
@@ -226,8 +224,9 @@ def build_post_ride_rpe_message(activity_id: int) -> str:
             )
             row = cur.fetchone()
 
+    prompt = "Rate perceived exertion, 1–10.\n1 = very easy · 5 = moderate · 10 = maximal"
     if not row:
-        return "WHATTE\n\nRide recorded 🚴\n\nHow did the ride feel?"
+        return f"WHATTE\n\nRide recorded 🚴\n\n{prompt}"
 
     duration_s, tss, avg_power = row
 
@@ -242,7 +241,7 @@ def build_post_ride_rpe_message(activity_id: int) -> str:
         f"Duration: {duration_text}\n"
         f"Load: {load_text}\n"
         f"Avg power: {power_text}\n\n"
-        "How did the ride feel?"
+        f"{prompt}"
     )
 
 
@@ -259,11 +258,12 @@ def build_post_ride_rpe_keyboard(activity_id: int) -> dict[str, Any]:
         "inline_keyboard": [
             [
                 {
-                    "text": RPE_BUTTON_LABELS[score],
+                    "text": str(score),
                     "callback_data": build_rpe10_callback_data(activity_id, score),
                 }
+                for score in range(start, start + 5)
             ]
-            for score in sorted(RPE_BUTTON_LABELS)
+            for start in (1, 6)
         ]
     }
 

@@ -149,11 +149,28 @@ def test_parse_recovery_callback_data_invalid_payload():
 def test_build_post_ride_rpe_keyboard_uses_expected_score_mapping():
     keyboard = feedback_service.build_post_ride_rpe_keyboard(42)
 
-    assert keyboard["inline_keyboard"][0][0]["text"] == "1 Very easy"
+    assert [[button["text"] for button in row] for row in keyboard["inline_keyboard"]] == [
+        [str(score) for score in range(1, 6)],
+        [str(score) for score in range(6, 11)],
+    ]
     assert keyboard["inline_keyboard"][0][0]["callback_data"] == "rpe10:42:1"
-    assert keyboard["inline_keyboard"][-1][0]["text"] == "10 Maximal"
-    assert keyboard["inline_keyboard"][-1][0]["callback_data"] == "rpe10:42:10"
+    assert keyboard["inline_keyboard"][-1][-1]["callback_data"] == "rpe10:42:10"
     assert feedback_service.parse_rpe_callback_data("rpe10:42:10")["scale_version"] == "rpe_1_10"
+
+
+def test_post_ride_rpe_message_keeps_summary_and_scale_anchors(monkeypatch):
+    cursor = _FakeCursor(fetchone_values=[(4980, 84.0, 191.0)])
+    monkeypatch.setattr(feedback_service, "get_conn", lambda: _FakeConn(cursor))
+
+    message = feedback_service.build_post_ride_rpe_message(42)
+
+    assert "Duration: 1h 23m" in message
+    assert "Load: 84" in message
+    assert "Avg power: 191w" in message
+    assert message.endswith(
+        "Rate perceived exertion, 1–10.\n1 = very easy · 5 = moderate · 10 = maximal"
+    )
+    assert cursor.execute_calls[0][1] == (42,)
 
 
 def test_build_next_day_recovery_keyboard_uses_expected_score_mapping():
