@@ -1,4 +1,4 @@
-# Decision-to-outcome records (#77, phase 1)
+# Decision-to-outcome records and evaluation (#77)
 
 Run from `backend/` with the usual backend environment configured:
 
@@ -22,7 +22,8 @@ be committed to the repository.
   capture, and strictly earlier than activity start. Equal capture timestamps
   break ties by greatest snapshot ID. All existing event types compete on the
   same timeline. Snapshot ID, event type, reference key, model version, capture
-  time, computation time, score, recommendation, and age in seconds are exposed.
+  time, computation time, score, recommendation, age in seconds, and recorded
+  signal-family availability are exposed. Missing availability stays unknown.
 - `decision_missing_reason` distinguishes no same-day snapshot, only snapshots
   captured at/after start, and pre-start snapshots lacking a valid pre-start
   computation. The current `readiness_daily` row is never substituted.
@@ -32,10 +33,19 @@ be committed to the repository.
 - `load` shows current `activity_metrics` v1 source ID, TSS, and the existing
   cycling power-load inclusion rule. Missing metrics, missing power metrics,
   and unsupported sports remain distinct.
-- `post_ride_rpe` is the current canonical feedback row. Compatible legacy
-  `v1` and `v1_extensible` observations use the 1–5 Whatte scale. Other schema
-  versions or inconsistent score/value pairs are exposed as incompatible;
-  they are never converted into this series.
+- `post_ride_rpe` uses the effective 1–10 score from
+  `activity_rpe_resolution` and its selected `activity_rpe_observation` when
+  present. It exposes score, scale/schema versions, selected source,
+  observation ID, disagreement, and observed/received/resolved times. A
+  missing or inconsistent selected observation is incompatible, not replaced
+  with a legacy score. For activities without current RPE, compatible legacy
+  `v1` and `v1_extensible` feedback uses the historical 1–5 Whatte scale.
+  When both exist, the 1–5 row appears separately in
+  `legacy_post_ride_rpe`. No 1–5 value is converted to 1–10.
+- `load.intensity_band` uses the existing response-metrics intensity-band
+  boundaries on the current activity's intensity factor, only when its
+  power-based load is included. This is current activity context, not an
+  immutable decision-time feature.
 - `next_day_recovery` is date-level feedback for the next local date. Several
   activities on one date may reference the same feedback ID. It is shared
   context, not an isolated outcome for each activity or independent samples
@@ -48,7 +58,46 @@ feedback edits, or recomputation. Repeated runs over unchanged persisted inputs
 produce equivalent records apart from `generated_at`; this is not a historical
 as-of export for mutable fields.
 
-This phase does not infer mismatch or model error from RPE, estimate calibrated
-probabilities, or change readiness. Outcomes remain separately inspectable;
-targets, denominators, comparison windows, and missing-input strata belong to
-#95 before calibration conclusions.
+## Descriptive evaluation
+
+`evaluation.activity_states` counts every canonical activity by decision,
+load, and RPE availability. `rpe_distributions` counts one effective RPE per
+activity, grouped by scale, recommendation, sport, load inclusion, current
+intensity band, and snapshot physiology availability. Only available decisions
+and valid RPE enter these
+distributions; 1–5 and 1–10 are separate series.
+
+`evaluation.recovery_days` has one row per local training date. It uses the
+earliest activity's eligible pre-activity decision and the single next-local-day
+recovery observation. It exposes the number and IDs of activities, included
+TSS, included activity count, and whether all, some, or none have measured
+load. `recovery_distributions` separates these load-coverage and snapshot
+physiology-availability states and counts
+only days with both an available decision and compatible recovery feedback;
+one recovery response is never counted once per activity. `day_states` retains
+the missing and incompatible cases. The CLI's inclusive local date range is
+the comparison window; reading the outcome for the final training date may
+access the following local date.
+
+`evaluation.review_cases` identifies two activity-level session-effort
+patterns only on the 1–10 scale with included power-based load:
+
+- `low_intensity_high_rpe`: existing `recovery` or `endurance` intensity band
+  with RPE 8–10, whose labels start at Very hard;
+- `high_intensity_low_rpe`: existing `threshold` or `high_intensity` intensity
+  band with RPE 1–3, whose labels end at Light.
+
+The day-level `high_intensity_advice_low_next_day_recovery` case requires an
+available pre-first-activity `high_intensity` recommendation, fully measured
+activity load, and next-day recovery score 1–2 (`exhausted` or `tired`). The
+activity count and load are
+shown because that recovery cannot be attributed to one activity. These are
+cases for manual inspection, not automatic model errors or causal claims.
+
+`evaluation.model_error.status = not_measurable`: the current recommendation
+permits a category of training but does not predict a particular RPE or
+next-day recovery value. `good_day_probability` is not a validated statistical
+probability. No calibrated probability, error rate, overestimation verdict,
+or threshold change is derived here. The decision to define a validated
+prediction target and baseline belongs to #95. This CLI does not change
+readiness, create snapshots, or implement the general export in #79.

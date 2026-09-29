@@ -12,27 +12,39 @@ UTC = timezone.utc
 
 
 def activity(activity_id=1, start=None, *, metrics_id=11, rpe_id=21,
-             recovery_id=31, sport="Ride"):
+             recovery_id=31, sport="Ride", current_rpe=None,
+             intensity_factor=0.8, recovery_score=3):
     start = start or datetime(2026, 9, 1, 7, tzinfo=UTC)
     local_day = start.astimezone(timezone(timedelta(hours=3))).date()
     return (activity_id, sport, start, local_day, metrics_id,
             52.0 if metrics_id else None, 180.0 if metrics_id else None,
-            0.8 if metrics_id else None, rpe_id, 4 if rpe_id else None,
+            intensity_factor if metrics_id else None, rpe_id, 4 if rpe_id else None,
             "hard" if rpe_id else None, "v1_extensible" if rpe_id else None,
             start + timedelta(hours=2) if rpe_id else None,
-            recovery_id, 3 if recovery_id else None,
-            "okay" if recovery_id else None,
+            current_rpe, "strava" if current_rpe else None,
+            False if current_rpe else None,
+            start + timedelta(hours=2) if current_rpe else None,
+            100 + activity_id if current_rpe else None, current_rpe,
+            "rpe_1_10" if current_rpe else None,
+            "rpe_observation_v1" if current_rpe else None,
+            None, start + timedelta(hours=2) if current_rpe else None,
+            recovery_id, recovery_score if recovery_id else None,
+            {1: "exhausted", 2: "tired", 3: "okay", 4: "fresh", 5: "very_fresh"}[recovery_score] if recovery_id else None,
             "v1_extensible" if recovery_id else None,
             start + timedelta(days=1) if recovery_id else None)
 
 
 def snapshot(sid=1, captured=None, computed=None, *, day=date(2026, 9, 1),
-             version="v2_signal_composition_response_v1"):
+             version="v2_signal_composition_response_v1", physiology=None):
     captured = captured or datetime(2026, 9, 1, 6, tzinfo=UTC)
     computed = computed or captured - timedelta(minutes=5)
     return (sid, day, "daily_readiness_delivery", f"delivery:{sid}",
             version, 72.0, "moderate",
-            {"readiness_computed_at": computed.isoformat()}, captured)
+            {"readiness_computed_at": computed.isoformat(),
+             "explanation": {"signal_families": {
+                 "physiology": {"availability": physiology}
+             }}} if physiology else {"readiness_computed_at": computed.isoformat()},
+            captured)
 
 
 def report(activities, snapshots):
@@ -135,3 +147,89 @@ def test_query_uses_read_only_consistent_transaction(monkeypatch):
     assert commands[0][0] == "set transaction isolation level repeatable read, read only"
     assert commands[1][0] == ACTIVITY_QUERY
     assert result["records"] == []
+
+
+def test_current_rpe_precedes_legacy_without_mixing_scales():
+    result = report([activity(current_rpe=8)], [snapshot()])[0]
+    assert result["post_ride_rpe"]["scale"] == "1-10"
+    assert result["post_ride_rpe"]["source"] == "strava"
+    assert result["legacy_post_ride_rpe"]["scale"] == "1-5"
+    assert result["post_ride_rpe"]["source_id"] == 101
+
+
+def test_evaluation_uses_distinct_activity_and_recovery_day_units():
+    first = activity(1, current_rpe=8, intensity_factor=0.6, recovery_score=2)
+    second = activity(2, start=datetime(2026, 9, 1, 9, tzinfo=UTC),
+                      current_rpe=2, intensity_factor=1.1, recovery_score=2)
+    evaluation = calibration_records.build_evaluation(report([first, second], [snapshot()]))
+    assert evaluation["activity_count"] == 2
+    assert evaluation["training_day_count"] == 1
+    assert evaluation["recovery_distributions"][0]["day_count"] == 1
+    assert evaluation["rpe_distributions"][0]["scale"] == "1-10"
+    assert {case["type"] for case in evaluation["review_cases"]} == {
+        "low_intensity_high_rpe", "high_intensity_low_rpe",
+    }
+    assert evaluation["model_error"]["status"] == "not_measurable"
+
+
+def test_review_case_needs_comparable_evidence():
+    missing = activity(1, current_rpe=9, metrics_id=None)
+    incompatible = list(activity(2, current_rpe=9))
+    incompatible[19] = "unexpected_scale"
+    evaluation = calibration_records.build_evaluation(
+        report([missing, tuple(incompatible)], [snapshot()])
+    )
+    assert evaluation["review_cases"] == []
+    assert evaluation["activity_states"]["rpe:incompatible_scale_or_resolution:unknown"] == 1
+
+
+def test_legacy_and_current_rpe_have_separate_denominators():
+    evaluation = calibration_records.build_evaluation(report([
+        activity(1), activity(2, current_rpe=8),
+    ], [snapshot()]))
+    assert [(group["scale"], group["count"]) for group in evaluation["rpe_distributions"]] == [
+        ("1-10", 1), ("1-5", 1),
+    ]
+    assert evaluation["activity_states"]["rpe:available:1-10"] == 1
+    assert evaluation["activity_states"]["rpe:available:1-5"] == 1
+
+
+def test_day_review_case_uses_one_recovery_for_multiple_activities():
+    first = activity(1, recovery_score=2)
+    second = activity(2, start=datetime(2026, 9, 1, 9, tzinfo=UTC), recovery_score=2)
+    decision = list(snapshot())
+    decision[6] = "high_intensity"
+    evaluation = calibration_records.build_evaluation(
+        report([first, second], [tuple(decision)])
+    )
+    cases = [case for case in evaluation["review_cases"]
+             if case["type"] == "high_intensity_advice_low_next_day_recovery"]
+    assert len(cases) == 1
+    assert cases[0]["activity_ids"] == [1, 2]
+    assert evaluation["recovery_distributions"][0]["day_count"] == 1
+
+
+def test_partial_load_day_remains_visible_without_day_review_verdict():
+    first = activity(1, recovery_score=2)
+    second = activity(2, start=datetime(2026, 9, 1, 9, tzinfo=UTC),
+                      sport="Run", recovery_score=2)
+    decision = list(snapshot())
+    decision[6] = "high_intensity"
+    evaluation = calibration_records.build_evaluation(
+        report([first, second], [tuple(decision)])
+    )
+    day = evaluation["recovery_days"][0]
+    assert day["load_coverage"] == "partially_included"
+    assert evaluation["recovery_distributions"][0]["load_coverage"] == "partially_included"
+    assert not any(case["type"] == "high_intensity_advice_low_next_day_recovery"
+                   for case in evaluation["review_cases"])
+
+
+def test_snapshot_physio_availability_is_preserved_as_stratum():
+    record = report([activity(current_rpe=7)], [
+        snapshot(physiology="unavailable")
+    ])[0]
+    assert record["decision"]["signal_availability"]["physiology"] == "unavailable"
+    evaluation = calibration_records.build_evaluation([record])
+    assert evaluation["rpe_distributions"][0]["physiology_availability"] == "unavailable"
+    assert evaluation["recovery_distributions"][0]["physiology_availability"] == "unavailable"
