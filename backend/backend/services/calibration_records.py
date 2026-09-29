@@ -71,6 +71,7 @@ RECOVERY_VALUES = {1: "exhausted", 2: "tired", 3: "okay", 4: "fresh", 5: "very_f
 FEEDBACK_VERSIONS = {"v1", "v1_extensible"}
 CURRENT_RPE_SCALE = "rpe_1_10"
 CURRENT_RPE_SCHEMA = "rpe_observation_v1"
+OUTCOME_CONTRACT_VERSION = "workout_outcome_v1"
 
 
 def _feedback(record_id: Any, score: Any, value: Any, version: Any,
@@ -115,6 +116,32 @@ def _current_rpe(
         "observed_at": observed_at,
         "received_at": received_at,
         "resolved_at": resolved_at,
+    }
+
+
+def _outcome_targets(rpe: dict[str, Any], recovery: dict[str, Any]) -> dict[str, Any]:
+    """Keep independent observed targets and explicit uncollected targets."""
+    return {
+        "contract_version": OUTCOME_CONTRACT_VERSION,
+        "targets": {
+            "post_workout_rpe": {"unit": "activity", **rpe},
+            "subjective_result": {
+                "unit": "activity", "status": "not_collected", "value": None,
+            },
+            "completion_state": {
+                "unit": "activity", "status": "not_collected", "value": None,
+            },
+            "completion_ratio": {
+                "unit": "activity", "status": "no_plan_source", "value": None,
+            },
+            "planned_vs_actual_duration": {
+                "unit": "activity", "status": "no_plan_source", "value": None,
+            },
+            "planned_vs_actual_load": {
+                "unit": "activity", "status": "no_plan_source", "value": None,
+            },
+            "next_day_recovery": {"unit": "training_day", **recovery},
+        },
     }
 
 
@@ -308,6 +335,28 @@ def build_evaluation(records: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def build_outcome_evaluation(records: list[dict[str, Any]]) -> dict[str, Any]:
+    """Count each activity target separately and recovery once per training day."""
+    activity_states: dict[str, Counter[str]] = {}
+    recovery_by_day: dict[date, str] = {}
+    for record in records:
+        for name, target in record["outcome"]["targets"].items():
+            if target["unit"] == "activity":
+                activity_states.setdefault(name, Counter())[target["status"]] += 1
+            else:
+                recovery_by_day.setdefault(record["activity_local_date"], target["status"])
+    return {
+        "contract_version": OUTCOME_CONTRACT_VERSION,
+        "activity_count": len(records),
+        "activity_target_states": {
+            name: dict(sorted(states.items()))
+            for name, states in sorted(activity_states.items())
+        },
+        "training_day_count": len(recovery_by_day),
+        "next_day_recovery_states": dict(sorted(Counter(recovery_by_day.values()).items())),
+    }
+
+
 def build_calibration_records(*, user_id: str, date_from: date, date_to: date,
                               timezone: str, activities: list[tuple[Any, ...]],
                               snapshots: list[tuple[Any, ...]],
@@ -335,6 +384,13 @@ def build_calibration_records(*, user_id: str, date_from: date, date_to: date,
             activity_type=activity_type, tss=tss,
             normalized_power=normalized_power, intensity_factor=intensity_factor,
         )
+        effective_rpe = current_rpe or legacy_rpe
+        next_day_recovery = {
+            **_feedback(recovery_id, recovery_score, recovery_value,
+                        recovery_version, recovery_updated_at, RECOVERY_VALUES),
+            "target_local_date": local_day + timedelta(days=1),
+            "semantics": "day_level_context_shared_by_all_activities_on_previous_day",
+        }
         records.append({
             "activity_id": activity_id,
             "activity_type": activity_type,
@@ -359,14 +415,10 @@ def build_calibration_records(*, user_id: str, date_from: date, date_to: date,
                     else "missing_metrics"
                 ),
             },
-            "post_ride_rpe": current_rpe or legacy_rpe,
+            "post_ride_rpe": effective_rpe,
             "legacy_post_ride_rpe": legacy_rpe if current_rpe is not None else None,
-            "next_day_recovery": {
-                **_feedback(recovery_id, recovery_score, recovery_value,
-                            recovery_version, recovery_updated_at, RECOVERY_VALUES),
-                "target_local_date": local_day + timedelta(days=1),
-                "semantics": "day_level_context_shared_by_all_activities_on_previous_day",
-            },
+            "next_day_recovery": next_day_recovery,
+            "outcome": _outcome_targets(effective_rpe, next_day_recovery),
         })
     report = {
         "user_id": user_id, "date_from": date_from, "date_to": date_to,
@@ -374,6 +426,7 @@ def build_calibration_records(*, user_id: str, date_from: date, date_to: date,
         "records": records,
     }
     report["evaluation"] = build_evaluation(records)
+    report["outcome_evaluation"] = build_outcome_evaluation(records)
     return report
 
 

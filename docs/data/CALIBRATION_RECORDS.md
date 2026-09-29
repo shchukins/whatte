@@ -1,5 +1,36 @@
 # Decision-to-outcome records and evaluation (#77)
 
+## Versioned outcome contract (#132)
+
+Each activity record has `outcome.contract_version = workout_outcome_v1` and
+independent `outcome.targets`. The targets have a `unit` and `status`; a missing
+target does not make another target or the activity record ineligible.
+
+| Target | Unit and scale | v1 eligibility and missing rule |
+| --- | --- | --- |
+| `post_workout_rpe` | Activity; effective 1–10 observation (`rpe_1_10` / `rpe_observation_v1`), or historical 1–5 (`v1` / `v1_extensible`) as a separate series | Available only with a compatible stored observation. Missing and incompatible values retain their distinct statuses. A present but inconsistent 1–10 resolution is not replaced by a legacy score. |
+| `subjective_result` | Activity; future ordered categories `worse`, `as_expected`, `better`, reported by the athlete relative to their expectation | `not_collected` until a versioned source and collection flow exist. No value is inferred from RPE or load. |
+| `completion_state` | Activity; future categories `completed`, `partial`, `not_completed`, relative to an identified plan | `not_collected` until an explicit completion source exists. A Strava activity alone does not establish planned-workout completion. |
+| `completion_ratio` | Activity; future fraction of planned workout segments completed, from 0 to 1 inclusive | `no_plan_source`; requires identified planned segments and their completion states. Zero and missing must remain distinct when implemented. |
+| `planned_vs_actual_duration` | Activity; future planned and actual duration in seconds, with `actual - planned` seconds | `no_plan_source`; requires an identified planned duration and comparable actual elapsed duration. |
+| `planned_vs_actual_load` | Activity; future planned and actual load, with `actual - planned` in the same named metric/version | `no_plan_source`; requires an identified plan and comparable measured load. Current TSS cannot be used as a plan. |
+| `next_day_recovery` | Training day; 1–5 from date-level `next_day_recovery` feedback | Available only with compatible feedback on the following local date. Missing/incompatible feedback retains its status. |
+
+Decision eligibility remains independent: the latest eligible same-local-day
+snapshot must have been captured and computed before activity start. Recovery
+for several activities on one local date is a shared contextual observation,
+not several independent outcomes; day-level evaluation counts it once. Feedback
+edits change the current read-only report, while append-only decision snapshots
+remain historical. `generated_at` is excluded when comparing repeat builds.
+This contract does not produce a composite success score or causal verdict.
+The five future targets require a separate source/schema decision before their
+status can become `available`; their present scales specify the intended
+meaning, not an implemented collection path.
+`outcome_evaluation` reports per-target availability counts for activity targets
+and counts next-day recovery once per training day. Its own
+`contract_version` identifies the counting rules. It does not compare scores
+with predictions; the existing descriptive `evaluation` remains available.
+
 Run from `backend/` with the usual backend environment configured:
 
 ```bash
