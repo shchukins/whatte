@@ -75,7 +75,7 @@
                 {% set recovery_options = [(1, 'Exhausted'), (2, 'Tired'), (3, 'Okay'), (4, 'Fresh'), (5, 'Very fresh')] %}
                 {% for score, label in recovery_options %}
                 <form method="post" action="/today/recovery/{{ score }}" data-feedback-form>
-                    <button class="scale-button" type="submit" formmethod="post" formaction="/today/recovery/{{ score }}" aria-label="Recovery: {{ label }}" aria-pressed="{{ 'true' if recovery and recovery.score == score else 'false' }}">
+                    <button class="scale-button" data-score="{{ score }}" type="submit" formmethod="post" formaction="/today/recovery/{{ score }}" aria-label="Recovery: {{ label }}" aria-pressed="{{ 'true' if recovery and recovery.score == score else 'false' }}">
                         <span class="scale-number" aria-hidden="true">{{ score }}</span>
                         <span class="scale-label">{{ label }}</span>
                     </button>

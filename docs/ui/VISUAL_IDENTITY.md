@@ -15,6 +15,8 @@ page or changing its behavior.
 - Use muted olive, ochre, brick, and slate accents sparingly. Never use a
   bright fitness-app palette, gradients, glass effects, neon, or decorative
   circular gauges.
+- Functional score controls may use a discrete muted green-to-ochre-to-brick
+  color scale. Keep selection visible through borders as well as color.
 - Build hierarchy with generous whitespace, asymmetric columns where useful,
   thin rules, and type. Avoid stacks of rounded cards and heavy shadows.
 - Lead with an observation or decision. Place the stored metric and evidence
