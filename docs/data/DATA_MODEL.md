@@ -380,6 +380,20 @@ feedback write path is introduced by this contract.
 Full formula and eligibility contract:
 [`docs/models/TRAINING_RESPONSE.md`](../models/TRAINING_RESPONSE.md).
 
+### 5.9b Manual physiology observations
+
+`manual_physiology_observation` stores the current optional manual sleep, HRV,
+and resting-HR values for one user/local date. The natural key is
+`(user_id, local_date)`. Nullable values remain unavailable rather than being
+filled with zero or a neutral score.
+
+`manual_physiology_observation_revision` is the append-only audit history for
+actual changes. It preserves a full observation snapshot, source, received
+time, schema version, revision number, and the submitted fields that changed.
+The persistence contract is documented in
+[`MANUAL_PHYSIOLOGY.md`](MANUAL_PHYSIOLOGY.md). It does not calculate a
+baseline, recovery score, or readiness value.
+
 ### 5.10 `activity_subjective_feedback`
 
 Слой user-reported subjective feedback.
