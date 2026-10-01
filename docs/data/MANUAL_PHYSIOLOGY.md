@@ -1,7 +1,7 @@
 # Manual physiology observations
 
-Status: persistence/domain contract implemented; API and collection UI are
-planned separately in #127 and #128.
+Status: persistence/domain contract and authenticated API implemented; Telegram
+and Web collection UI remain planned separately in #128 and #129.
 
 `manual_physiology_observation_v1` stores optional user-entered physiology for
 one configured local calendar date. It is raw observation storage, not a
@@ -47,3 +47,24 @@ The revision table is append-only through the service contract.
 The storage layer does not merge these observations with historical HealthKit
 rows, calculate baselines, recompute readiness, or select a preferred source.
 Those are separate, explicitly versioned contracts.
+
+## API contract
+
+The authenticated API is deliberately a thin boundary over this persistence
+contract:
+
+- `GET /api/v1/manual-physiology/{local_date}` reads one configured-user local
+  date. A missing row returns `200` with `available: false` and every field as
+  `unavailable`; it is never represented as poor recovery.
+- `PATCH /api/v1/manual-physiology/{local_date}` accepts `source` (`telegram`
+  or `web`) and any subset of value fields plus `observed_at`. Omitted fields
+  retain their value; explicit `null` clears one.
+
+Both endpoints require `Authorization: Bearer <MANUAL_PHYSIOLOGY_API_TOKEN>`.
+They return field-level availability, source, observation/update timestamps,
+schema version, and revision. PATCH additionally returns `changed` and
+`changed_fields`; an identical repeat remains revision- and timestamp-stable.
+
+The token is a dedicated server-side integration credential. An unset token
+disables the API with `503`; it never falls back to public access. The API is
+scoped to `DAILY_READINESS_USER_ID`, so clients cannot select another user.

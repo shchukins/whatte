@@ -46,5 +46,9 @@ class Settings(BaseSettings):
         le=59,
         alias="DAILY_READINESS_FALLBACK_MINUTE_UTC",
     )
+    manual_physiology_api_token: str | None = Field(
+        default=None,
+        alias="MANUAL_PHYSIOLOGY_API_TOKEN",
+    )
 
 settings = Settings()

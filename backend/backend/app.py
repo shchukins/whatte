@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field
 from backend.config import settings
 from backend.core.logging import configure_logging, log_event
 from backend.dashboard import router as dashboard_router
+from backend.physiology import router as manual_physiology_router
 from backend.today import router as today_router
 from backend.db import get_conn
 from backend.services.user_profile_service import resolve_activity_profile
@@ -57,6 +58,7 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Human Engine API", version="0.1.0")
 app.include_router(dashboard_router)
+app.include_router(manual_physiology_router)
 app.include_router(today_router)
 
 
