@@ -52,6 +52,7 @@ from backend.services.subjective_feedback_service import (
     schedule_next_day_recovery_prompts,
     send_next_day_recovery_prompt,
 )
+from backend.services.telegram_physiology_service import handle_telegram_physiology_message
 
 configure_logging()
 logger = logging.getLogger(__name__)
@@ -1339,6 +1340,9 @@ async def telegram_webhook_receive(request: Request):
 
     if payload.get("callback_query"):
         return handle_telegram_feedback_callback(payload)
+
+    if payload.get("message"):
+        return handle_telegram_physiology_message(payload)
 
     return {"ok": True, "ignored": True}
 

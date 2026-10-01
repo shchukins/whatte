@@ -266,6 +266,12 @@ Semantics:
 - best-effort подтверждает callback
 - best-effort редактирует message в `Recovery feedback recorded ✓`
 
+После успешной записи текущий configured Telegram chat получает отдельное
+необязательное приглашение указать сон, качество сна, HRV и resting HR. Это
+не заменяет one-tap recovery и не является обязательной анкетой. Вводимые
+значения сохраняются как `manual_physiology_observation_v1` с source
+`telegram`; они не меняют readiness в этом delivery flow.
+
 ---
 
 ## 8. Data rationale inside feedback flows

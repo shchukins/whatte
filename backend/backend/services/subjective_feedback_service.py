@@ -33,6 +33,11 @@ from backend.services.telegram_service import (
     edit_telegram_message,
     send_telegram_message,
 )
+from backend.services.telegram_physiology_service import (
+    build_physiology_offer_keyboard,
+    handle_telegram_physiology_callback,
+)
+from backend.config import settings
 
 
 logger = logging.getLogger(__name__)
@@ -1316,6 +1321,10 @@ def schedule_next_day_recovery_prompts(
 
 
 def handle_telegram_feedback_callback(payload: dict[str, Any]) -> dict[str, Any]:
+    physiology_result = handle_telegram_physiology_callback(payload)
+    if physiology_result is not None:
+        return physiology_result
+
     callback_query = payload.get("callback_query") or {}
     callback_query_id = callback_query.get("id")
     callback_data = callback_query.get("data")
@@ -1473,5 +1482,28 @@ def handle_telegram_feedback_callback(payload: dict[str, Any]) -> dict[str, Any]
             feedback_type=result["feedback_type"],
             source=result["source"],
         )
+
+    # This starts after the existing recovery write commits. Manual physiology
+    # remains optional raw input and does not recompute readiness in this flow.
+    if (
+        result["feedback_type"] == FEEDBACK_TYPE_NEXT_DAY_RECOVERY
+        and result["user_id"] == settings.daily_readiness_user_id
+        and chat_id is not None
+        and not result.get("was_update", False)
+    ):
+        try:
+            send_telegram_message(
+                "Дополнительно можно записать сон, HRV и пульс. Это необязательно.",
+                reply_markup=build_physiology_offer_keyboard(result["activity_date"]),
+                chat_id=chat_id,
+            )
+        except requests.HTTPError:
+            log_event(
+                logger,
+                "telegram_physiology_offer_failed",
+                level=logging.WARNING,
+                user_id=result["user_id"],
+                activity_date=result["activity_date"],
+            )
 
     return {"ok": True, **result}

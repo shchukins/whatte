@@ -53,3 +53,4 @@ psql -v ON_ERROR_STOP=1 "$DATABASE_URL" -f "$REPO_ROOT/db-init/010_decision_cont
 psql -v ON_ERROR_STOP=1 "$DATABASE_URL" -f "$REPO_ROOT/db-init/011_user_profile.sql"
 psql -v ON_ERROR_STOP=1 "$DATABASE_URL" -f "$REPO_ROOT/db-init/012_rpe_observations.sql"
 psql -v ON_ERROR_STOP=1 "$DATABASE_URL" -f "$REPO_ROOT/db-init/013_manual_physiology_observations.sql"
+psql -v ON_ERROR_STOP=1 "$DATABASE_URL" -f "$REPO_ROOT/db-init/014_telegram_physiology_checkin.sql"

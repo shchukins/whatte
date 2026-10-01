@@ -1,7 +1,7 @@
 # Manual physiology observations
 
-Status: persistence/domain contract and authenticated API implemented; Telegram
-and Web collection UI remain planned separately in #128 and #129.
+Status: persistence/domain contract, authenticated API, and optional Telegram
+collection implemented; Web collection UI remains planned separately in #129.
 
 `manual_physiology_observation_v1` stores optional user-entered physiology for
 one configured local calendar date. It is raw observation storage, not a
@@ -68,3 +68,21 @@ schema version, and revision. PATCH additionally returns `changed` and
 The token is a dedicated server-side integration credential. An unset token
 disables the API with `503`; it never falls back to public access. The API is
 scoped to `DAILY_READINESS_USER_ID`, so clients cannot select another user.
+
+## Telegram collection
+
+The existing one-tap next-day recovery check remains unchanged. After its
+successful write, Telegram offers an optional physiology block; skipping it
+does not block recovery feedback, readiness, or a recommendation.
+
+The block collects sleep duration, optional sleep quality, HRV, and resting
+heart rate as separate short numeric messages. Each step has a skip action;
+skipping keeps any existing value untouched, so a partial submission is valid.
+Starting the block again on the same local date shows the stored values before
+editing and writes through the same service with `source = telegram`.
+
+Telegram session rows contain only UI state and a rotating callback token, not
+physiology values. A replaced, completed, or previous-date token is rejected
+as stale. Accepted values are saved immediately through the normal versioned
+observation contract. This flow does not calculate baselines or recompute
+readiness.
