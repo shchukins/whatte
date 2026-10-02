@@ -49,6 +49,9 @@ Readiness
 - базовые daily layers уже реализованы без отдельного расширенного persisted feature layer
 - `daily_training_load`, `load_state_daily_v2` и `readiness_daily` работают как active deterministic pipeline; normalized HealthKit tables и `health_recovery_daily` сохранены как historical layers
 - расширение feature extraction остается следующим этапом, а не обязательным условием текущего backend baseline
+- `daily_feature_vector_v1` now provides a read-only, cutoff-bounded research
+  input contract over the existing daily layers; it is not a persisted model
+  feature layer and does not alter readiness
 
 ---
 
