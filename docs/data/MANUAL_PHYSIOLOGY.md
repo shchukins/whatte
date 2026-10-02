@@ -48,6 +48,29 @@ The storage layer does not merge these observations with historical HealthKit
 rows, calculate baselines, recompute readiness, or select a preferred source.
 Those are separate, explicitly versioned contracts.
 
+## Personal-relative features
+
+`personal_physiology_feature_daily` is the manual-observation-only derived
+contract for research and future feature vectors. It does not use HealthKit,
+does not calculate a synthetic recovery score, and is not a readiness input.
+
+Version `personal_physiology_features_v1` uses the preceding 28 calendar days,
+excluding the target date, and requires seven non-null earlier observations per
+signal. It stores the observation count and one of `unavailable`, `immature`,
+or `mature` baseline states for each signal. A missing target-day value remains
+`unavailable`; it is never filled from the baseline.
+
+- HRV stores rolling-median baseline, `current / baseline`, and ratio minus 1.
+- Resting HR stores rolling-median baseline and `current - baseline` bpm.
+- Sleep duration stores rolling-median baseline, `current - baseline` minutes,
+  and non-negative debt `max(baseline - current, 0)`.
+
+The row stores formula version, window, minimum history, source observation
+revision, and timestamp state. `source_staleness` is metadata only:
+`current_local_date`, `stale` (observation timestamp before the local date),
+`late` (after it), or `unknown` when no observation timestamp exists. It never
+changes a value's eligibility or silently carries an earlier value forward.
+
 ## API contract
 
 The authenticated API is deliberately a thin boundary over this persistence

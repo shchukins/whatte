@@ -583,3 +583,7 @@ before deploying this version to backend and worker. See
 существующей БД, затем обновить backend и worker вместе. Миграция оставляет
 исторические feedback 1–5 и response `v1` без преобразования; новый response
 `v2_rpe_1_10` собирает собственный comparable baseline.
+
+Перед использованием manual-only personal physiology features применить
+`db-init/015_personal_physiology_features.sql`. Это отдельный research-derived
+слой: он не меняет readiness, Telegram flow или historical HealthKit rows.

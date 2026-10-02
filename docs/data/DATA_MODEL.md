@@ -394,6 +394,15 @@ The persistence contract is documented in
 [`MANUAL_PHYSIOLOGY.md`](MANUAL_PHYSIOLOGY.md). It does not calculate a
 baseline, recovery score, or readiness value.
 
+### 5.9c Personal physiology features
+
+`personal_physiology_feature_daily` persists reproducible, versioned
+personal-relative features from `manual_physiology_observation` only. It
+stores per-signal baseline sample counts, maturity/availability, explicit
+timestamp state, and formula configuration alongside HRV ratio/deviation,
+resting-HR delta, and sleep deviation/debt. It is a research and feature-vector
+input; it does not replace raw observations, use HealthKit, or alter readiness.
+
 ### 5.10 `activity_subjective_feedback`
 
 Слой user-reported subjective feedback.
