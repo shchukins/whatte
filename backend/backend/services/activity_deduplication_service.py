@@ -7,10 +7,8 @@ from typing import Any
 from backend.db import get_conn
 
 
-DETECTION_VERSION = "indoor_mywhoosh_garmin_v1"
+DETECTION_VERSION = "indoor_mywhoosh_garmin_v2"
 MIN_OVERLAP_RATIO = 0.80
-MAX_DURATION_DIFFERENCE_RATIO = 0.15
-MAX_START_DIFFERENCE_SECONDS = 10 * 60
 HIGH_CONFIDENCE_THRESHOLD = 0.85
 CANDIDATE_ACTUAL_TIME_WINDOW = timedelta(hours=24)
 
@@ -133,13 +131,9 @@ def evaluate_duplicate_pair(
 
     new_source = identify_activity_source(new_activity)
     candidate_source = identify_activity_source(candidate_activity)
-    source_pair_is_supported = (
-        SOURCE_GARMIN in {new_source["source"], candidate_source["source"]}
-        and any(
-            source in {SOURCE_MYWHOOSH, SOURCE_VIRTUAL_RIDE}
-            for source in {new_source["source"], candidate_source["source"]}
-        )
-    )
+    source_pair_is_supported = {
+        new_source["source"], candidate_source["source"]
+    } == {SOURCE_MYWHOOSH, SOURCE_GARMIN}
     if not source_pair_is_supported:
         reasons.append("source_pair_not_mywhoosh_garmin")
 
@@ -155,8 +149,6 @@ def evaluate_duplicate_pair(
     ):
         reasons.append("missing_time_interval")
         overlap_ratio = 0.0
-        duration_difference_ratio = 1.0
-        start_difference_seconds = float("inf")
     else:
         new_end = new_start + timedelta(seconds=new_duration)
         candidate_end = candidate_start + timedelta(seconds=candidate_duration)
@@ -165,27 +157,14 @@ def evaluate_duplicate_pair(
             (min(new_end, candidate_end) - max(new_start, candidate_start)).total_seconds(),
         )
         overlap_ratio = overlap_seconds / min(new_duration, candidate_duration)
-        duration_difference_ratio = (
-            abs(new_duration - candidate_duration) / max(new_duration, candidate_duration)
-        )
-        start_difference_seconds = abs((new_start - candidate_start).total_seconds())
-
         if overlap_ratio < MIN_OVERLAP_RATIO:
             reasons.append("overlap_below_threshold")
-        if duration_difference_ratio > MAX_DURATION_DIFFERENCE_RATIO:
-            reasons.append("duration_difference_above_threshold")
-        if start_difference_seconds > MAX_START_DIFFERENCE_SECONDS:
-            reasons.append("start_difference_above_threshold")
 
+    # Garmin may record before or after the MyWhoosh session. For this explicit
+    # source pair, substantial temporal overlap is the duplicate signal.
     confidence = round(
         0.50
-        + 0.30 * min(1.0, overlap_ratio)
-        + 0.15 * max(0.0, 1.0 - duration_difference_ratio)
-        + 0.05
-        * max(
-            0.0,
-            1.0 - start_difference_seconds / MAX_START_DIFFERENCE_SECONDS,
-        ),
+        + 0.50 * min(1.0, overlap_ratio),
         4,
     )
     if reasons or confidence < HIGH_CONFIDENCE_THRESHOLD:
@@ -202,7 +181,7 @@ def evaluate_duplicate_pair(
 
     canonical_activity_id = (
         new_id
-        if new_source["source"] in {SOURCE_MYWHOOSH, SOURCE_VIRTUAL_RIDE}
+        if new_source["source"] == SOURCE_MYWHOOSH
         else candidate_id
     )
     duplicate_activity_id = (
@@ -213,8 +192,6 @@ def evaluate_duplicate_pair(
             f"source_pair:{new_source['source']}:{candidate_source['source']}",
             f"source_signals:{new_source['reason']}:{candidate_source['reason']}",
             f"overlap_ratio:{overlap_ratio:.4f}",
-            f"duration_difference_ratio:{duration_difference_ratio:.4f}",
-            f"start_difference_seconds:{start_difference_seconds:.0f}",
         ]
     )
     return {

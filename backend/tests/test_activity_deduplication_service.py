@@ -68,6 +68,29 @@ def test_garmin_first_mywhoosh_later_switches_canonical_to_mywhoosh():
     assert result["duplicate_activity_id"] == GARMIN_ID
 
 
+def test_contained_mywhoosh_merges_when_garmin_started_early_and_is_longer():
+    mywhoosh = _activity(
+        MYWHOOSH_ID,
+        source="mywhoosh",
+        start=START + timedelta(minutes=26, seconds=20),
+        duration=34 * 60 + 20,
+    )
+    garmin = _activity(
+        GARMIN_ID,
+        source="garmin",
+        start=START,
+        duration=60 * 60 + 24,
+        activity_type="Ride",
+    )
+
+    result = dedup.evaluate_duplicate_pair(mywhoosh, garmin)
+
+    assert result["decision"] == "auto_merge"
+    assert result["canonical_activity_id"] == MYWHOOSH_ID
+    assert result["duplicate_activity_id"] == GARMIN_ID
+    assert "overlap_ratio:0.9922" in result["reasons"]
+
+
 def test_late_strava_arrival_does_not_affect_actual_time_match():
     garmin = _activity(GARMIN_ID, source="garmin")
     garmin["fetched_at"] = START + timedelta(hours=8)
@@ -128,6 +151,16 @@ def test_virtual_ride_and_trainer_are_a_source_fallback():
         "source": "virtual_ride",
         "reason": "virtual_ride_trainer_fallback",
     }
+
+
+def test_virtual_ride_fallback_does_not_auto_merge_with_garmin():
+    result = dedup.evaluate_duplicate_pair(
+        _activity(MYWHOOSH_ID, source="unknown"),
+        _activity(GARMIN_ID, source="garmin", activity_type="Ride"),
+    )
+
+    assert result["decision"] == "no_match"
+    assert "source_pair_not_mywhoosh_garmin" in result["reasons"]
 
 
 def test_excluded_duplicate_suppresses_notification_and_rpe(monkeypatch):

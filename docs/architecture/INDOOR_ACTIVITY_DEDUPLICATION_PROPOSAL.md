@@ -58,16 +58,17 @@ Automatic merge requires:
 - both activities are cycling activities;
 - exactly one is classified as MyWhoosh and the other as Garmin;
 - overlap divided by the shorter interval is at least `0.80`;
-- elapsed-duration difference divided by the longer duration is at most `0.15`;
-- start-time difference is at most the named start tolerance;
 - neither side has a manual-separate override for the pair.
+
+Garmin may begin before or end after MyWhoosh. For this explicit source pair,
+the MyWhoosh workout remains canonical when at least 80% of the shorter record
+overlaps; start-time and duration differences do not block the match. A generic
+trainer `VirtualRide` fallback is not enough for automatic merging.
 
 Confidence is a transparent weighted score:
 
 - source pair: `0.50`
-- overlap ratio: up to `0.30`
-- duration similarity: up to `0.15`
-- start similarity: up to `0.05`
+- overlap ratio: up to `0.50`
 
 All hard gates must pass and confidence must meet the high-confidence threshold.
 MyWhoosh is always canonical; Garmin is retained, linked, and excluded.
