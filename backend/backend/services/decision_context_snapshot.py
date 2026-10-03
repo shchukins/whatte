@@ -34,6 +34,7 @@ def capture_decision_context_snapshot(
     snapshot_date: str | date,
     event_type: str,
     reference_key: str,
+    event_context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Persist the current backend-owned decision without recomputing it."""
     normalized_date = _coerce_date(snapshot_date)
@@ -87,6 +88,7 @@ def capture_decision_context_snapshot(
                 "status_text": status_text,
                 "recommendation": recommendation,
                 "explanation": explanation,
+                "event_context": event_context or {},
             }
             canonical_json = json.dumps(snapshot, default=str, sort_keys=True, separators=(",", ":"))
             # Computation time is evidence stored in the snapshot, but it is not

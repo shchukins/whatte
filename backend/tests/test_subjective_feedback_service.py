@@ -915,6 +915,27 @@ def test_handle_telegram_recovery_callback_best_effort_when_telegram_edit_fails(
     ]
 
 
+def test_post_ride_feedback_snapshot_is_append_only_and_nonfatal(monkeypatch):
+    snapshot_calls = []
+    monkeypatch.setattr(
+        feedback_service,
+        "capture_decision_context_snapshot",
+        lambda **kwargs: snapshot_calls.append(kwargs),
+    )
+
+    feedback_service._capture_post_ride_feedback_snapshot(
+        user_id="user-1", canonical_activity_id=42, activity_date="2026-09-01",
+    )
+
+    assert snapshot_calls == [{
+        "user_id": "user-1",
+        "snapshot_date": "2026-09-01",
+        "event_type": "post_ride_feedback",
+        "reference_key": "post_ride_feedback:user-1:42",
+        "event_context": {"canonical_activity_id": 42},
+    }]
+
+
 def test_handle_telegram_feedback_callback_is_safe_for_duplicate_callbacks(monkeypatch):
     callback_answers: list[tuple[str, str | None]] = []
     edited_messages: list[tuple[int, int, str]] = []

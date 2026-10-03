@@ -69,3 +69,19 @@ def test_snapshot_fingerprint_ignores_recompute_time(monkeypatch):
 
     assert first["readiness_computed_at"] != second["readiness_computed_at"]
     assert first["content_fingerprint"] == second["content_fingerprint"]
+
+
+def test_snapshot_includes_event_context_in_immutable_state(monkeypatch):
+    monkeypatch.setattr(
+        decision_context_snapshot,
+        "get_conn",
+        lambda: _Connection((70.0, 0.7, "Good", {}, datetime(2026, 9, 1, 5, tzinfo=timezone.utc))),
+    )
+
+    result = decision_context_snapshot.capture_decision_context_snapshot(
+        user_id="user-1", snapshot_date=date(2026, 9, 1),
+        event_type="post_activity_state", reference_key="post_activity:user-1:7",
+        event_context={"canonical_activity_id": 7},
+    )
+
+    assert result["event_context"] == {"canonical_activity_id": 7}

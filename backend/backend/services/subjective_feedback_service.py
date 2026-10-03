@@ -994,6 +994,11 @@ def upsert_activity_subjective_feedback(
         context=build_feedback_context_snapshot(user_id),
         feedback_schema_version=feedback_schema_version,
     )
+    _capture_post_ride_feedback_snapshot(
+        user_id=user_id,
+        canonical_activity_id=canonical_activity_id,
+        activity_date=result.get("activity_date"),
+    )
     return result
 
 
@@ -1020,13 +1025,40 @@ def upsert_activity_rpe_v2(
         },
         observed_at=datetime.now(timezone.utc),
     )
-    return {
+    response = {
         **result,
         "user_id": user_id,
         "activity_id": canonical_activity_id,
         "activity_date": result.get("response_metrics", {}).get("activity_date"),
         "feedback_type": FEEDBACK_TYPE_POST_RIDE_RPE,
     }
+    _capture_post_ride_feedback_snapshot(
+        user_id=user_id,
+        canonical_activity_id=canonical_activity_id,
+        activity_date=response["activity_date"],
+    )
+    return response
+
+
+def _capture_post_ride_feedback_snapshot(
+    *, user_id: str, canonical_activity_id: int, activity_date: str | date | None,
+) -> None:
+    """Keep feedback evidence append-only without making collection fail."""
+    if activity_date is None:
+        logger.warning("Cannot snapshot post-ride feedback without activity date")
+        return
+    try:
+        capture_decision_context_snapshot(
+            user_id=user_id,
+            snapshot_date=activity_date,
+            event_type="post_ride_feedback",
+            reference_key=f"post_ride_feedback:{user_id}:{canonical_activity_id}",
+            event_context={"canonical_activity_id": canonical_activity_id},
+        )
+    except Exception:
+        # Feedback was stored successfully; snapshot failure must not invite a
+        # duplicate user submission or alter outcome collection.
+        logger.exception("Unable to capture post-ride feedback decision snapshot")
 
 
 def upsert_next_day_recovery_feedback(

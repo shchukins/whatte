@@ -447,6 +447,7 @@ def notify_training_processed(user_id: str, activity_id: int) -> bool:
             telegram_message_id=message_id,
             payload={"message": text, "source_activity_id": activity_id},
         )
+        _capture_post_activity_snapshot(user_id, canonical_activity_id)
         send_post_ride_rpe_request(canonical_activity_id)
     except Exception:
         if not delivered:
@@ -456,6 +457,33 @@ def notify_training_processed(user_id: str, activity_id: int) -> bool:
             )
         raise
     return True
+
+
+def _capture_post_activity_snapshot(user_id: str, canonical_activity_id: int) -> None:
+    """Persist post-processing evidence without affecting Telegram delivery."""
+    try:
+        with get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    select (start_date at time zone %s)::date
+                    from strava_activity_raw
+                    where strava_activity_id = %s and user_id = %s;
+                    """,
+                    (settings.whatte_timezone, canonical_activity_id, user_id),
+                )
+                row = cur.fetchone()
+        if row:
+            capture_decision_context_snapshot(
+                user_id=user_id,
+                snapshot_date=row[0],
+                event_type="post_activity_state",
+                reference_key=f"post_activity:{user_id}:{canonical_activity_id}",
+                event_context={"canonical_activity_id": canonical_activity_id},
+            )
+    except Exception:
+        # A research snapshot must not affect already accepted delivery.
+        logger.exception("Unable to capture post-activity decision snapshot")
 
 
 def _daily_readiness_content_fingerprint(text: str) -> str:

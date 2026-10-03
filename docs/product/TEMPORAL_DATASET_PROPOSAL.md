@@ -18,6 +18,12 @@ The feature snapshot is built with `daily_feature_vector_v1` using its recorded
 snapshot. A missing snapshot is reported as an excluded observation rather
 than silently filled from current state.
 
+`decision_context_snapshot` additionally records `post_activity_state` after a
+processed canonical activity and `post_ride_feedback` after persisted RPE.
+Those events preserve later research evidence but are never eligible as
+pre-activity features. Existing before/after recovery check-in events remain
+the day-level subjective-feedback history.
+
 The stable observation identity is a SHA-256 digest of the user, canonical
 activity ID, chosen feature snapshot ID, chosen decision snapshot ID, feature
 version, and target version. It deliberately excludes export time and dataset

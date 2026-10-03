@@ -732,6 +732,7 @@ def test_build_training_processed_message_for_supported_cycling_activity(monkeyp
 def test_notify_training_processed_sends_feedback_prompt(monkeypatch):
     sent_messages: list[str] = []
     feedback_prompts: list[int] = []
+    snapshot_calls: list[tuple[str, int]] = []
 
     monkeypatch.setattr(
         "backend.services.notification_service.build_training_processed_message",
@@ -763,11 +764,16 @@ def test_notify_training_processed_sends_feedback_prompt(monkeypatch):
         "backend.services.notification_service.mark_activity_delivery_sent",
         lambda **kwargs: None,
     )
+    monkeypatch.setattr(
+        "backend.services.notification_service._capture_post_activity_snapshot",
+        lambda user_id, activity_id: snapshot_calls.append((user_id, activity_id)),
+    )
 
     notify_training_processed(user_id="user-1", activity_id=43)
 
     assert sent_messages == ["processed:user-1:43"]
     assert feedback_prompts == [43]
+    assert snapshot_calls == [("user-1", 43)]
 
 
 def test_briefing_without_physiology_has_no_empty_wearable_rows():
