@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, timezone
 import hashlib
 import json
+import logging
 import math
 from typing import Any, Iterator, Literal
 from zoneinfo import ZoneInfo
@@ -19,6 +20,7 @@ from backend.services.activity_deduplication_service import (
 from backend.services.activity_load_service import resolve_activity_load
 from backend.services.decision_engine import build_persisted_readiness_briefing
 from backend.services.decision_context_snapshot import capture_decision_context_snapshot
+from backend.services.research_feature_snapshot import capture_research_feature_snapshot
 from backend.services.readiness_composition import READINESS_MODEL_VERSION
 from backend.services.subjective_feedback_service import send_post_ride_rpe_request
 from backend.services.telegram_service import (
@@ -33,6 +35,8 @@ DAILY_READINESS_STATUS_UPDATING = "updating"
 DAILY_READINESS_STATUS_UPDATED = "updated"
 DAILY_READINESS_STATUS_SUPERSEDED = "superseded"
 DAILY_READINESS_STATUS_FAILED = "failed"
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -830,6 +834,16 @@ def _send_daily_readiness_locked(
             event_type="daily_readiness_delivery",
             reference_key=f"daily_readiness:{user_id}:{notification_date.isoformat()}",
         )
+        try:
+            capture_research_feature_snapshot(
+                user_id=user_id,
+                local_date=notification_date,
+                reference_key=f"daily_readiness:{user_id}:{notification_date.isoformat()}",
+            )
+        except Exception:
+            # Delivery already succeeded. Research evidence must never retry a
+            # user-visible Telegram message or change the delivery lifecycle.
+            logger.exception("Unable to capture research feature snapshot")
     except Exception:
         # Once Telegram accepted the message, keep the claim even if persisting
         # the final payload failed: at-most-once delivery is more important than

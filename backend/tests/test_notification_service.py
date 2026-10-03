@@ -28,6 +28,10 @@ def _disable_daily_readiness_delivery_lock(monkeypatch):
         "backend.services.notification_service.capture_decision_context_snapshot",
         lambda **kwargs: {"inserted": True, **kwargs},
     )
+    monkeypatch.setattr(
+        "backend.services.notification_service.capture_research_feature_snapshot",
+        lambda **kwargs: {"inserted": True, **kwargs},
+    )
 
 def test_build_readiness_briefing_message_uses_model_v2_fields():
     message = build_readiness_briefing_message(

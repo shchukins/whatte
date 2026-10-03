@@ -392,6 +392,7 @@ def build_calibration_records(*, user_id: str, date_from: date, date_to: date,
             "semantics": "day_level_context_shared_by_all_activities_on_previous_day",
         }
         records.append({
+            "user_id": user_id,
             "activity_id": activity_id,
             "activity_type": activity_type,
             "activity_start_at": start,

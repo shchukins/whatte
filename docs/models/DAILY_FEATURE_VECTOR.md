@@ -3,9 +3,9 @@
 ## Status
 
 `daily_feature_vector_v1` is an implemented, read-only research-input contract.
-It does not calculate readiness, select a model, create a dataset split, or
-write `decision_context_snapshot` records. Those remain separate concerns of
-#78 and subsequent research issues.
+It does not calculate readiness or select a model. A successful daily delivery
+now persists this vector as an immutable `research_feature_snapshot`; temporal
+partitioning and export remain a separate offline concern of #133.
 
 ## Contract
 
