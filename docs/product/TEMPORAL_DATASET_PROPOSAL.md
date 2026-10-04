@@ -68,3 +68,8 @@ hash. `generated_at` is presentation metadata and is not part of that hash.
 
 The CLI writes JSON, JSONL, or CSV to stdout only. Redirect output outside the
 repository and never commit it.
+
+Offline baseline/candidate scoring is a separate frozen boundary documented in
+[`RESEARCH_EVALUATOR.md`](RESEARCH_EVALUATOR.md). The evaluator consumes a
+specific manifest hash and partition; it does not rebuild or mutate this
+dataset contract.
