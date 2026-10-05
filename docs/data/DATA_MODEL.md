@@ -403,7 +403,28 @@ timestamp state, and formula configuration alongside HRV ratio/deviation,
 resting-HR delta, and sleep deviation/debt. It is a research and feature-vector
 input; it does not replace raw observations, use HealthKit, or alter readiness.
 
-### 5.10 `activity_subjective_feedback`
+### 5.10 `research_experiment`
+
+`research_experiment` is a research-only audit log for offline model
+experiments. It stores identifiers and immutable metadata rather than raw
+personal data: hypothesis, candidate model/configuration fingerprint, temporal
+dataset version/hash/partition, frozen evaluator version/specification hash,
+optional parent or baseline experiment references, and terminal metrics or
+failure evidence.
+
+Its lifecycle is intentionally narrow:
+
+- a record is created as `running`;
+- it may transition once to `candidate`, `rejected`, or `failed`;
+- terminal records cannot be changed or deleted.
+
+`promoted` is reserved in the persisted status vocabulary for the later
+manual-promotion contract. This schema and its service cannot transition an
+experiment to that state. The record does not execute a candidate, expose an
+API, schedule research, or write production readiness, feedback, activity, or
+user-state tables.
+
+### 5.11 `activity_subjective_feedback`
 
 Слой user-reported subjective feedback.
 
