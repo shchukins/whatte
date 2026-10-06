@@ -39,3 +39,12 @@ The service queries and writes only `research_experiment`. It has no FastAPI
 route or production-model integration. The later isolated runner (#136) must
 use a separate research principal and pinned artifacts; this audit table is not
 an authorization boundary by itself.
+
+## Candidate validation (#137)
+
+New records require the complete versioned
+[`readiness_parameter_space_v1`](RESEARCH_PARAMETER_SPACE.md) configuration.
+Creation validates all parameters and model/dataset/evaluator version bindings
+before database access. The search-space version lives inside the immutable
+configuration and participates in its canonical hash. Existing audit records
+are preserved; new unversioned configurations are rejected.

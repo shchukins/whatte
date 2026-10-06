@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 from backend.services import research_experiment
+from backend.services.research_parameter_space import baseline_candidate_config
 
 
 STARTED = datetime(2026, 10, 6, 7, tzinfo=timezone.utc)
@@ -49,8 +50,8 @@ def _create(**overrides):
     arguments = {
         "experiment_id": "experiment-001",
         "hypothesis": "A smaller freshness weight improves validation MAE.",
-        "candidate_model_version": "candidate_rules_v1",
-        "candidate_config": {"freshness_weight": 0.5},
+        "candidate_model_version": "readiness_parameter_candidate_v1",
+        "candidate_config": baseline_candidate_config(),
         "dataset_version": "temporal_dataset_v1",
         "dataset_hash": "dataset-hash",
         "dataset_partition": "validation",
@@ -162,3 +163,28 @@ def test_migration_makes_terminal_metadata_immutable_and_blocks_deletion():
     assert "research experiment audit rows cannot be deleted" in migration
     assert "research experiment must be created as running" in migration
     assert "new.status not in ('candidate', 'rejected', 'failed')" in migration
+
+
+@pytest.mark.parametrize("overrides", [
+    {"candidate_config": {"freshness_weight": 0.5}},
+    {"candidate_config": baseline_candidate_config() | {"unknown": 1}},
+    {"candidate_model_version": "other"},
+    {"dataset_version": "other"},
+    {"evaluator_version": "other"},
+])
+def test_create_validates_config_and_version_binding_before_database_access(monkeypatch, overrides):
+    monkeypatch.setattr(research_experiment, "get_conn", lambda: pytest.fail("database used"))
+    with pytest.raises(ValueError):
+        _create(**overrides)
+
+
+def test_create_stores_search_space_version_and_canonical_hash(monkeypatch):
+    from backend.services.research_parameter_space import candidate_config_hash
+
+    connection = _Connection([(17, STARTED, STARTED)])
+    monkeypatch.setattr(research_experiment, "get_conn", lambda: connection)
+    config = baseline_candidate_config()
+    result = _create(candidate_config=config)
+    stored = connection.cursor_value.calls[0][1][5]
+    assert '"search_space_version":"readiness_parameter_space_v1"' in stored
+    assert result["candidate_config_hash"] == candidate_config_hash(config)

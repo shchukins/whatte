@@ -8,6 +8,7 @@ import json
 from typing import Any, Mapping
 
 from backend.db import get_conn
+from backend.services.research_parameter_space import validate_candidate_config
 
 
 EXPERIMENT_SCHEMA_VERSION = "research_experiment_v1"
@@ -63,7 +64,11 @@ def create_research_experiment(
         raise ValueError("experiment cannot reference itself")
     if dataset_partition not in {"train", "validation", "test"}:
         raise ValueError("dataset_partition must be train, validation, or test")
-    config = _object(candidate_config, "candidate_config", required=True)
+    config = validate_candidate_config(candidate_config)
+    if candidate_model_version != config["candidate_model_version"]:
+        raise ValueError("candidate_model_version does not match candidate config")
+    if dataset_version != config["dataset_version"] or evaluator_version != config["evaluator_version"]:
+        raise ValueError("dataset/evaluator version does not match candidate config")
     metadata = _object(provider_metadata, "provider_metadata", required=False)
     started = _aware(started_at or datetime.now(timezone.utc), "started_at")
     config_json = _canonical_json(config)
