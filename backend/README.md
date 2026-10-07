@@ -587,3 +587,12 @@ before deploying this version to backend and worker. See
 Перед использованием manual-only personal physiology features применить
 `db-init/015_personal_physiology_features.sql`. Это отдельный research-derived
 слой: он не меняет readiness, Telegram flow или historical HealthKit rows.
+
+## Isolated research runner (#136)
+
+The infrastructure CLI is `python -m scripts.run_research_experiment`. It uses
+a separate research image and dedicated audit writer credentials; see
+[runner contract and operational prerequisites](../docs/product/RESEARCH_RUNNER.md).
+The real outcome prediction engine remains unimplemented, so the built-in
+candidate worker explicitly records an unsupported failure. Synthetic tests
+validate the execution protocol, not scientific readiness/outcome prediction.

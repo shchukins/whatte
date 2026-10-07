@@ -16,8 +16,7 @@ from backend.services.calibration_records import (
     generate_calibration_records,
 )
 
-
-DATASET_VERSION = "temporal_dataset_v1"
+from backend.services.research_versions import DATASET_VERSION
 
 
 def _canonical_json(value: Any) -> str:

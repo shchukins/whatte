@@ -9,7 +9,7 @@ import json
 import math
 from typing import Any
 
-from backend.services.temporal_dataset import DATASET_VERSION
+from backend.services.research_versions import DATASET_VERSION
 
 
 EVALUATOR_VERSION = "baseline_evaluator_v1"
@@ -351,6 +351,42 @@ def evaluate_research_candidate(
     test_access_granted: bool = False,
 ) -> dict[str, Any]:
     """Compare frozen prediction artifacts on one immutable dataset partition."""
+    rows, observation_ids, known_targets = validate_evaluation_dataset(
+        dataset=dataset, partition=partition, test_access_granted=test_access_granted,
+    )
+    manifest = dataset["manifest"]
+    artifact_args = {
+        "dataset_hash": manifest["dataset_hash"],
+        "partition": partition,
+        "observation_ids": set(observation_ids),
+        "known_targets": known_targets,
+    }
+    baseline = _validated_artifact(baseline_artifact, **artifact_args)
+    candidate = _validated_artifact(candidate_artifact, **artifact_args)
+    baseline_result, baseline_pairs = _evaluate_artifact(rows, baseline)
+    candidate_result, candidate_pairs = _evaluate_artifact(rows, candidate)
+    result = {
+        "evaluator_version": EVALUATOR_VERSION,
+        "prediction_schema_version": PREDICTION_ARTIFACT_VERSION,
+        "metric_specification_hash": METRIC_SPECIFICATION_HASH,
+        "dataset": {
+            "dataset_version": DATASET_VERSION,
+            "dataset_hash": manifest["dataset_hash"],
+            "partition": partition,
+            "row_count": len(rows),
+        },
+        "baseline": baseline_result,
+        "candidate": candidate_result,
+        "comparison": _comparison(baseline_pairs, candidate_pairs),
+    }
+    result["evaluation_hash"] = _hash(result)
+    return result
+
+
+def validate_evaluation_dataset(
+    *, dataset: dict[str, Any], partition: str, test_access_granted: bool = False,
+) -> tuple[list[dict[str, Any]], list[str], set[str]]:
+    """Validate frozen input before execution, using the evaluator's own rules."""
     if dataset.get("dataset_version") != DATASET_VERSION:
         raise ValueError("unsupported temporal dataset version")
     manifest = dataset.get("manifest")
@@ -397,29 +433,4 @@ def evaluate_research_candidate(
     if len(observation_ids) != len(set(observation_ids)):
         raise ValueError("dataset partition contains duplicate observation IDs")
 
-    artifact_args = {
-        "dataset_hash": manifest["dataset_hash"],
-        "partition": partition,
-        "observation_ids": set(observation_ids),
-        "known_targets": known_targets,
-    }
-    baseline = _validated_artifact(baseline_artifact, **artifact_args)
-    candidate = _validated_artifact(candidate_artifact, **artifact_args)
-    baseline_result, baseline_pairs = _evaluate_artifact(rows, baseline)
-    candidate_result, candidate_pairs = _evaluate_artifact(rows, candidate)
-    result = {
-        "evaluator_version": EVALUATOR_VERSION,
-        "prediction_schema_version": PREDICTION_ARTIFACT_VERSION,
-        "metric_specification_hash": METRIC_SPECIFICATION_HASH,
-        "dataset": {
-            "dataset_version": DATASET_VERSION,
-            "dataset_hash": manifest["dataset_hash"],
-            "partition": partition,
-            "row_count": len(rows),
-        },
-        "baseline": baseline_result,
-        "candidate": candidate_result,
-        "comparison": _comparison(baseline_pairs, candidate_pairs),
-    }
-    result["evaluation_hash"] = _hash(result)
-    return result
+    return rows, observation_ids, known_targets

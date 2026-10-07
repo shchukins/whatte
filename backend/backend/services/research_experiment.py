@@ -7,8 +7,14 @@ import hashlib
 import json
 from typing import Any, Mapping
 
-from backend.db import get_conn
 from backend.services.research_parameter_space import validate_candidate_config
+
+
+def get_conn():
+    # Normal backend callers retain their connection; the standalone runner
+    # injects a dedicated writer and never loads production settings.
+    from backend.db import get_conn as backend_connection
+    return backend_connection()
 
 
 EXPERIMENT_SCHEMA_VERSION = "research_experiment_v1"
@@ -55,6 +61,7 @@ def create_research_experiment(
     baseline_experiment_id: str | None = None,
     provider_metadata: Mapping[str, Any] | None = None,
     started_at: datetime | None = None,
+    connection_factory=None,
 ) -> dict[str, Any]:
     """Create a running audit record without executing a candidate or reading user data."""
     normalized_id = _nonempty(experiment_id, "experiment_id")
@@ -74,7 +81,7 @@ def create_research_experiment(
     config_json = _canonical_json(config)
     config_hash = hashlib.sha256(config_json.encode("utf-8")).hexdigest()
 
-    with get_conn() as conn:
+    with (connection_factory or get_conn)() as conn:
         with conn.cursor() as cur:
             cur.execute(
                 """
@@ -121,12 +128,15 @@ def finish_research_experiment(
     metrics: Mapping[str, Any] | None = None,
     failure_reason: str | None = None,
     failure_log_reference: str | None = None,
+    execution_metadata: Mapping[str, Any] | None = None,
+    connection_factory=None,
 ) -> dict[str, Any]:
     """Write one terminal audit result; automatic promotion is deliberately unsupported."""
     if status not in TERMINAL_STATUSES:
         raise ValueError("status must be candidate, rejected, or failed")
     normalized_id = _nonempty(experiment_id, "experiment_id")
     completed = _aware(finished_at or datetime.now(timezone.utc), "finished_at")
+    execution = _object(execution_metadata, "execution_metadata", required=False)
     if status == "failed":
         if metrics is not None:
             raise ValueError("failed experiment cannot store metrics")
@@ -141,7 +151,7 @@ def finish_research_experiment(
         reason = None
         log_reference = None
 
-    with get_conn() as conn:
+    with (connection_factory or get_conn)() as conn:
         with conn.cursor() as cur:
             cur.execute(
                 """
@@ -167,11 +177,13 @@ def finish_research_experiment(
                     execution_duration_ms = %s,
                     metrics_json = %s::jsonb,
                     failure_reason = %s,
-                    failure_log_reference = %s
+                    failure_log_reference = %s,
+                    execution_metadata = %s::jsonb
                 where experiment_id = %s and status = %s
                 returning id, created_at, started_at, finished_at, execution_duration_ms;
                 """,
-                (status, completed, duration_ms, metrics_json, reason, log_reference, normalized_id, RUNNING),
+                (status, completed, duration_ms, metrics_json, reason, log_reference,
+                 _canonical_json(execution) if execution is not None else None, normalized_id, RUNNING),
             )
             updated = cur.fetchone()
             if updated is None:
@@ -189,4 +201,5 @@ def finish_research_experiment(
         "metrics": json.loads(metrics_json) if metrics_json is not None else None,
         "failure_reason": reason,
         "failure_log_reference": log_reference,
+        "execution_metadata": execution,
     }

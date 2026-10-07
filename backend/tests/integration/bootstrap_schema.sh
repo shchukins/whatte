@@ -58,3 +58,5 @@ psql -v ON_ERROR_STOP=1 "$DATABASE_URL" -f "$REPO_ROOT/db-init/015_personal_phys
 psql -v ON_ERROR_STOP=1 "$DATABASE_URL" -f "$REPO_ROOT/db-init/016_research_feature_snapshot.sql"
 psql -v ON_ERROR_STOP=1 "$DATABASE_URL" -f "$REPO_ROOT/db-init/017_decision_context_snapshot_events.sql"
 psql -v ON_ERROR_STOP=1 "$DATABASE_URL" -f "$REPO_ROOT/db-init/018_research_experiment.sql"
+
+psql -v ON_ERROR_STOP=1 "$DATABASE_URL" -f "$REPO_ROOT/db-init/019_research_execution_metadata.sql"

@@ -48,3 +48,12 @@ Creation validates all parameters and model/dataset/evaluator version bindings
 before database access. The search-space version lives inside the immutable
 configuration and participates in its canonical hash. Existing audit records
 are preserved; new unversioned configurations are rejected.
+
+## Isolated execution infrastructure (#136, partial)
+
+Migration 019 adds optional terminal `execution_metadata` for resource limits,
+exit/timeout/OOM/cleanup state and external log references. `metrics_json` remains
+frozen evaluator output. The separate research writer uses column-level SQL grants
+and no production table permissions; containers never receive its credentials.
+See [research runner](RESEARCH_RUNNER.md) for the partial status, image/source/baseline
+pinning, recovery procedures and outstanding outcome-prediction prerequisite.

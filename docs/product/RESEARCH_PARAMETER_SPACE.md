@@ -118,3 +118,10 @@ rows remain unchanged. New unversioned configs are rejected deliberately.
 The runner must additionally verify actual feature/dataset/evaluator versions,
 artifact hashes, selected partition, test access, and implementation identity.
 An audit config alone does not prove that its claimed inputs were used.
+
+## Runner infrastructure (#136, partial)
+
+[The isolated runner](RESEARCH_RUNNER.md) now validates this configuration before
+execution and records explicit unsupported failures. Its fixed candidate worker
+does not yet implement outcome predictions or response replay. This does not
+turn the parameter recipe into an executable/calibrated prediction model.

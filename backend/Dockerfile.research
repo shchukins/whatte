@@ -1,0 +1,11 @@
+FROM python:3.11-slim
+WORKDIR /app
+RUN pip install --no-cache-dir pydantic==2.12.5
+# Deliberately omit production settings, DB clients, application, and .env files.
+COPY backend/services/research_parameter_space.py backend/services/research_parameter_space.py
+COPY backend/services/research_versions.py backend/services/research_versions.py
+COPY backend/services/research_evaluator.py backend/services/research_evaluator.py
+COPY scripts/research_worker.py scripts/research_worker.py
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+USER 65534:65534
+ENTRYPOINT ["python", "-m", "scripts.research_worker"]

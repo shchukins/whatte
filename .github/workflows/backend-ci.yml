@@ -32,6 +32,11 @@ jobs:
       - name: Run unit tests
         working-directory: backend
         run: pytest tests -v -k "not integration"
+      - name: Verify isolated research containers
+        run: pytest tests/test_research_container_integration.py -v
+        env:
+          RUN_DOCKER_TESTS: "1"
+
     env:
       PYTHONPATH: ${{ github.workspace }}/backend
       DATABASE_URL: postgresql://test:test@127.0.0.1:5432/test
@@ -103,3 +108,4 @@ jobs:
         run: |
           pytest tests/test_metrics_smoke_integration.py -v
           pytest tests/test_pipeline_idempotency_integration.py -v
+          pytest tests/test_research_writer_integration.py -v

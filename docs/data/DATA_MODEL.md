@@ -766,3 +766,14 @@ FTP values are copied from the legacy training profile without overwriting
 existing entries. HealthKit records are not modified or repurposed.
 
 See [User profile](../product/USER_PROFILE.md) for date and recompute semantics.
+
+### Research execution metadata (#136)
+
+`db-init/019_research_execution_metadata.sql` adds nullable
+`research_experiment.execution_metadata`: a terminal-only JSON object holding
+resource limits, stage exit status, timeout/OOM/cleanup flags, implementation
+identities, duration and private artifact references. Existing rows remain valid;
+terminal immutability is preserved. It does not hold raw inputs or predictions.
+The `whatte_research_writer` NOLOGIN group has only explicit audit-column grants
+and audit-sequence usage; a dedicated login is provisioned separately.
+See [runner contract](../product/RESEARCH_RUNNER.md).
