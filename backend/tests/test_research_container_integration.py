@@ -67,7 +67,11 @@ def image(tmp_path_factory):
     ("output", "container_output_limit_exceeded"),
 ])
 def test_real_container_limits_cleanup_and_isolation(image, tmp_path, operation, failure):
-    executor = DockerExecutor(image, ResourceLimits(timeout_seconds=3, memory_mb=64, pids=16, output_bytes=1024))
+    # First container creation on a fresh CI daemon can exceed three seconds.
+    # Keep the deliberately sleeping worker on a short deadline; allow cold
+    # image/container setup for the other scenarios without changing runner limits.
+    timeout = 3 if operation == "timeout" else 15
+    executor = DockerExecutor(image, ResourceLimits(timeout_seconds=timeout, memory_mb=64, pids=16, output_bytes=1024))
     result = executor.execute({"operation": operation}, tmp_path / "stage")
     metadata = result["metadata"]
     assert metadata["failure_reason"] == failure
