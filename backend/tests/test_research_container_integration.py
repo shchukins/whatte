@@ -86,3 +86,48 @@ def test_real_container_limits_cleanup_and_isolation(image, tmp_path, operation,
         assert metadata["oom_killed"]
     if operation == "timeout":
         assert metadata["timed_out"]
+
+@pytest.fixture(scope="module")
+def reviewed_model_image():
+    repo = Path(__file__).resolve().parents[2]
+    built = subprocess.run(["docker", "build", "-q", "-f", str(repo / "backend/Dockerfile.research"),
+                            str(repo / "backend")], check=True, capture_output=True, text=True, timeout=180)
+    image_id = built.stdout.strip().splitlines()[-1]
+    yield image_id
+    subprocess.run(["docker", "image", "rm", image_id], check=True, capture_output=True, timeout=30)
+
+
+def test_reviewed_model_image_predicts_and_evaluates_without_credentials(reviewed_model_image, tmp_path):
+    from test_recovery_prediction import prepared
+    from backend.services.research_parameter_space import candidate_config_hash
+    from backend.services import research_evaluator_v2 as evaluator
+    dataset, state, config, baseline = prepared()
+    config.update(freshness_weight=0.8, recovery_evidence_weight=0.2)
+    from backend.services.recovery_prediction import prediction_artifact
+    expected_candidate, _ = prediction_artifact(
+        observations=dataset["partitions"]["validation"], config=config, state=state,
+        dataset_hash=dataset["manifest"]["dataset_hash"], partition="validation")
+    executor = DockerExecutor(reviewed_model_image, ResourceLimits())
+    candidate = executor.execute({
+        "protocol_version":"research_execution_v2", "operation":"candidate",
+        "config":config, "candidate_config_hash":candidate_config_hash(config), "learned_state":state,
+        "dataset_hash":dataset["manifest"]["dataset_hash"], "partition":"validation",
+        "observations":[{"observation_id":r["observation_id"],"feature":r["feature"]}
+                        for r in dataset["partitions"]["validation"]],
+    }, tmp_path / "model")
+    assert candidate["metadata"]["failure_reason"] is None
+    assert candidate["metadata"]["cleanup_succeeded"]
+    assert candidate["response"]["result"] == expected_candidate
+    assert expected_candidate["predictions"] != baseline["predictions"]
+    selected = {**dataset, "partitions":{"validation":dataset["partitions"]["validation"]}}
+    evaluated = executor.execute({
+        "protocol_version":"research_execution_v2", "operation":"evaluate", "dataset":selected,
+        "evaluator_version":evaluator.EVALUATOR_VERSION,
+        "metric_specification_hash":evaluator.METRIC_SPECIFICATION_HASH,
+        "baseline":baseline, "candidate":candidate["response"]["result"],
+        "partition":"validation", "test_access_granted":False,
+    }, tmp_path / "evaluation")
+    assert evaluated["metadata"]["failure_reason"] is None
+    assert evaluated["metadata"]["cleanup_succeeded"]
+    assert evaluated["response"]["result"] == evaluator.evaluate_research_candidate(
+        dataset=selected, partition="validation", baseline_artifact=baseline, candidate_artifact=expected_candidate)

@@ -150,9 +150,12 @@ def build_daily_feature_vector_from_sources(
 
 
 def build_daily_feature_vector(
-    *, user_id: str, local_date: date, cutoff_at: datetime, timezone_name: str | None = None
+    *, user_id: str, local_date: date, cutoff_at: datetime, timezone_name: str | None = None,
+    feature_vector_version: str = DAILY_FEATURE_VECTOR_VERSION,
 ) -> dict[str, Any]:
     """Load a vector in one repeatable-read, read-only transaction."""
+    if feature_vector_version not in (DAILY_FEATURE_VECTOR_VERSION, "daily_feature_vector_v2"):
+        raise ValueError("unsupported_feature_vector_version")
     timezone_name = timezone_name or settings.whatte_timezone
     cutoff = _as_utc(cutoff_at)
     zone = ZoneInfo(timezone_name)
@@ -213,9 +216,61 @@ def build_daily_feature_vector(
             """, (user_id, local_date, cutoff))
             row = cur.fetchone()
             historical = dict(zip(("recovery_score", "updated_at"), row)) if row else None
+            if feature_vector_version == "daily_feature_vector_v2":
+                # Capture stored baseline evidence in this same read-only snapshot.
+                # Date selection follows production; it is not recast to local dates.
+                cur.execute("""
+                    select arm.strava_activity_id, arm.activity_date, arm.version,
+                           arm.intensity_band, arm.baseline_json, arm.availability_json,
+                           arm.explanation_json, r.start_date, r.fetched_at, arm.computed_at
+                    from activity_response_metrics arm
+                    join strava_activity_raw r on r.strava_activity_id=arm.strava_activity_id
+                    where arm.user_id=%s
+                      and arm.activity_date between (%s::date - interval '7 days') and %s::date
+                      and arm.version in ('v2_rpe_1_10', 'v1')
+                      and r.start_date<=%s
+                      and not r.is_deleted and not r.is_excluded
+                      and r.duplicate_of_activity_id is null
+                    order by arm.activity_date desc, arm.strava_activity_id desc,
+                             case when arm.version='v2_rpe_1_10' then 0 else 1 end
+                    limit 1
+                """, (user_id, local_date, local_date, cutoff))
+                response_row = cur.fetchone()
+                replay = {
+                    "context_version": "response_replay_context_v1",
+                    "availability": "unavailable", "context": None,
+                    "reason_codes": ["no_eligible_response_as_of_cutoff"],
+                }
+                if response_row:
+                    activity_id, activity_date, version, band, baseline, availability, explanation, start, fetched, computed = response_row
+                    def as_json(value):
+                        if isinstance(value, str):
+                            import json
+                            return json.loads(value)
+                        return value
+                    replay.update(
+                        availability="available", reason_codes=[], date_basis="stored_activity_date",
+                        activity_start_at=_iso(start), source_available_at=_iso(fetched), computed_at=_iso(computed),
+                        context={"activity_id": activity_id, "activity_date": str(activity_date),
+                                 "version": version, "intensity_band": band,
+                                 "baseline": as_json(baseline), "availability": as_json(availability),
+                                 "explanation": as_json(explanation)},
+                    )
+                    if not _eligible(fetched, cutoff) or not _eligible(computed, cutoff):
+                        # An upsert after cutoff cannot prove the previous baseline.
+                        # Do not select an older session or equate this with no response.
+                        replay = {
+                            "context_version": "response_replay_context_v1",
+                            "availability": "unsupported", "context": None,
+                            "reason_codes": ["response_as_of_state_unprovable"],
+                        }
 
-    return build_daily_feature_vector_from_sources(
+    vector = build_daily_feature_vector_from_sources(
         user_id=user_id, local_date=local_date, cutoff_at=cutoff, timezone_name=zone.key,
         load=load, responses=responses, feeling=feeling, manual_physiology=manual,
         historical_physiology=historical,
     )
+    if feature_vector_version == "daily_feature_vector_v2":
+        vector["feature_vector_version"] = feature_vector_version
+        vector["response_replay_context"] = replay
+    return vector

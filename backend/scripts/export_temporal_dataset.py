@@ -24,17 +24,21 @@ def main() -> None:
     parser.add_argument("--validation-end", required=True, type=date.fromisoformat)
     parser.add_argument("--test-end", required=True, type=date.fromisoformat)
     parser.add_argument("--timezone")
+    parser.add_argument("--dataset-version", choices=("temporal_dataset_v1", "temporal_dataset_v2"), default="temporal_dataset_v1")
     parser.add_argument("--format", choices=("json", "jsonl", "csv"), default="json")
     parser.add_argument("--include-test", action="store_true")
     args = parser.parse_args()
     if args.include_test and os.getenv("WHATTE_RESEARCH_TEST_ACCESS") != "granted":
         parser.error("test export requires WHATTE_RESEARCH_TEST_ACCESS=granted")
+    if args.dataset_version == "temporal_dataset_v2" and args.format == "csv":
+        parser.error("day dataset export supports JSON/JSONL; use v1 for activity CSV")
     dataset = generate_temporal_dataset(
         user_id=args.user_id,
         split=TemporalSplit(args.train_start, args.train_end, args.validation_end, args.test_end),
         timezone_name=args.timezone,
         include_test=args.include_test,
         test_access_granted=args.include_test,
+        dataset_version=args.dataset_version,
     )
     if args.format == "json":
         print(json.dumps(dataset, default=str, ensure_ascii=False, sort_keys=True, indent=2))

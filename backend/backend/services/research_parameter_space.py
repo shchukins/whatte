@@ -100,6 +100,9 @@ def validate_candidate_config(value: Mapping[str, Any]) -> dict[str, Any]:
     """Reject partial/unknown/coerced configs and return a detached JSON object."""
     if not isinstance(value, Mapping):
         raise ValueError("candidate config must be an object")
+    if value.get("search_space_version") == "recovery_prediction_parameter_space_v1":
+        from backend.services.recovery_prediction_config import validate_recovery_config
+        return validate_recovery_config(dict(value))
     return CandidateConfig.model_validate(dict(value)).model_dump(mode="json")
 
 

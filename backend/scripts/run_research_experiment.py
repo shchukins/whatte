@@ -26,6 +26,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ("config", "dataset", "baseline", "output-root"):
         parser.add_argument("--" + name, required=True, type=Path)
+    parser.add_argument("--learned-state", type=Path)
     for name in ("experiment-id", "hypothesis", "image"):
         parser.add_argument("--" + name, required=True)
     parser.add_argument("--partition", choices=("train", "validation", "test"), default="validation")
@@ -44,6 +45,7 @@ def main():
         limits = ResourceLimits(args.timeout_seconds, args.cpus, args.memory_mb, args.pids,
                                 args.tmp_mb, args.output_bytes, args.input_bytes)
         result = run_research_experiment(
+            learned_state=_load(args.learned_state, limits.input_bytes) if args.learned_state else None,
             config=_load(args.config, limits.input_bytes), dataset=_load(args.dataset, limits.input_bytes),
             baseline=_load(args.baseline, limits.input_bytes), experiment_id=args.experiment_id,
             hypothesis=args.hypothesis, image=args.image, output_root=args.output_root,
