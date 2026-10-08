@@ -1,7 +1,8 @@
 # Manual physiology observations
 
-Status: persistence/domain contract, authenticated API, and optional Telegram
-collection implemented; Web collection UI remains planned separately in #129.
+Status: persistence/domain contract, authenticated API, and optional Telegram/Web
+collection implemented. Web Today reuses the shared validation and persistence
+contract through protected server-side form routes.
 
 `manual_physiology_observation_v1` stores optional user-entered physiology for
 one configured local calendar date. It is raw observation storage, not a

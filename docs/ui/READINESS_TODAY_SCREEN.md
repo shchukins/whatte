@@ -33,6 +33,27 @@ an annotated figure and exact-value table.
 - Provides dated FTP/weight profile history and an explicit stored-data-only
   recomputation action. It is not a multi-user account API.
 
+## Optional manual physiology
+
+After recovery and RPE, Today shows optional sleep duration (minutes), sleep
+quality (1–5, very poor to very good), HRV (ms), and resting heart rate (bpm)
+for the current local date. Each missing field is unavailable, including an
+all-null record. Values entered through Telegram and Web share one record;
+source and update time are displayed separately from readiness signal evidence.
+
+A collapsed editor supports partial entry and later editing. Empty fields are
+omitted and preserve existing values; an explicit Clear checkbox sends null.
+Numeric validation and revisions use the shared manual physiology model/service.
+The form preserves entered values and clear actions on validation/write errors;
+a failed read only disables the optional collection block. A form from a previous
+local day is rejected with a request to reload Today. Blank submissions do not
+create observations. Identical repeats do not create revisions.
+
+`POST /today/physiology` uses the existing edge-authenticated form boundary and
+POST/redirect/GET flow. It does not expose the dedicated API token or select a
+browser-supplied user. Saving raw observations does not recompute readiness or
+personal baselines. There are no physiology history charts or frontend scores.
+
 ## Ownership and safety
 
 - `DAILY_READINESS_USER_ID` selects the account; browsers cannot select an
@@ -50,7 +71,7 @@ an annotated figure and exact-value table.
 - No workout construction, duration prescription, calendar-aware planning, or
   HRV or 28-day load figure without a real backend data contract. The 14-day
   readiness figure uses the existing history rows and marks missing dates.
-- No additional sleep, stress, motivation, or fatigue questionnaire without a
+- No additional stress, motivation, or fatigue questionnaire without a
   documented persistence and calibration use.
 
 ## Related contracts
@@ -58,3 +79,5 @@ an annotated figure and exact-value table.
 - [Readiness API](../api/READINESS_API.md)
 - [Dated user profile](../product/USER_PROFILE.md)
 - [Subjective feedback](../models/SUBJECTIVE_FEEDBACK.md)
+
+- [Manual physiology](../data/MANUAL_PHYSIOLOGY.md)

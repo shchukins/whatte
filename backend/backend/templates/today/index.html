@@ -146,8 +146,48 @@
             {% endif %}
         </section>
 
+        <section class="card manual-physiology" aria-labelledby="manual-physiology-title">
+            <p class="section-index">05 / Optional observations</p>
+            <p class="eyebrow">Physiology / today</p>
+            <h2 id="manual-physiology-title">A little more context.</h2>
+            <p class="hint">Sleep, HRV and resting heart rate are optional. These observations are saved separately from today’s readiness.</p>
+            {% if saved == "physiology" %}<p class="saved" role="status">Physiology saved.</p>{% endif %}
+            {% if manual_physiology_section.status == "error" and physiology_values is none %}
+            <p class="error">Manual physiology is temporarily unavailable. Reload Today to try again.</p>
+            {% else %}
+            {% set physiology_fields = [('sleep_duration_minutes', 'Sleep duration', 'minutes', '1', 0, 1440), ('sleep_quality', 'Sleep quality', '1–5 · very poor to very good', '1', 1, 5), ('hrv_ms', 'HRV', 'ms', 'any', 0, 500), ('resting_hr_bpm', 'Resting heart rate', 'bpm', 'any', 20, 250)] %}
+            <div class="physiology-record">
+                {% for name, label, unit, step, minimum, maximum in physiology_fields %}
+                {% set current = manual_physiology[name] if manual_physiology else none %}
+                <div><span class="factor-name">{{ label }}</span><span class="physiology-value">{{ current if current is not none else '—' }}</span><span class="badge {{ 'badge-used' if current is not none else '' }}">{{ unit if current is not none else 'unavailable' }}</span></div>
+                {% endfor %}
+            </div>
+            {% if manual_physiology %}<p class="physiology-meta">Source {{ manual_physiology.source }} / updated {{ manual_physiology.updated_at }}</p>{% endif %}
+            <details class="physiology-editor" {% if physiology_errors %}open{% endif %}>
+                <summary>Add or edit observations <span class="badge">Optional</span></summary>
+                <p class="hint">Leave a field blank to keep its saved value. Select Clear to remove it.</p>
+                {% if physiology_errors.form %}<p class="error" role="alert">{{ physiology_errors.form }}</p>{% endif %}
+                <form method="post" action="/today/physiology">
+                    <input type="hidden" name="local_date" value="{{ today }}">
+                    <div class="physiology-fields">
+                        {% for name, label, unit, step, minimum, maximum in physiology_fields %}
+                        <div class="physiology-field">
+                            <label for="physiology-{{ name }}">{{ label }} <span>{{ unit }}</span></label>
+                            <input id="physiology-{{ name }}" name="{{ name }}" type="number" step="{{ step }}" min="{{ minimum }}" max="{{ maximum }}" value="{{ physiology_values.get(name, '') if physiology_values is not none else (manual_physiology[name] if manual_physiology and manual_physiology[name] is not none else '') }}" aria-describedby="physiology-help-{{ name }}{% if physiology_errors.get(name) %} physiology-error-{{ name }}{% endif %}" {% if physiology_errors.get(name) %}aria-invalid="true"{% endif %}>
+                            <span class="physiology-help" id="physiology-help-{{ name }}">Optional{% if name == 'hrv_ms' %} · greater than 0{% endif %}</span>
+                            <label class="physiology-clear"><input type="checkbox" name="clear_{{ name }}" value="1" {% if name in physiology_clears %}checked{% endif %}> Clear {{ label }}</label>
+                            {% if physiology_errors.get(name) %}<p class="error" id="physiology-error-{{ name }}">{{ physiology_errors[name] }}</p>{% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <button class="physiology-save" type="submit">Save observations</button>
+                </form>
+            </details>
+            {% endif %}
+        </section>
+
         <section class="card factors" aria-labelledby="factors-title">
-            <p class="section-index">05 / The evidence</p>
+            <p class="section-index">06 / The evidence</p>
             <p class="eyebrow">Signals / today</p>
             <div class="section-head">
                 <div>
@@ -171,7 +211,7 @@
         </section>
 
         <section class="card history" aria-labelledby="history-title">
-            <p class="section-index">06 / The recent record</p>
+            <p class="section-index">07 / The recent record</p>
             <p class="eyebrow">Readiness / 14 days</p>
             <div class="section-head">
                 <div>

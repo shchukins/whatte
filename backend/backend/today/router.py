@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import asdict
+from datetime import date
 from pathlib import Path
 from typing import Annotated
 from urllib.parse import parse_qs, urlsplit
@@ -13,6 +14,11 @@ from pydantic import ValidationError
 from starlette.concurrency import run_in_threadpool
 
 from backend.config import settings
+from backend.services.manual_physiology_service import (
+    VALUE_FIELDS,
+    ManualPhysiologyPatch,
+    save_manual_physiology_observation,
+)
 from backend.services.rpe_service import RPE_LABELS
 from backend.services.subjective_feedback_service import (
     FEEDBACK_SOURCE_WEB,
@@ -55,6 +61,19 @@ def today_index(
     activity_id: int | None = Query(default=None, ge=1),
     saved: str | None = Query(default=None),
 ):
+    return _today_page(request, activity_id=activity_id, saved=saved)
+
+
+def _today_page(
+    request: Request,
+    *,
+    activity_id: int | None = None,
+    saved: str | None = None,
+    physiology_values: dict[str, str] | None = None,
+    physiology_errors: dict[str, str] | None = None,
+    physiology_clears: set[str] | tuple[str, ...] = (),
+    status_code: int = 200,
+):
     data = today_service.get_today_data(
         settings.daily_readiness_user_id,
         preferred_activity_id=activity_id,
@@ -62,9 +81,13 @@ def today_index(
     return templates.TemplateResponse(
         request=request,
         name="today/index.html",
+        status_code=status_code,
         context={
             "page_title": "Whatte Today",
-            "saved": saved if saved in {"recovery", "rpe"} else None,
+            "saved": saved if saved in {"recovery", "rpe", "physiology"} else None,
+            "physiology_values": physiology_values,
+            "physiology_errors": physiology_errors or {},
+            "physiology_clears": physiology_clears,
             "rpe_options": list(RPE_LABELS.items()),
             **asdict(data),
         },
@@ -153,3 +176,65 @@ def recompute_profile(request: Request):
         logging.getLogger(__name__).exception('profile_recompute_failed')
         return _profile_page(request, error="Пересчёт не завершён. Часть данных могла обновиться. Повторите пересчёт; отметка о необходимости пересчёта сохранена.", status_code=503)
     return _profile_page(request, message=f"Пересчёт завершён. Обработано тренировок: {count}.")
+
+
+@router.post("/physiology")
+async def submit_physiology(request: Request):
+    _reject_cross_site_request(request)
+    if request.headers.get("content-type", "").split(";")[0] != "application/x-www-form-urlencoded":
+        raise HTTPException(415, "Expected a URL-encoded form")
+    values = {}
+    clears = set()
+    try:
+        fields = parse_qs(
+            (await request.body()).decode("utf-8"),
+            keep_blank_values=True, max_num_fields=1 + 2 * len(VALUE_FIELDS),
+        )
+        allowed = {"local_date", *VALUE_FIELDS, *(f"clear_{name}" for name in VALUE_FIELDS)}
+        if set(fields) - allowed or any(len(items) != 1 for items in fields.values()):
+            raise ValueError("Unexpected or duplicate form field")
+        values = {name: fields.get(name, [""])[0].strip() for name in VALUE_FIELDS}
+        clears = {name for name in VALUE_FIELDS if fields.get(f"clear_{name}") == ["1"]}
+        if any(fields.get(f"clear_{name}", ["1"]) != ["1"] for name in VALUE_FIELDS):
+            raise ValueError("Invalid clear action")
+        target_date = date.fromisoformat(fields.get("local_date", [""])[0])
+        if target_date != today_service.get_local_today():
+            return await run_in_threadpool(
+                _today_page, request, physiology_errors={
+                    "form": "The local day has changed. Reload Today before saving.",
+                }, status_code=409,
+            )
+        # Empty controls omit a value; only an explicit clear sends null. The
+        # shared model owns every numeric bound and persistence owns revisions.
+        submitted = {name: None if name in clears else value
+                     for name, value in values.items() if value or name in clears}
+        patch = ManualPhysiologyPatch(
+            local_date=target_date, source="web", **submitted,
+        )
+    except ValueError as exc:
+        errors = {"form": "Check the entered values and try again."}
+        if isinstance(exc, ValidationError):
+            errors.update({str(error["loc"][0]): error["msg"] for error in exc.errors()})
+        return await run_in_threadpool(
+            _today_page, request, physiology_values=values,
+            physiology_errors=errors, physiology_clears=clears, status_code=422,
+        )
+    if not submitted:
+        return await run_in_threadpool(
+            _today_page, request, physiology_values=values,
+            physiology_errors={"form": "Enter a value or select Clear before saving."},
+            status_code=422,
+        )
+    try:
+        await run_in_threadpool(
+            save_manual_physiology_observation,
+            user_id=settings.daily_readiness_user_id, patch=patch,
+        )
+    except Exception:
+        logging.getLogger(__name__).exception("today_physiology_save_failed")
+        return await run_in_threadpool(
+            _today_page, request, physiology_values=values,
+            physiology_errors={"form": "Physiology could not be saved. Try again."},
+            physiology_clears=clears, status_code=503,
+        )
+    return _redirect_to_today(saved="physiology")

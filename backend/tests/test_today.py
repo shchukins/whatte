@@ -4,6 +4,8 @@ from dataclasses import replace
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
+import pytest
+
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
@@ -12,6 +14,11 @@ from backend.today import service as today_service
 
 MOSCOW_TZ = ZoneInfo("Europe/Moscow")
 today_router_module = importlib.import_module("backend.today.router")
+
+
+@pytest.fixture(autouse=True)
+def no_manual_physiology_database(monkeypatch):
+    monkeypatch.setattr(today_service, "get_manual_physiology_observation", lambda **kwargs: None)
 
 
 def _readiness(*, physiology_available: bool = False):

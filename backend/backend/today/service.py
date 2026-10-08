@@ -9,6 +9,7 @@ from fastapi import HTTPException
 
 from backend.config import settings
 from backend.db import get_conn
+from backend.services.manual_physiology_service import get_manual_physiology_observation
 from backend.services.readiness_composition import READINESS_MODEL_VERSION
 from backend.services.readiness_query import (
     get_latest_readiness_daily,
@@ -91,6 +92,8 @@ class TodayData:
     activity_section: TodaySection
     history_groups: list[TodayHistoryGroup]
     history_section: TodaySection
+    manual_physiology: dict[str, Any] | None = None
+    manual_physiology_section: TodaySection = TodaySection(status="ok", error=None)
 
 
 def _bounded_error(exc: Exception) -> str:
@@ -347,6 +350,19 @@ def get_today_data(
     except Exception as exc:
         history_section = TodaySection(status="error", error=_bounded_error(exc))
 
+    manual_physiology = None
+    manual_physiology_section = TodaySection(status="ok", error=None)
+    try:
+        observation = get_manual_physiology_observation(
+            user_id=user_id, local_date=target_date,
+        )
+        if observation is not None:
+            manual_physiology = observation.model_dump()
+    except Exception:
+        # Optional collection must not interrupt the primary daily loop or leak
+        # database details into a form error.
+        manual_physiology_section = TodaySection(status="error", error=None)
+
     return TodayData(
         user_id=user_id,
         today=target_date.isoformat(),
@@ -359,4 +375,6 @@ def get_today_data(
         activity_section=activity_section,
         history_groups=history_groups,
         history_section=history_section,
+        manual_physiology=manual_physiology,
+        manual_physiology_section=manual_physiology_section,
     )

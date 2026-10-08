@@ -57,3 +57,18 @@ are not changed; explicit `null` clears a field. Invalid fields receive
 FastAPI's deterministic field-level `422` response. The response reports
 `changed` and `changed_fields`; sending an identical submission returns
 `changed: false` and creates no revision.
+
+## Protected Web Today adapter
+
+Web Today reads/writes the same models and persistence service through its
+server-side `/today` routes, like the Telegram adapter. Browsers submit
+URL-encoded `POST /today/physiology` forms under existing Caddy Basic Auth and
+cross-site request checks; the Bearer token is never embedded in HTML or JS.
+The form supplies the rendered local date, optional numeric values and explicit
+`clear_<field>=1` actions. Empty controls are omitted; Clear overrides a supplied
+value with null. The backend fixes `source=web` and the configured user.
+
+Successful writes redirect with `303` to `/today?saved=physiology`. Invalid or
+empty submissions render `422` with retained input; stale-day forms render `409`
+and request a reload; write failures render `503` without claiming success.
+This adapter does not change authentication or responses on the GET/PATCH API.

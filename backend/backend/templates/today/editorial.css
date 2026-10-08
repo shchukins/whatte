@@ -279,3 +279,27 @@ h2 {
     .plot-date { font-size: 9px; }
 }
 @media (max-width: 580px) { .rpe-scroll-hint { display: block; } }
+
+/* Optional raw observations follow the same paper, rules and numeric type as
+   Today’s evidence. Collapse editing so recovery and RPE stay primary. */
+.manual-physiology { grid-column: 1 / -1; }
+.manual-physiology h2 { font-size: clamp(34px, 3vw, 46px); }
+.physiology-record, .physiology-fields { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; margin-top: 28px; }
+.physiology-record { border-top: 1px solid var(--line); padding-top: 18px; }
+.physiology-record > div, .physiology-field { min-width: 0; }
+.physiology-value { display: block; margin: 12px 0 8px; font: 23px var(--mono); }
+.physiology-meta, .physiology-help { color: var(--muted); font: 11px/1.6 var(--mono); overflow-wrap: anywhere; }
+.physiology-editor { margin-top: 24px; border-top: 1px solid var(--line); padding-top: 12px; }
+.physiology-editor summary { padding: 10px 0; cursor: pointer; font-size: 16px; }
+.physiology-editor summary .badge { margin-left: 12px; }
+.physiology-field > label:first-child { display: block; font-size: 14px; }
+.physiology-field > label:first-child span { display: block; margin-top: 6px; color: var(--muted); font: 11px var(--mono); }
+.physiology-field input[type="number"] { width: 100%; min-width: 0; min-height: 48px; margin: 12px 0 4px; padding: 10px; border: 1px solid var(--line); border-radius: 0; background: transparent; color: var(--ink); font: 18px var(--mono); }
+.physiology-clear { display: flex; gap: 8px; align-items: center; min-height: 44px; font-size: 12px; color: var(--muted); }
+.physiology-clear input { accent-color: var(--olive); }
+.physiology-save { margin-top: 22px; min-height: 48px; padding: 12px 20px; border: 1px solid var(--ink); border-radius: 0; background: var(--ink); color: var(--paper); cursor: pointer; }
+.physiology-save:hover { background: var(--olive); }
+.physiology-editor summary:focus-visible, .physiology-editor input:focus-visible, .physiology-save:focus-visible { outline: 2px solid var(--olive); outline-offset: 3px; }
+.physiology-field input[aria-invalid="true"] { border-color: var(--brick); }
+@media (max-width: 900px) { .physiology-record, .physiology-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 420px) { .physiology-fields { grid-template-columns: minmax(0, 1fr); } }
