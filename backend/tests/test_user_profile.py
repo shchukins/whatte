@@ -15,7 +15,7 @@ from backend.services.metrics_service import compute_power_metrics, compute_powe
 router = importlib.import_module('backend.today.router')
 
 
-@pytest.mark.parametrize('metric,value', [('ftp', 0), ('ftp', float('nan')), ('ftp', float('inf')), ('ftp', 1001), ('weight', 501), ('weight', -3)])
+@pytest.mark.parametrize('metric,value', [('ftp', 0), ('ftp', float('nan')), ('ftp', float('inf')), ('ftp', 1001), ('weight', 501), ('weight', -3), ('hr_max', 0), ('hr_max', 251), ('hr_max', 190.5), ('hr_max', float('nan')), ('hr_max', float('inf'))])
 def test_reject_invalid_values(metric, value):
     with pytest.raises(ValidationError):
         profile.ProfileChange(metric=metric, value=value, effective_from=date(2026, 7, 25))
@@ -41,7 +41,8 @@ def test_missing_zone_settings_remain_unavailable():
 @pytest.fixture
 def page(monkeypatch):
     monkeypatch.setattr(profile, 'get_profile', lambda user: dict(
-        current={'ftp': dict(value=222, effective_from=date(2026, 7, 25))},
+        current={'ftp': dict(value=222, effective_from=date(2026, 7, 25)),
+                 'hr_max': dict(value=190, effective_from=date(2026, 7, 25))},
         history=[dict(metric='ftp', value=222, effective_from=date(2026, 7, 25))],
         today=date(2026, 9, 5), pending_from=date(2026, 7, 25)))
     return TestClient(app_module.app)
@@ -51,6 +52,9 @@ def test_profile_page(page):
     response = page.get('/today/profile')
     assert response.status_code == 200
     assert '222' in response.text
+    assert '190' in response.text
+    assert 'HR max' in response.text
+    assert 'уд/мин' in response.text
     assert '2026-07-25' in response.text
     assert 'Не указан' in response.text
     assert '/today/profile/recompute' in response.text
@@ -122,3 +126,28 @@ def test_recompute_retry_preserves_pending_until_all_stages_finish(monkeypatch):
 def test_malformed_form_rejected(page, data):
     assert page.post('/today/profile', content=data,
                      headers={'content-type': 'application/x-www-form-urlencoded'}).status_code == 422
+
+
+@pytest.mark.parametrize('value', [1, 190, 250])
+def test_hr_max_accepts_whole_number_limits(value):
+    assert profile.ProfileChange(metric='hr_max', value=value, effective_from=date(2026, 7, 25)).value == value
+
+
+def test_hr_max_form_uses_configured_user(page, monkeypatch):
+    save = MagicMock()
+    monkeypatch.setattr(profile, 'save_profile_value', save)
+    response = page.post('/today/profile', data=dict(metric='hr_max', value='195', effective_from='2026-07-25'), follow_redirects=False)
+    assert response.status_code == 303
+    assert save.call_args.args[0] == router.settings.daily_readiness_user_id
+    assert save.call_args.args[1].metric == 'hr_max'
+    assert save.call_args.args[1].value == 195
+
+
+@pytest.mark.parametrize('value', ['190.5', '251'])
+def test_invalid_hr_max_form_does_not_save(page, monkeypatch, value):
+    save = MagicMock()
+    monkeypatch.setattr(profile, 'save_profile_value', save)
+    response = page.post('/today/profile', data=dict(metric='hr_max', value=value, effective_from='2026-07-25'))
+    assert response.status_code == 422
+    assert 'HR max' in response.text
+    save.assert_not_called()

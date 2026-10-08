@@ -35,6 +35,8 @@ claims and numbers in the prototype are not product data or model rules.
 
 ## Rollout
 
-Web Today is the first implementation. Use this identity when working on
-other pages, including Analytics, in their own scoped changes. The current
-task does not redesign Analytics or the dated profile page.
+Web Today and its dated profile page use this identity. The profile reuses
+Today’s palette and typography in a compact, centered layout (760px maximum)
+with inline form fields on desktop and stacked fields on narrow screens.
+Use this identity when working on other pages, including Analytics, in their
+own scoped changes. Analytics remains outside this rollout.

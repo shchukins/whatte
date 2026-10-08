@@ -574,8 +574,9 @@ Current limitation:
 
 ## User profile
 
-Web Today includes `/today/profile` for independent dated FTP and weight inputs
-and explicit historical recalculation. Apply migration `011_user_profile.sql`
+Web Today includes `/today/profile` for independent dated FTP, HR max and weight inputs
+and explicit historical recalculation. Apply migrations `011_user_profile.sql`
+and `020_user_profile_hr_max.sql`
 before deploying this version to backend and worker. See
 [profile behavior and deployment](../docs/product/USER_PROFILE.md).
 

@@ -757,13 +757,15 @@ activity_rpe_observation (1-10) + historical activity_subjective_feedback (1-5)
 ## User profile value history
 
 `user_profile_value` (migration `011_user_profile.sql`) stores independent dated
-manual inputs: `user_id`, `metric` (`ftp` or `weight`), `effective_from`, numeric
+manual inputs: `user_id`, `metric` (`ftp`, `hr_max` or `weight`), `effective_from`, numeric
 `value`, `needs_recompute`, and `updated_at`. The primary key is
 `(user_id, metric, effective_from)`. Same-date saves correct an entry; unchanged
-FTP saves preserve the existing pending flag without scheduling new work.
-Changed FTP entries remain pending until successful recomputation. Historical
+FTP/HR max saves preserve the existing pending flag without scheduling new work.
+Changed FTP/HR max entries remain pending until successful recomputation. Historical
 FTP values are copied from the legacy training profile without overwriting
-existing entries. HealthKit records are not modified or repurposed.
+existing entries. Migration `020_user_profile_hr_max.sql` adds whole-number
+HR max validation (1–250 bpm) and copies valid legacy HR max history without
+overwriting manual corrections. HealthKit records are not modified or repurposed.
 
 See [User profile](../product/USER_PROFILE.md) for date and recompute semantics.
 

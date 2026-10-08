@@ -17,7 +17,7 @@ def local_today() -> date:
 
 class ProfileChange(BaseModel):
     model_config = ConfigDict(extra='forbid')
-    metric: Literal['ftp', 'weight']
+    metric: Literal['ftp', 'hr_max', 'weight']
     effective_from: date
     value: float = Field(gt=0, le=1000, allow_inf_nan=False)
 
@@ -26,6 +26,8 @@ class ProfileChange(BaseModel):
         # Broad input sanity limits, not physiological scoring thresholds.
         if self.value < 1 or (self.metric == 'weight' and self.value > 500):
             raise ValueError('Value is outside the supported range')
+        if self.metric == 'hr_max' and (self.value > 250 or not self.value.is_integer()):
+            raise ValueError('HR max must be a whole number between 1 and 250')
         if self.effective_from > local_today():
             raise ValueError('Future effective dates are not supported')
         return self
@@ -78,27 +80,27 @@ def save_profile_value(user_id: str, change: ProfileChange) -> None:
                 on conflict (user_id, metric, effective_from) do update set
                     value = excluded.value,
                     needs_recompute = user_profile_value.needs_recompute or
-                        (excluded.metric = 'ftp' and
+                        (excluded.metric in ('ftp', 'hr_max') and
                          user_profile_value.value <> excluded.value),
                     updated_at = now()
             ''', (user_id, change.metric, change.effective_from, change.value,
-                  change.metric == 'ftp'))
+                  change.metric in ('ftp', 'hr_max')))
         conn.commit()
 
 
 def resolve_activity_profile(cur, user_id: str, activity_id: int) -> tuple:
     """Use the latest input on/before the activity's local calendar date.
 
-    FTP edits do not infer power or HR zone changes. Legacy zone boundaries
-    remain independent and are selected with the same effective-date cutoff.
-    Missing FTP stays unavailable; future profiles never leak into history.
+    FTP and HR max edits do not infer power or HR zone changes. Legacy zone
+    boundaries remain independent and are selected with the same effective-date cutoff.
+    Missing inputs stay unavailable; future profiles never leak into history.
     """
     cur.execute('''
         with activity as (
             select (start_date at time zone %s)::date as day
             from strava_activity_raw where user_id = %s and strava_activity_id = %s
         )
-        select coalesce(v.value, p.ftp_watts), p.hr_max,
+        select coalesce(v.value, p.ftp_watts), coalesce(h.value, p.hr_max),
                p.power_z1_upper, p.power_z2_upper, p.power_z3_upper,
                p.power_z4_upper, p.power_z5_upper, p.power_z6_upper,
                p.hr_z1_upper, p.hr_z2_upper, p.hr_z3_upper, p.hr_z4_upper
@@ -112,7 +114,12 @@ def resolve_activity_profile(cur, user_id: str, activity_id: int) -> tuple:
               and metric = 'ftp' and effective_from <= a.day
             order by effective_from desc limit 1
         ) v on true
-    ''', (settings.whatte_timezone, user_id, activity_id, user_id, user_id))
+        left join lateral (
+            select value from user_profile_value where user_id = %s
+              and metric = 'hr_max' and effective_from <= a.day
+            order by effective_from desc limit 1
+        ) h on true
+    ''', (settings.whatte_timezone, user_id, activity_id, user_id, user_id, user_id))
     row = cur.fetchone()
     if row is None:
         raise HTTPException(404, 'Activity not found')

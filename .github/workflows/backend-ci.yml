@@ -109,4 +109,5 @@ jobs:
         run: |
           pytest tests/test_metrics_smoke_integration.py -v
           pytest tests/test_pipeline_idempotency_integration.py -v
+          pytest tests/test_user_profile_integration.py -v
           pytest tests/test_research_writer_integration.py -v

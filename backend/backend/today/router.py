@@ -155,7 +155,7 @@ async def save_profile(request: Request):
             {key: values[-1] for key, values in fields.items()}
         )
     except (ValidationError, ValueError):
-        return await run_in_threadpool(_profile_page, request, error="Проверьте дату и значение: FTP 1–1000 Вт, вес 1–500 кг. Дата не может быть в будущем.", status_code=422)
+        return await run_in_threadpool(_profile_page, request, error="Проверьте дату и значение: FTP 1–1000 Вт, HR max — целое число 1–250 уд/мин, вес 1–500 кг. Дата не может быть в будущем.", status_code=422)
     # Database work runs in FastAPI's thread pool, not on the event loop.
     await run_in_threadpool(profile_service.save_profile_value,
                             settings.daily_readiness_user_id, change)

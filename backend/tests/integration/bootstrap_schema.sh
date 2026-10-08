@@ -60,3 +60,5 @@ psql -v ON_ERROR_STOP=1 "$DATABASE_URL" -f "$REPO_ROOT/db-init/017_decision_cont
 psql -v ON_ERROR_STOP=1 "$DATABASE_URL" -f "$REPO_ROOT/db-init/018_research_experiment.sql"
 
 psql -v ON_ERROR_STOP=1 "$DATABASE_URL" -f "$REPO_ROOT/db-init/019_research_execution_metadata.sql"
+
+psql -v ON_ERROR_STOP=1 "$DATABASE_URL" -f "$REPO_ROOT/db-init/020_user_profile_hr_max.sql"

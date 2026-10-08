@@ -4,55 +4,55 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Профиль · Whatte</title>
-  <style>
-    :root { color-scheme: dark; font-family: system-ui, sans-serif; background: #101713; color: #edf4ee; }
-    body { margin: 0; } main { max-width: 680px; margin: auto; padding: 24px 18px 60px; }
-    header { display: flex; justify-content: space-between; align-items: center; }
-    a { color: #c8ed83; } h1 { font-size: 2rem; } h2 { font-size: 1.1rem; }
-    section { background: #1a241d; border: 1px solid #354336; border-radius: 18px; padding: 20px; margin: 18px 0; }
-    p { line-height: 1.5; color: #bdcbbc; } label { display: block; margin: 16px 0 6px; }
-    input, button, select { box-sizing: border-box; width: 100%; font: inherit; padding: 12px; border-radius: 10px; border: 1px solid #62715d; }
-    button { margin-top: 18px; background: #c8ed83; color: #14200d; cursor: pointer; font-weight: 650; }
-    .values { display: flex; gap: 30px; flex-wrap: wrap; } .value { font-size: 1.8rem; color: #edf4ee; }
-    .notice { padding: 15px; border: 1px solid #c8ed83; border-radius: 12px; } .error { border-color: #eba88d; }
-    table { width: 100%; border-collapse: collapse; } td, th { padding: 12px 4px; text-align: left; border-bottom: 1px solid #354336; }
-    small { color: #bdcbbc; } button:disabled { opacity: .6; cursor: wait; }
-  </style>
+  <meta name="color-scheme" content="light">
+  <style>{% include "today/editorial.css" %}
+    {% include "today/profile.css" %}</style>
 </head>
-<body><main>
-  <header><strong>Whatte</strong><a href="/today">← Сегодня</a></header>
+<body><main class="shell profile-shell">
+  <header class="topline">
+    <p class="brand">WHATTE <span>/ DAILY</span></p>
+    <span class="topline-title">Профиль</span>
+    <div class="topline-end"><a class="profile-link" href="/today">← Сегодня</a><p class="date">{{ today }}</p></div>
+  </header>
+  <div class="edition-note"><span>Профиль / история значений</span><span>FTP + HR max + вес</span></div>
+  <div class="profile-intro">
   <h1>Профиль</h1>
-  <p>FTP и вес с историей изменений. Каждое значение действует с выбранной даты до следующего изменения этого показателя.</p>
-  {% if message %}<p class="notice" role="status">{{ message }}</p>{% endif %}
-  {% if error %}<p class="notice error" role="alert">{{ error }}</p>{% endif %}
-  <section aria-label="Текущие значения"><div class="values">
-    {% for metric, label, unit in [('ftp', 'FTP', 'Вт'), ('weight', 'Вес', 'кг')] %}
-    <div><h2>{{ label }}</h2>
-      {% if current.get(metric) %}<div class="value">{{ '%g'|format(current[metric].value) }} {{ unit }}</div><small>с {{ current[metric].effective_from }}</small>
+  <p>FTP, HR max и вес с историей изменений. Каждое значение действует с выбранной даты до следующего изменения этого показателя.</p>
+  </div>
+  {% if message %}<p class="saved" role="status">{{ message }}</p>{% endif %}
+  {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+  <section class="card profile-current" aria-label="Текущие значения"><p class="eyebrow">01 / Текущие значения</p><div class="values">
+    {% for metric, label, unit in [('ftp', 'FTP', 'Вт'), ('hr_max', 'HR max', 'уд/мин'), ('weight', 'Вес', 'кг')] %}
+    <div><h2 class="metric-label">{{ label }}</h2>
+      {% if current.get(metric) %}<div class="value">{{ '%g'|format(current[metric].value) }} <span class="profile-unit">{{ unit }}</span></div><small>с {{ current[metric].effective_from }}</small>
       {% else %}<p>Не указан</p>{% endif %}
     </div>{% endfor %}
   </div></section>
-  <section><h2>Изменить значение</h2>
+  <section class="card" aria-labelledby="profile-edit-title"><p class="eyebrow">02 / Изменение</p><h2 id="profile-edit-title">Изменить значение</h2>
     <form method="post" action="/today/profile">
-      <label for="metric">Показатель</label><select id="metric" name="metric"><option value="ftp">FTP, Вт</option><option value="weight">Вес, кг</option></select>
-      <label for="value">Новое значение</label><input id="value" name="value" type="number" min="1" max="1000" step="0.1" required inputmode="decimal">
-      <label for="effective_from">Действует с</label><input id="effective_from" name="effective_from" type="date" value="{{ today }}" max="{{ today }}" required>
-      <p>Чтобы исправить запись, сохраните новое значение на ту же дату. Вес не меняет расчёт нагрузки или восстановления. Границы тренировочных зон на этой странице не изменяются.</p>
-      <button type="submit">Сохранить</button>
+      <div class="profile-fields">
+      <div class="profile-field"><label for="metric">Показатель</label><select id="metric" name="metric"><option value="ftp">FTP, Вт</option><option value="hr_max">HR max, уд/мин</option><option value="weight">Вес, кг</option></select></div>
+      <div class="profile-field"><label for="value">Новое значение</label><input id="value" name="value" type="number" min="1" max="1000" step="0.1" required inputmode="decimal"></div>
+      <div class="profile-field"><label for="effective_from">Действует с</label><input id="effective_from" name="effective_from" type="date" value="{{ today }}" max="{{ today }}" required></div>
+      </div>
+      <p class="profile-help">Чтобы исправить запись, сохраните новое значение на ту же дату. Вес не меняет расчёт нагрузки или восстановления. Границы тренировочных зон на этой странице не изменяются.</p>
+      <button class="profile-save" type="submit">Сохранить</button>
     </form>
   </section>
-  {% if pending_from %}<section><h2>Нужно обновить расчёты</h2>
-    <p>FTP изменён с {{ pending_from }}. Сохранённые TSS, отклик на тренировки и состояние готовности ещё требуют пересчёта. Ранее отправленные уведомления останутся прежними.</p>
-    <form method="post" action="/today/profile/recompute"><button type="submit">Пересчитать тренировки и готовность</button></form>
+  {% if pending_from %}<section class="card profile-pending" aria-labelledby="profile-pending-title"><p class="eyebrow">Расчёты / ожидают обновления</p><h2 id="profile-pending-title">Нужно обновить расчёты</h2>
+    <p>FTP или HR max изменён с {{ pending_from }}. Метаданные тренировок требуют обновления; после изменения FTP также пересчитываются TSS, отклик на тренировки и состояние готовности. Ранее отправленные уведомления останутся прежними.</p>
+    <form method="post" action="/today/profile/recompute"><button class="profile-save" type="submit">Пересчитать тренировки и готовность</button></form>
   </section>{% endif %}
-  <section><h2>История изменений</h2>
-    {% if history %}<table><thead><tr><th>Дата</th><th>Показатель</th><th>Значение</th></tr></thead><tbody>
-      {% for row in history %}<tr><td>{{ row.effective_from }}</td><td>{{ 'FTP' if row.metric == 'ftp' else 'Вес' }}</td><td>{{ '%g'|format(row.value) }} {{ 'Вт' if row.metric == 'ftp' else 'кг' }}</td></tr>{% endfor %}
-    </tbody></table>{% else %}<p>Пока нет записей.</p>{% endif %}
+  <section class="card" aria-labelledby="profile-history-title"><p class="eyebrow">03 / История</p><h2 id="profile-history-title">История изменений</h2>
+    {% if history %}<div class="history-scroll" tabindex="0" role="region" aria-label="История изменений профиля"><table class="history-table profile-history"><thead><tr><th scope="col">Дата</th><th scope="col">Показатель</th><th scope="col">Значение</th></tr></thead><tbody>
+      {% for row in history %}<tr><td>{{ row.effective_from }}</td><td>{{ 'FTP' if row.metric == 'ftp' else 'HR max' if row.metric == 'hr_max' else 'Вес' }}</td><td>{{ '%g'|format(row.value) }} {{ 'Вт' if row.metric == 'ftp' else 'уд/мин' if row.metric == 'hr_max' else 'кг' }}</td></tr>{% endfor %}
+    </tbody></table></div>{% else %}<p>Пока нет записей.</p>{% endif %}
   </section>
 </main><script>
 document.querySelector('#metric').addEventListener('change', function () {
-  document.querySelector('#value').max = this.value === 'weight' ? '500' : '1000';
+  const input = document.querySelector('#value');
+  input.max = this.value === 'hr_max' ? '250' : this.value === 'weight' ? '500' : '1000';
+  input.step = this.value === 'hr_max' ? '1' : '0.1';
 });
 document.querySelectorAll('form').forEach(form => form.addEventListener('submit', () => {
   const button = form.querySelector('button'); button.disabled = true;

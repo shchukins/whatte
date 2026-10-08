@@ -5,7 +5,7 @@ All routes are under protected `/today*`, use the configured
 on the technical API domain. Keep the backend private behind that edge.
 
 - `GET /today/profile`: HTML with current values, history and pending status.
-- `POST /today/profile`: URL-encoded form with `metric` (`ftp` or `weight`),
+- `POST /today/profile`: URL-encoded form with `metric` (`ftp`, `hr_max` or `weight`),
   `value` and `effective_from` (`YYYY-MM-DD`). Success redirects with HTTP 303.
   Validation errors render HTML with HTTP 422; other content types return 415.
 - `POST /today/profile/recompute`: synchronous recalculation using stored data;
@@ -16,3 +16,7 @@ on the technical API domain. Keep the backend private behind that edge.
 
 This is a native Web form contract, not a public multi-user profile API.
 See [behavior and deployment](../product/USER_PROFILE.md).
+
+HR max accepts whole numbers from 1 to 250 bpm. These are input sanity limits,
+not scoring thresholds. HR max edits schedule recomputation to refresh stored
+activity provenance; power and HR zone boundaries remain independent.
