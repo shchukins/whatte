@@ -593,6 +593,16 @@ before deploying this version to backend and worker. See
 The infrastructure CLI is `python -m scripts.run_research_experiment`. It uses
 a separate research image and dedicated audit writer credentials; see
 [runner contract and operational prerequisites](../docs/product/RESEARCH_RUNNER.md).
-The real outcome prediction engine remains unimplemented, so the built-in
+The legacy readiness recipe remains unsupported for outcome prediction, so its built-in
 candidate worker explicitly records an unsupported failure. Synthetic tests
 validate the execution protocol, not scientific readiness/outcome prediction.
+
+
+## Offline recovery predictor (#150)
+
+The reviewed day-level v2 predictor and train-only preparation are implemented;
+see [model contract](../docs/models/RECOVERY_PREDICTION.md). Export with
+--dataset-version temporal_dataset_v2, prepare frozen state with
+python -m scripts.prepare_recovery_prediction, then supply --learned-state
+to the existing runner. V1 configs/evidence retain their semantics.
+Prospective capture rollout, real coverage and home-server acceptance are pending.

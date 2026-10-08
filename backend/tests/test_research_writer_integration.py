@@ -67,3 +67,42 @@ def test_research_writer_can_record_failure_but_cannot_mutate_production(writer_
 def test_production_admin_credentials_are_rejected():
     with pytest.raises(ValueError, match="research_writer_role_required"):
         research_writer_connection(os.environ["DATABASE_URL"])
+
+@pytest.mark.skipif(os.getenv("RUN_DOCKER_TESTS") != "1", reason="Needs disposable PostgreSQL and Linux Docker")
+def test_real_prediction_runner_records_terminal_audit_with_dedicated_writer(writer_dsn, tmp_path):
+    from pathlib import Path
+    import subprocess
+    from test_recovery_prediction import prepared
+    import json
+    import sys
+    dataset, state, config, baseline = prepared()
+    config.update(freshness_weight=0.8, recovery_evidence_weight=0.2)
+    repo = Path(__file__).resolve().parents[2]
+    built = subprocess.run(["docker", "build", "-q", "-f", str(repo / "backend/Dockerfile.research"),
+                            str(repo / "backend")], check=True, capture_output=True, text=True, timeout=180)
+    image = built.stdout.strip().splitlines()[-1]
+    experiment = "model-integration-" + uuid.uuid4().hex
+    try:
+        paths = {}
+        for name, value in (("config",config),("dataset",dataset),("learned-state",state),("baseline",baseline)):
+            paths[name] = tmp_path/(name+".json")
+            paths[name].write_text(json.dumps(value))
+            paths[name].chmod(0o600)
+        command = [sys.executable,"-m","scripts.run_research_experiment"]
+        for name, path in paths.items():
+            command.extend(["--"+name,str(path)])
+        command.extend(["--experiment-id",experiment,"--hypothesis","Real model Docker SQL CLI fixture",
+                        "--image",image,"--output-root",str(tmp_path/"private")])
+        result = subprocess.run(command,cwd=repo/"backend",
+                                env={**os.environ,"WHATTE_RESEARCH_DATABASE_URL":writer_dsn},
+                                capture_output=True,text=True,check=True,timeout=180)
+        assert json.loads(result.stdout)["status"] == "candidate"
+        with research_writer_connection(writer_dsn) as conn:
+            row = conn.execute("select status, candidate_config_hash, execution_metadata from research_experiment where experiment_id=%s",
+                               (experiment,)).fetchone()
+            assert row[0] == "candidate"
+            assert row[2]["coverage"]["paired_days"] == 20
+            assert row[2]["learned_state_hash"] == config["learned_state_hash"]
+            assert all(s["cleanup_succeeded"] for s in row[2]["stages"])
+    finally:
+        subprocess.run(["docker","image","rm",image],check=True,capture_output=True,timeout=30)

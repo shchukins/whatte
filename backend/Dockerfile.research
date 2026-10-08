@@ -5,6 +5,10 @@ RUN pip install --no-cache-dir pydantic==2.12.5
 COPY backend/services/research_parameter_space.py backend/services/research_parameter_space.py
 COPY backend/services/research_versions.py backend/services/research_versions.py
 COPY backend/services/research_evaluator.py backend/services/research_evaluator.py
+COPY backend/services/recovery_prediction.py backend/services/recovery_prediction.py
+COPY backend/services/recovery_prediction_config.py backend/services/recovery_prediction_config.py
+COPY backend/services/readiness_composition.py backend/services/readiness_composition.py
+COPY backend/services/research_evaluator_v2.py backend/services/research_evaluator_v2.py
 COPY scripts/research_worker.py scripts/research_worker.py
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 USER 65534:65534

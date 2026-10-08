@@ -6,7 +6,7 @@ Infrastructure is implemented, with local unit/protocol tests. Actual Docker,
 cgroup and PostgreSQL permission checks are wired into Backend CI; they must
 pass on Linux before operational use. A home-server smoke run remains pending.
 
-The real candidate success path is **not implemented**. The strict
+The legacy v1 recipe's candidate success path remains **unsupported**. The strict
 `readiness_parameter_candidate_v1` contract describes a readiness recipe rather
 than RPE/recovery predictions. Immutable `daily_feature_vector_v1` snapshots also
 lack comparable-session response baseline context. The built-in worker records
@@ -16,6 +16,20 @@ feature, reads mutable DB history, or substitutes readiness/100 for an outcome
 probability. #136 remains partial until a reviewed outcome-prediction contract,
 compatible immutable inputs and a real successful run satisfy its acceptance
 criteria. Synthetic success fixtures validate infrastructure only.
+
+## Recovery predictor implementation (#150)
+
+A reviewed recovery predictor is implemented with research_execution_v2,
+recovery_prediction_candidate_v1, temporal_dataset_v2 and baseline_evaluator_v2.
+Use the extra --learned-state argument with explicitly prepared train-only state
+and frozen baseline. The existing isolation, timeout, permissions and immutable
+audit boundaries apply to both protocols. V1 requests keep their prior behavior.
+V2 adds deterministic state/baseline/candidate verification and coverage gates.
+See [model contract and commands](../models/RECOVERY_PREDICTION.md).
+
+Real source-data coverage and a home-server smoke run remain pending. Fixture
+success and newly wired Docker/SQL checks do not close #150 or #136. The legacy
+unsupported paragraph above applies to v1 inputs, not the implemented v2 model.
 
 ## Boundaries and protocol
 

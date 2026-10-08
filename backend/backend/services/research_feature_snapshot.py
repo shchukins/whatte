@@ -22,6 +22,7 @@ def _canonical_json(value: Any) -> str:
 def capture_research_feature_snapshot(
     *, user_id: str, local_date: date, reference_key: str,
     cutoff_at: datetime | None = None,
+    feature_vector_version: str = "daily_feature_vector_v2",
 ) -> dict[str, Any]:
     """Store a daily vector without reconstructing historical source state.
 
@@ -37,6 +38,7 @@ def capture_research_feature_snapshot(
         local_date=local_date,
         cutoff_at=cutoff,
         timezone_name=settings.whatte_timezone,
+        feature_vector_version=feature_vector_version,
     )
     content = _canonical_json(vector)
     fingerprint = hashlib.sha256(content.encode("utf-8")).hexdigest()

@@ -67,6 +67,7 @@ jobs:
     env:
       DATABASE_URL: postgresql://human_engine:human_engine@127.0.0.1:5432/human_engine
       RUN_DB_TESTS: "1"
+      RUN_DOCKER_TESTS: "1"
       PYTHONPATH: ${{ github.workspace }}/backend
       STRAVA_VERIFY_TOKEN: test_verify_token
       STRAVA_CLIENT_ID: "12345"

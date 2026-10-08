@@ -50,3 +50,21 @@ python -m scripts.build_daily_feature_vector \
 
 The command uses a repeatable-read, read-only transaction and writes only JSON
 to stdout. Do not commit personal output.
+
+
+## Prospective response replay capability (#150)
+
+Capture at accepted daily delivery now requests daily_feature_vector_v2. The
+general builder/CLI still default to v1; select --feature-vector-version explicitly
+to inspect v2. Existing v1 snapshots are preserved. Deployment is separate from
+source implementation.
+
+V2 reads and copies response baseline/current/deviation/sample-count evidence,
+metric/formula explanation and availability in the same repeatable-read source
+transaction as load/feeling/physiology. It records source fetch/computation/start
+timestamps and the stored_activity_date selection basis. A proven absence is
+explicit; unknown legacy capability is not equivalent to absence. Stored dates
+are not silently converted or production response logic changed.
+
+See [offline predictor](RECOVERY_PREDICTION.md) and
+[day dataset](../data/TEMPORAL_DAY_DATASET.md).

@@ -223,6 +223,7 @@ def build_temporal_dataset(
 def generate_temporal_dataset(
     *, user_id: str, split: TemporalSplit, timezone_name: str | None = None,
     include_test: bool = False, test_access_granted: bool = False,
+    dataset_version: str = DATASET_VERSION,
 ) -> dict[str, Any]:
     """Load persisted sources and create a read-only research dataset."""
     if include_test and not test_access_granted:
@@ -253,6 +254,15 @@ def generate_temporal_dataset(
                 ))
                 for row in cur.fetchall()
             ]
+    if dataset_version == "temporal_dataset_v2":
+        from backend.services.temporal_dataset_v2 import build_day_dataset
+        # Snapshots are selected per user before the pure day builder.
+        for snapshot in snapshots:
+            snapshot["user_id"] = user_id
+        return build_day_dataset(records=report["records"], feature_snapshots=snapshots,
+                                 split=split, timezone_name=timezone_name, include_test=include_test)
+    if dataset_version != DATASET_VERSION:
+        raise ValueError("unsupported_dataset_version")
     return build_temporal_dataset(
         records=report["records"], feature_snapshots=snapshots, split=split,
         timezone_name=timezone_name, include_test=include_test,

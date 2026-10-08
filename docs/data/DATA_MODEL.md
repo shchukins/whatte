@@ -777,3 +777,16 @@ terminal immutability is preserved. It does not hold raw inputs or predictions.
 The `whatte_research_writer` NOLOGIN group has only explicit audit-column grants
 and audit-sequence usage; a dedicated login is provisioned separately.
 See [runner contract](../product/RESEARCH_RUNNER.md).
+
+
+### Offline day-level prediction contracts (#150)
+
+No SQL migration is added. Existing research_feature_snapshot rows keep their
+versioned JSON; new capture requests daily_feature_vector_v2 with baseline-backed
+response replay evidence. Existing research_experiment version text/config/metadata
+columns accept the separately validated predictor identity. Dedicated writer
+grants and one-way lifecycle remain unchanged. Learned state, predictions and
+datasets are private artifacts outside the audit table.
+See [day export contract](TEMPORAL_DAY_DATASET.md) and
+[offline model](../models/RECOVERY_PREDICTION.md). Code availability does not imply
+capture deployment or real-data acceptance.

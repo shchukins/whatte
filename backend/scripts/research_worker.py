@@ -13,6 +13,31 @@ PROTOCOL_VERSION = "research_execution_v1"
 
 
 def process_request(request):
+    if request.get("protocol_version") == "research_execution_v2":
+        from backend.services.recovery_prediction import prediction_artifact
+        from backend.services.recovery_prediction_config import validate_recovery_config
+        from backend.services import research_evaluator_v2 as evaluator
+        if request["operation"] == "candidate":
+            config = validate_recovery_config(request["config"])
+            from backend.services.research_parameter_space import candidate_config_hash
+            config_hash = candidate_config_hash(config)
+            if config_hash != request["candidate_config_hash"]:
+                raise ValueError("candidate_config_hash_mismatch")
+            artifact, missing = prediction_artifact(
+                observations=request["observations"], config=config, state=request["learned_state"],
+                dataset_hash=request["dataset_hash"], partition=request["partition"])
+            return {"protocol_version": "research_execution_v2", "status": "ok",
+                    "candidate_config_hash": config_hash, "result": artifact,
+                    "missing_prediction_reasons": missing}
+        if request["operation"] != "evaluate":
+            raise ValueError("unsupported_operation")
+        if request["evaluator_version"] != evaluator.EVALUATOR_VERSION or request["metric_specification_hash"] != evaluator.METRIC_SPECIFICATION_HASH:
+            raise ValueError("evaluator_identity_mismatch")
+        result = evaluator.evaluate_research_candidate(
+            dataset=request["dataset"], partition=request["partition"],
+            baseline_artifact=request["baseline"], candidate_artifact=request["candidate"],
+            test_access_granted=request["test_access_granted"])
+        return {"protocol_version": "research_execution_v2", "status": "ok", "result": result}
     if request.get("protocol_version") != PROTOCOL_VERSION:
         raise ValueError("unsupported_protocol")
     if request["operation"] == "candidate":
