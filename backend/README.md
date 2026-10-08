@@ -606,3 +606,7 @@ see [model contract](../docs/models/RECOVERY_PREDICTION.md). Export with
 python -m scripts.prepare_recovery_prediction, then supply --learned-state
 to the existing runner. V1 configs/evidence retain their semantics.
 Prospective capture rollout, real coverage and home-server acceptance are pending.
+
+### Recovery research data readiness
+
+Before preparing #150 artifacts, run `python -m scripts.report_recovery_data_readiness --dataset /private-research/dataset.json --fit-as-of FIT_AS_OF_ISO_TIMESTAMP`. It reads a test-withheld `temporal_dataset_v2` JSON export and prints aggregate gates without fitting or database access. Exit codes: 0 ready for preparation, 2 insufficient data, 1 invalid input. Potential validation coverage does not prove actual paired acceptance. See [the runbook](../docs/product/RECOVERY_RESEARCH_ACCEPTANCE.md).

@@ -4,9 +4,11 @@
 
 Implemented in source with unit/model/protocol checks. The approved contract is
 [OUTCOME_PREDICTION_CONTRACT_PROPOSAL.md](../product/OUTCOME_PREDICTION_CONTRACT_PROPOSAL.md).
-Real Linux Docker/PostgreSQL integration checks are wired into Backend CI and must
-pass before operational use. Prospective capture deployment, sufficient real-data
-coverage and separately authorized home-server smoke execution remain pending.
+Linux Docker/PostgreSQL integration checks passed in Backend CI on 2026-10-08.
+Prospective capture was deployed at 0aa653ae0e0f507b9cc5a9e978111879ea995740.
+Natural persisted v2 capture, sufficient real-data coverage and a separately
+authorized home-server acceptance run remain pending. See
+[preparation readiness and acceptance](../product/RECOVERY_RESEARCH_ACCEPTANCE.md).
 #150 and #136 are not complete; #138 remains blocked by those acceptance steps.
 
 ## Target and formula
@@ -133,8 +135,8 @@ MAE deltas use candidate minus baseline and imply no winner or promotion.
 ## Delivery boundary
 
 No schema migration is needed: existing feature version text, audit columns and
-dedicated column grants support v2. Existing records remain unchanged. New
-deployment would prospectively capture v2 vectors; it does not backfill v1 snapshots,
+dedicated column grants support v2. Existing records remain unchanged. The 2026-10-08
+deployment prospectively captures v2 vectors; it does not backfill v1 snapshots,
 recompute production readiness or introduce an online learner. Deploying capture
 and running a home-server smoke test require separate operational authorization.
 
