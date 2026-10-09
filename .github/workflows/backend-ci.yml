@@ -33,7 +33,12 @@ jobs:
         working-directory: backend
         run: pytest tests -v -k "not integration"
       - name: Verify isolated research containers
-        run: pytest tests/test_research_container_integration.py -v
+        # Avoid Docker Hub's shared unauthenticated runner pull quota. Keep the
+        # existing Dockerfile base name, using the same image from its mirror.
+        run: |
+          docker pull mirror.gcr.io/library/python:3.11-slim
+          docker tag mirror.gcr.io/library/python:3.11-slim python:3.11-slim
+          pytest tests/test_research_container_integration.py -v
         env:
           RUN_DOCKER_TESTS: "1"
 
@@ -51,7 +56,7 @@ jobs:
 
     services:
       postgres:
-        image: pgvector/pgvector:pg16-trixie
+        image: mirror.gcr.io/pgvector/pgvector:pg16-trixie
         env:
           POSTGRES_USER: human_engine
           POSTGRES_PASSWORD: human_engine
@@ -107,7 +112,10 @@ jobs:
 
       - name: Run DB integration tests
         run: |
+          docker pull mirror.gcr.io/library/python:3.11-slim
+          docker tag mirror.gcr.io/library/python:3.11-slim python:3.11-slim
           pytest tests/test_metrics_smoke_integration.py -v
           pytest tests/test_pipeline_idempotency_integration.py -v
           pytest tests/test_user_profile_integration.py -v
+          pytest tests/test_today_history_integration.py -v
           pytest tests/test_research_writer_integration.py -v
