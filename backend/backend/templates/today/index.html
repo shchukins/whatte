@@ -72,7 +72,7 @@
             {% endif %}
         </section>
 
-        <section class="card recovery" aria-labelledby="recovery-title">
+        <section id="recovery" tabindex="-1" data-feedback-section class="card recovery" aria-labelledby="recovery-title">
             <p class="section-index">02 / Утренний отчёт</p>
             <p class="eyebrow">Самочувствие / сегодня</p>
             <div class="section-head">
@@ -82,10 +82,13 @@
                 </div>
                 {% if recovery %}<span class="badge badge-used">Сохранено</span>{% endif %}
             </div>
-            {% if saved == "recovery" %}<p class="saved" role="status">Самочувствие сохранено. Готовность на сегодня пересчитана.</p>{% endif %}
+            <p class="saved feedback-status" role="status" aria-live="polite" aria-atomic="true">{% if saved == "recovery" %}{% if recovery_section.status == "ok" and recovery %}Самочувствие сохранено.{% else %}Не удалось подтвердить сохранение. Проверьте сохранённое состояние.{% endif %}{% endif %}</p>
+            <div class="feedback-actions" hidden><a href="/today#recovery">Проверить сохранённое состояние</a> · <button type="button" data-feedback-retry>Повторить отправку</button></div>
             {% if recovery_section.status == "error" %}
             <p class="error">Оценка самочувствия временно недоступна. </p><details class="error-details"><summary>Технические подробности</summary>{{ recovery_section.error }}</details>
             {% else %}
+            <details class="feedback-editor" {% if not recovery %}open{% endif %}>
+                <summary>{% if recovery %}Самочувствие: {{ recovery.score }}/5 · <span>Изменить</span>{% else %}Оценить самочувствие{% endif %}</summary>
             <div class="scale" aria-label="Оценка самочувствия от одного до пяти">
                 {% set recovery_options = [(1, 'Без сил'), (2, 'Уста­лость'), (3, 'Нор­мально'), (4, 'Бодро'), (5, 'Полон сил')] %}
                 {% for score, label in recovery_options %}
@@ -97,10 +100,11 @@
                 </form>
                 {% endfor %}
             </div>
+            </details>
             {% endif %}
         </section>
 
-        <section class="card activity" aria-labelledby="rpe-title">
+        <section id="rpe" tabindex="-1" data-feedback-section class="card activity" aria-labelledby="rpe-title">
             <p class="section-index">03 / Последняя тренировка</p>
             <p class="eyebrow">Тренировка / оценка</p>
             <div class="section-head">
@@ -110,7 +114,8 @@
                 </div>
                 {% if activity and activity.rpe_score %}<span class="badge badge-used">Итоговый RPE {{ activity.rpe_score }}/10 · {% if activity.rpe_value == 'strava' %}Strava{% elif activity.rpe_value == 'telegram' %}Telegram · резервный источник{% elif activity.rpe_value == 'web' %}Web · резервный источник{% endif %}</span>{% endif %}
             </div>
-            {% if saved == "rpe" %}<p class="saved" role="status">RPE сохранён.</p>{% endif %}
+            <p class="saved feedback-status" role="status" aria-live="polite" aria-atomic="true">{% if saved == "rpe" %}{% if activity_section.status == "ok" and activity and activity.rpe_web_score is not none %}RPE сохранён в Web.{% else %}Не удалось подтвердить сохранение. Проверьте сохранённое состояние.{% endif %}{% endif %}</p>
+            <div class="feedback-actions" hidden><a href="/today{% if activity %}?activity_id={{ activity.activity_id }}{% endif %}#rpe">Проверить сохранённое состояние</a> · <button type="button" data-feedback-retry>Повторить отправку</button></div>
             {% if activity and activity.rpe_disagreement %}
             <p class="hint">Оценки RPE из разных источников различаются: {% if activity.rpe_strava_score is not none %}Strava {{ activity.rpe_strava_score }}/10{% endif %}{% if activity.rpe_telegram_score is not none %}{% if activity.rpe_strava_score is not none %}, {% endif %}Telegram {{ activity.rpe_telegram_score }}/10{% endif %}{% if activity.rpe_web_score is not none %}{% if activity.rpe_strava_score is not none or activity.rpe_telegram_score is not none %}, {% endif %}Web {{ activity.rpe_web_score }}/10{% endif %}. Для итоговой оценки сначала используется Strava, затем Telegram, затем Web.</p>
             {% endif %}
@@ -125,6 +130,8 @@
                 <li>{{ activity.distance }}</li>
             </ul>
             <p class="hint">Ваша оценка в Web: {% if activity.rpe_web_score is not none %}{{ activity.rpe_web_score }}/10{% else %}не выбрана{% endif %}.</p>
+            <details class="feedback-editor" {% if activity.rpe_web_score is none %}open{% endif %}>
+                <summary>{% if activity.rpe_web_score is not none %}Web RPE: {{ activity.rpe_web_score }}/10 · <span>Изменить</span>{% else %}Оценить нагрузку в Web{% endif %}</summary>
             <div class="rpe-control" role="group" aria-label="Ощущаемая нагрузка от 1 до 10">
                 <div class="rpe-scale">
                     {% for score, label in rpe_options %}
@@ -135,6 +142,7 @@
                     {% endfor %}
                 </div>
             </div>
+            </details>
             {% else %}
             <p class="empty">Пока нет подходящей тренировки для оценки.</p>
             {% endif %}
@@ -239,24 +247,51 @@
     document.addEventListener("submit", async (event) => {
         const form = event.target.closest("[data-feedback-form]");
         if (!form || !window.fetch) return;
-
         event.preventDefault();
-        const submitter = event.submitter;
-        if (submitter) submitter.disabled = true;
-
+        const section = form.closest("[data-feedback-section]");
+        if (section.dataset.saving === "true") return;
+        section.dataset.saving = "true";
+        section.setAttribute("aria-busy", "true");
+        const buttons = section.querySelectorAll("[data-feedback-form] button");
+        const status = section.querySelector(".feedback-status");
+        const actions = section.querySelector(".feedback-actions");
+        buttons.forEach(button => { button.disabled = true; });
+        actions.hidden = true;
+        status.textContent = "Сохранение…";
+        const submitter = event.submitter || form.querySelector("button");
+        let navigating = false;
         try {
+            // Redirected GET confirms the stored observation; a lost response
+            // can follow a committed POST, so retry must always be explicit.
             const response = await fetch(form.action, {
                 method: "POST",
                 credentials: "same-origin",
                 headers: {"X-Requested-With": "Whatte-Today"},
             });
-            if (!response.ok) throw new Error(`feedback request failed: ${response.status}`);
-            window.location.assign(response.url);
+            if (!response.ok || !response.redirected) throw new Error("Unconfirmed save");
+            const page = new DOMParser().parseFromString(await response.text(), "text/html");
+            const selected = page.querySelector(`#${section.id} [data-score="${submitter.dataset.score}"][aria-pressed="true"]`);
+            if (!selected) throw new Error("Stored score unavailable");
+            const destination = new URL(response.url);
+            destination.hash = section.id;
+            window.location.assign(destination.href);
+            navigating = true;
         } catch (error) {
-            if (submitter) submitter.disabled = false;
-            HTMLFormElement.prototype.submit.call(form);
+            status.textContent = "Не удалось подтвердить сохранение. Проверьте сохранённое состояние или повторите отправку.";
+            actions.hidden = false;
+            section.querySelector("[data-feedback-retry]").onclick = () => form.requestSubmit(submitter);
+        } finally {
+            if (!navigating) {
+                section.dataset.saving = "false";
+                section.removeAttribute("aria-busy");
+                buttons.forEach(button => { button.disabled = false; });
+            }
         }
     });
+    // Native redirects and reloads keep keyboard focus at the edited section.
+    const target = ["#recovery", "#rpe"].includes(location.hash)
+        ? document.querySelector(location.hash) : null;
+    if (target) target.focus({preventScroll: true});
 </script>
 </body>
 </html>

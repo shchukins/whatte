@@ -309,7 +309,15 @@ The two write paths reuse the existing subjective-feedback services:
 
 Both feedback types use `source=web`. Repeated RPE submissions update the
 Web observation while recovery submissions update their date-level row. Native forms validate scores
-server-side, reject cross-site submissions, and use POST/redirect/GET.
+server-side, reject cross-site submissions, and use POST/redirect/GET back to
+`#recovery` or `#rpe` (retaining the selected activity). Saved scores collapse
+into a compact summary; “Изменить” opens the scale with its saved Web choice,
+including without JavaScript. Effective RPE and its source remain separate.
+With JavaScript, the whole corresponding scale is disabled while saving.
+HTTP errors, lost responses, or an unconfirmed redirected read never trigger an
+automatic second POST: users can check stored state via GET or explicitly retry.
+Status messages confirm the observed saved score, not successful readiness
+recomputation.
 
 ## Daily readiness pipeline
 
