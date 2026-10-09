@@ -36,7 +36,7 @@ an annotated figure and exact-value table.
   horizontal scrolling, with keyboard focus in numeric order. Selection is
   marked by a border and `aria-pressed` reflects only the Web observation.
   The Web selection (including no selection) is shown separately from the
-  displayed effective RPE identifies Strava, Telegram fallback, or Web
+  effective RPE, which identifies Strava, Telegram fallback, or Web
   fallback. If observations disagree, the page shows each recorded source
   score and the Strava > Telegram > Web resolution rule.
   A changed effective score updates the response path through backend
