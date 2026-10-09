@@ -54,6 +54,8 @@ def _redirect_to_today(*, saved: str, activity_id: int | None = None) -> Redirec
     location = f"/today?saved={saved}"
     if activity_id is not None:
         location += f"&activity_id={activity_id}"
+    if saved in {"recovery", "rpe"}:
+        location += f"#{saved}"
     return RedirectResponse(location, status_code=303)
 
 

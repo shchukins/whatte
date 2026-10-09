@@ -324,3 +324,14 @@ h2 {
 .readiness-explanation summary:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
 .readiness-explanation .story-copy { margin-top: 16px; overflow-wrap: anywhere; }
 @media (max-width: 680px) { .section-index { margin-bottom: 20px; } }
+
+/* Native details keep saved scores editable with JavaScript disabled. */
+.feedback-editor { margin-top: 12px; }
+.feedback-editor summary { cursor: pointer; font-weight: 600; }
+.feedback-editor summary span { text-decoration: underline; text-underline-offset: 3px; }
+.feedback-editor[open] summary { margin-bottom: 14px; }
+.feedback-status:empty { display: none; }
+.feedback-actions { margin: 10px 0; font-size: 14px; }
+.feedback-actions button { font: inherit; color: inherit; background: transparent; border: 0; padding: 0; cursor: pointer; text-decoration: underline; }
+[data-feedback-section] { scroll-margin-top: 16px; }
+[data-feedback-section][aria-busy="true"] button { cursor: wait; opacity: .55; }

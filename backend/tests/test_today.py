@@ -472,7 +472,7 @@ def test_today_recovery_submission_uses_web_source_and_redirects(monkeypatch):
     response = client.post("/today/recovery/4", follow_redirects=False)
 
     assert response.status_code == 303
-    assert response.headers["location"] == "/today?saved=recovery"
+    assert response.headers["location"] == "/today?saved=recovery#recovery"
     assert calls == [
         {
             "user_id": "sergey",
@@ -501,7 +501,7 @@ def test_today_rpe_submission_validates_activity_owner_and_redirects(monkeypatch
     response = client.post(f"/today/rpe/17855535922/{score}", follow_redirects=False)
 
     assert response.status_code == 303
-    assert response.headers["location"] == "/today?saved=rpe&activity_id=17855535922"
+    assert response.headers["location"] == "/today?saved=rpe&activity_id=17855535922#rpe"
     assert calls == [{"activity_id": 17855535922, "score": score, "source": "web"}]
 
 
@@ -580,7 +580,7 @@ def test_today_empty_and_error_states_have_russian_navigation(monkeypatch, statu
     assert ("Готовность недоступна." if status == "error" else "Готовность ещё не рассчитана.") in page
 
 
-@pytest.mark.parametrize("saved,message", [("recovery", "Самочувствие сохранено. Готовность на сегодня пересчитана."), ("rpe", "RPE сохранён."), ("physiology", "Наблюдения сохранены.")])
+@pytest.mark.parametrize("saved,message", [("recovery", "Самочувствие сохранено."), ("rpe", "Не удалось подтвердить сохранение."), ("physiology", "Наблюдения сохранены.")])
 def test_today_saved_messages_remain_russian(monkeypatch, saved, message):
     monkeypatch.setattr(today_service, "get_today_data", lambda *args, **kwargs: _today_data())
     page = TestClient(app_module.app).get(f"/today?saved={saved}").text
@@ -682,3 +682,30 @@ def test_today_recovery_buttons_keep_numeric_accessible_names(monkeypatch):
     names = re.findall(r'aria-label="Самочувствие (\d): ([^"]+)"', page)
     assert names == [("1", "Без сил"), ("2", "Усталость"), ("3", "Нормально"),
                      ("4", "Бодро"), ("5", "Полон сил")]
+
+
+def test_saved_feedback_editors_preserve_selection_and_sources(monkeypatch):
+    data = _today_data()
+    activity = replace(data.activity, rpe_score=8, rpe_value="strava",
+                       rpe_strava_score=8, rpe_web_score=5)
+    monkeypatch.setattr(today_service, "get_today_data", lambda *a, **kw: replace(data, activity=activity))
+    page = TestClient(app_module.app).get("/today?saved=rpe&activity_id=17855535922").text
+    assert "Самочувствие: 4/5" in page
+    assert "Web RPE: 5/10" in page
+    assert "Итоговый RPE 8/10 · Strava" in page
+    assert "RPE сохранён в Web." in page
+    assert re.search(r'<button class="rpe-button"[^>]*data-score="5"[^>]*aria-pressed="true"', page)
+    assert "Готовность на сегодня пересчитана" not in page
+
+
+@pytest.mark.parametrize("section", ["recovery", "rpe"])
+def test_saved_feedback_does_not_claim_success_when_read_fails(monkeypatch, section):
+    field = "recovery_section" if section == "recovery" else "activity_section"
+    data = replace(_today_data(), **{
+        field: today_service.TodaySection(status="error", error="read failed"),
+    })
+    monkeypatch.setattr(today_service, "get_today_data", lambda *a, **kw: data)
+    page = TestClient(app_module.app).get(f"/today?saved={section}").text
+    assert "Не удалось подтвердить сохранение." in page
+    assert "Самочувствие сохранено." not in page
+    assert "RPE сохранён в Web." not in page
