@@ -333,6 +333,25 @@ recomputation.
 
 ## Daily readiness pipeline
 
+The internal read-only Diary view model is available through
+`backend.today.history_service.get_diary_data(user_id, target_date)`.
+It returns exactly 14 local calendar dates newest first, including `target_date`,
+with every eligible canonical workout in the half-open local-midnight window.
+Workout ordering is start time descending, then activity ID descending. Local
+aware start times and nullable duration seconds are preserved; moving time takes
+precedence over elapsed time, including explicit zero. Effective RPE/source and
+conflict state come from persisted `activity_rpe_resolution`; Web, Strava and
+Telegram observations remain separate and do not resolve precedence in the view.
+Readiness/recovery reuse Today's history groups, retaining model-version boundaries
+and shared backend recommendations only for the supported version.
+
+Activity and history reads have independent section statuses. Each day contains
+`activities=[]` and “Нет записанных тренировок” after a successful empty read;
+`activities=None` and “Не удалось загрузить тренировки” denote activity failure.
+Absence of a workout does not imply rest. This model performs no writes, Strava
+calls, recomputation or aggregation. A Diary route/HTML is still planned (#161);
+the existing Today page does not call the new model.
+
 Текущий core orchestration pipeline:
 
 ```text
