@@ -70,3 +70,22 @@ Profile shares the «Сегодня · Профиль» navigation with Today. T
 is underlined and marked with `aria-current="page"`; links support keyboard focus
 and have a minimum height of 44px. Both pages use Russian UI labels and `lang="ru"`.
 The dated values, save and recompute behavior remain unchanged.
+
+
+## Editing in Web Today
+
+Each current metric has an «Изменить» link to the existing form, selecting that
+metric and its current value. The initial effective date is local today in
+`WHATTE_TIMEZONE`, independently of the stored entry date. Links and native
+POST forms work without JavaScript; JavaScript additionally focuses the value
+and updates the current value and explanation when the metric selector changes.
+Without JavaScript, all three consequences remain visible before saving.
+
+The form supports backdating and explicitly explains replacement of a matching
+metric/date. FTP requires separate recalculation of affected metrics and daily
+states; HR max refreshes provenance; weight requires no recalculation. Saving
+reports the metric and effective date and does not claim recalculation succeeded.
+Validation failures retain the raw metric, value and date, link an alert summary
+to the invalid fields, and use `aria-invalid`/`aria-describedby` for inline errors.
+Save failures retain the form for retry. A recalculation failure or lock conflict
+keeps the pending section and separate retry button visible.

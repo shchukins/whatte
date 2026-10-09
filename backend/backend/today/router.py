@@ -134,17 +134,39 @@ def submit_rpe(
     return _redirect_to_today(saved="rpe", activity_id=activity_id)
 
 
-def _profile_page(request: Request, *, message=None, error=None, status_code=200):
+PROFILE_LABELS = {"ftp": "FTP", "hr_max": "HR max", "weight": "Вес"}
+PROFILE_FIELD_ERRORS = {
+    "metric": "Выберите FTP, HR max или вес.",
+    "value": "Введите число: FTP 1–1000 Вт, HR max — целое 1–250 уд/мин, вес 1–500 кг.",
+    "effective_from": "Введите дату в формате ГГГГ-ММ-ДД, не позднее сегодня.",
+}
+
+
+def _profile_page(request: Request, *, message=None, error=None, status_code=200,
+                  metric="ftp", form=None, field_errors=None):
+    profile = profile_service.get_profile(settings.daily_readiness_user_id)
+    selected = metric if metric in PROFILE_LABELS else "ftp"
+    current = profile["current"].get(selected)
+    initial = {"metric": selected,
+               "value": format(current["value"], "g") if current else "",
+               "effective_from": str(profile["today"])}
     return templates.TemplateResponse(
         request=request, name="today/profile.html",
-        context={**profile_service.get_profile(settings.daily_readiness_user_id),
-                 "message": message, "error": error}, status_code=status_code,
+        context={**profile, "message": message, "error": error,
+                 "form": initial if form is None else form,
+                 "field_errors": field_errors or {}}, status_code=status_code,
     )
 
 
 @router.get("/profile")
-def profile_page(request: Request, saved: bool = False):
-    return _profile_page(request, message="Значение сохранено." if saved else None)
+def profile_page(request: Request, saved: bool = False, metric: str = "ftp",
+                 effective_from: date | None = None):
+    message = "Значение сохранено." if saved else None
+    if saved and metric in PROFILE_LABELS and effective_from is not None:
+        message = f"{PROFILE_LABELS[metric]} сохранён с {effective_from}."
+        if metric in ("ftp", "hr_max"):
+            message += " Сохранение не выполняет пересчёт; проверьте раздел расчётов ниже."
+    return _profile_page(request, message=message, metric=metric)
 
 
 @router.post("/profile")
@@ -153,19 +175,44 @@ async def save_profile(request: Request):
     # Native URL-encoded forms avoid adding a multipart parser dependency.
     if request.headers.get('content-type', '').split(';')[0] != 'application/x-www-form-urlencoded':
         raise HTTPException(415, 'Ожидается форма в формате URL-encoded')
+    form = {}
+    change = None
+    field_errors = {}
     try:
-        fields = parse_qs((await request.body()).decode('utf-8'), max_num_fields=3)
+        fields = parse_qs((await request.body()).decode('utf-8'),
+                          max_num_fields=3, keep_blank_values=True)
+        form = {key: values[-1] for key, values in fields.items()}
         if any(len(values) != 1 for values in fields.values()):
             raise ValueError('Duplicate form field')
-        change = profile_service.ProfileChange.model_validate(
-            {key: values[-1] for key, values in fields.items()}
-        )
-    except (ValidationError, ValueError):
-        return await run_in_threadpool(_profile_page, request, error="Проверьте дату и значение: FTP 1–1000 Вт, HR max — целое число 1–250 уд/мин, вес 1–500 кг. Дата не может быть в будущем.", status_code=422)
+        change = profile_service.ProfileChange.model_validate(form)
+    except ValidationError as exc:
+        for item in exc.errors():
+            field = item["loc"][0] if item["loc"] else (
+                "effective_from" if "Future effective dates" in str(item.get("ctx", {}).get("error", ""))
+                else "value")
+            if field in PROFILE_FIELD_ERRORS:
+                field_errors[field] = PROFILE_FIELD_ERRORS[field]
+    except ValueError:
+        pass
+    if change is None:
+        return await run_in_threadpool(
+            _profile_page, request, form=form, field_errors=field_errors,
+            error="Значение не сохранено. Проверьте поля формы.", status_code=422)
     # Database work runs in FastAPI's thread pool, not on the event loop.
-    await run_in_threadpool(profile_service.save_profile_value,
-                            settings.daily_readiness_user_id, change)
-    return RedirectResponse('/today/profile?saved=true', status_code=303)
+    try:
+        await run_in_threadpool(profile_service.save_profile_value,
+                                settings.daily_readiness_user_id, change)
+    except Exception as exc:
+        if isinstance(exc, HTTPException) and exc.status_code != 409:
+            raise
+        logging.getLogger(__name__).exception('profile_save_failed')
+        return await run_in_threadpool(
+            _profile_page, request, form=form,
+            error="Значение не сохранено. Повторите сохранение; ваш ввод сохранён в форме.",
+            status_code=409 if isinstance(exc, HTTPException) else 503)
+    return RedirectResponse(
+        f'/today/profile?saved=true&metric={change.metric}&effective_from={change.effective_from}',
+        status_code=303)
 
 
 @router.post("/profile/recompute")
@@ -175,7 +222,7 @@ def recompute_profile(request: Request):
         count = profile_service.recompute_profile_history(settings.daily_readiness_user_id)
     except HTTPException as exc:
         if exc.status_code == 409:
-            raise
+            return _profile_page(request, error="Изменение профиля или пересчёт уже выполняется. Повторите пересчёт позже.", status_code=409)
         logging.getLogger(__name__).exception('profile_recompute_failed')
         return _profile_page(request, error="Пересчёт не завершён. Часть данных могла обновиться. Повторите пересчёт; отметка о необходимости пересчёта сохранена.", status_code=503)
     except Exception:
