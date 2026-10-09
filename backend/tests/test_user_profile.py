@@ -162,3 +162,69 @@ def test_profile_shared_navigation_and_empty_state(page, monkeypatch):
     assert 'href="/today/profile" aria-current="page">Профиль</a>' in response.text
     assert 'Пока нет записей.' in response.text
     assert 'Значение сохранено.' in response.text
+
+
+@pytest.mark.parametrize('metric,value', [('ftp', '222'), ('hr_max', '190'), ('weight', '')])
+def test_edit_link_selects_current_value_and_local_today(page, metric, value):
+    response = page.get(f'/today/profile?metric={metric}')
+    assert f'href="/today/profile?metric={metric}#profile-edit-title"' in response.text
+    assert f'value="{metric}" selected' in response.text
+    assert f'value="{value}" required inputmode="decimal"' in response.text
+    assert 'value="2026-09-05" max="2026-09-05" required' in response.text
+    assert 'новая запись заменит прежнее значение' in response.text
+    assert 'не меняет TSS или готовность' in response.text
+
+
+@pytest.mark.parametrize('metric,value,day,field', [
+    ('weight', 'oops', '2026-07-25', 'value'),
+    ('hr_max', '190.5', '2026-07-25', 'value'),
+    ('ftp', '222', 'not-a-date', 'effective_from'),
+    ('ftp', '222', '2099-01-01', 'effective_from'),
+    ('unknown', '222', '2026-07-25', 'metric'),
+])
+def test_invalid_edit_preserves_raw_fields_and_accessible_error(page, monkeypatch, metric, value, day, field):
+    save = MagicMock()
+    monkeypatch.setattr(profile, 'save_profile_value', save)
+    response = page.post('/today/profile', data=dict(metric=metric, value=value, effective_from=day))
+    assert response.status_code == 422
+    assert f'value="{metric}" selected' in response.text
+    assert f'value="{value}"' in response.text
+    assert f'value="{day}"' in response.text
+    assert f'aria-invalid="true" aria-describedby="{field}-error"' in response.text
+    assert f'href="#{field}"' in response.text
+    assert 'role="alert"' in response.text
+    save.assert_not_called()
+
+
+@pytest.mark.parametrize('failure,status', [(RuntimeError('private'), 503), (HTTPException(409, 'locked'), 409)])
+def test_save_failure_preserves_form(page, monkeypatch, failure, status):
+    monkeypatch.setattr(profile, 'save_profile_value', MagicMock(side_effect=failure))
+    response = page.post('/today/profile', data=dict(metric='weight', value='73.50', effective_from='2026-07-25'))
+    assert response.status_code == status
+    assert 'value="73.50"' in response.text
+    assert 'value="weight" selected' in response.text
+    assert 'value="2026-07-25"' in response.text
+    assert 'private' not in response.text
+
+
+@pytest.mark.parametrize('metric,label', [('ftp', 'FTP'), ('hr_max', 'HR max'), ('weight', 'Вес')])
+def test_save_reports_metric_date_without_automatic_recompute(page, monkeypatch, metric, label):
+    save = MagicMock()
+    recompute = MagicMock()
+    monkeypatch.setattr(profile, 'save_profile_value', save)
+    monkeypatch.setattr(profile, 'recompute_profile_history', recompute)
+    response = page.post('/today/profile', data=dict(metric=metric, value='80', effective_from='2026-07-25'))
+    assert response.status_code == 200
+    assert f'{label} сохранён с 2026-07-25.' in response.text
+    assert 'Пересчёт завершён.' not in response.text
+    save.assert_called_once()
+    recompute.assert_not_called()
+
+
+def test_recompute_lock_keeps_pending_and_offers_retry(page, monkeypatch):
+    monkeypatch.setattr(profile, 'recompute_profile_history', MagicMock(side_effect=HTTPException(409, 'locked')))
+    response = page.post('/today/profile/recompute')
+    assert response.status_code == 409
+    assert 'Повторите пересчёт позже' in response.text
+    assert '/today/profile/recompute' in response.text
+    assert 'Нужно обновить расчёты' in response.text

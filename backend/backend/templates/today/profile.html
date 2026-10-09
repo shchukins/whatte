@@ -17,22 +17,34 @@
   <p>FTP, HR max и вес с историей изменений. Каждое значение действует с выбранной даты до следующего изменения этого показателя.</p>
   </div>
   {% if message %}<p class="saved" role="status">{{ message }}</p>{% endif %}
-  {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+  {% if error %}<div class="error" role="alert" tabindex="-1" id="profile-errors"><p>{{ error }}</p>
+    {% if field_errors %}<ul>{% for field, detail in field_errors.items() %}<li><a href="#{{ field }}">{{ detail }}</a></li>{% endfor %}</ul>{% endif %}</div>{% endif %}
   <section class="card profile-current" aria-label="Текущие значения"><p class="eyebrow">01 / Текущие значения</p><div class="values">
     {% for metric, label, unit in [('ftp', 'FTP', 'Вт'), ('hr_max', 'HR max', 'уд/мин'), ('weight', 'Вес', 'кг')] %}
     <div><h2 class="metric-label">{{ label }}</h2>
       {% if current.get(metric) %}<div class="value">{{ '%g'|format(current[metric].value) }} <span class="profile-unit">{{ unit }}</span></div><small>с {{ current[metric].effective_from }}</small>
       {% else %}<p>Не указан</p>{% endif %}
+      <a class="profile-edit" href="/today/profile?metric={{ metric }}#profile-edit-title" aria-label="Изменить {{ label }}">Изменить</a>
     </div>{% endfor %}
   </div></section>
   <section class="card" aria-labelledby="profile-edit-title"><p class="eyebrow">02 / Изменение</p><h2 id="profile-edit-title">Изменить значение</h2>
     <form method="post" action="/today/profile">
       <div class="profile-fields">
-      <div class="profile-field"><label for="metric">Показатель</label><select id="metric" name="metric"><option value="ftp">FTP, Вт</option><option value="hr_max">HR max, уд/мин</option><option value="weight">Вес, кг</option></select></div>
-      <div class="profile-field"><label for="value">Новое значение</label><input id="value" name="value" type="number" min="1" max="1000" step="0.1" required inputmode="decimal"></div>
-      <div class="profile-field"><label for="effective_from">Действует с</label><input id="effective_from" name="effective_from" type="date" value="{{ today }}" max="{{ today }}" required></div>
+      <div class="profile-field"><label for="metric">Показатель</label><select id="metric" name="metric"{% if field_errors.get('metric') %} aria-invalid="true" aria-describedby="metric-error"{% endif %}>
+        {% if form.get('metric') not in ['ftp', 'hr_max', 'weight'] %}<option value="{{ form.get('metric', '') }}" selected>Выберите показатель</option>{% endif %}
+        {% for metric, label in [('ftp', 'FTP, Вт'), ('hr_max', 'HR max, уд/мин'), ('weight', 'Вес, кг')] %}<option value="{{ metric }}"{% if form.get('metric') == metric %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+        {% if field_errors.get('metric') %}<p class="error" id="metric-error">{{ field_errors.metric }}</p>{% endif %}</div>
+      <div class="profile-field"><label for="value">Новое значение</label><input id="value" name="value" type="{{ 'text' if field_errors.get('value') else 'number' }}" min="1" max="{{ 250 if form.get('metric') == 'hr_max' else 500 if form.get('metric') == 'weight' else 1000 }}" step="{{ 1 if form.get('metric') == 'hr_max' else '0.1' }}" value="{{ form.get('value', '') }}" required inputmode="decimal"{% if field_errors.get('value') %} aria-invalid="true" aria-describedby="value-error"{% endif %}>
+        {% if field_errors.get('value') %}<p class="error" id="value-error">{{ field_errors.value }}</p>{% endif %}</div>
+      <div class="profile-field"><label for="effective_from">Действует с</label><input id="effective_from" name="effective_from" type="{{ 'text' if field_errors.get('effective_from') else 'date' }}" value="{{ form.get('effective_from', '') }}" max="{{ today }}" required{% if field_errors.get('effective_from') %} aria-invalid="true" aria-describedby="effective_from-error"{% endif %}>
+        {% if field_errors.get('effective_from') %}<p class="error" id="effective_from-error">{{ field_errors.effective_from }}</p>{% endif %}</div>
       </div>
-      <p class="profile-help">Чтобы исправить запись, сохраните новое значение на ту же дату. Вес не меняет расчёт нагрузки или восстановления. Границы тренировочных зон на этой странице не изменяются.</p>
+      <p class="profile-help">Можно выбрать дату задним числом. При совпадении показателя и даты новая запись заменит прежнее значение. Границы тренировочных зон не изменяются.</p>
+      <div class="profile-help" id="profile-effects" aria-live="polite">
+        <p data-effect="ftp">FTP: после отдельного пересчёта обновятся метаданные, TSS, отклик на тренировки, нагрузка и готовность с выбранной даты.</p>
+        <p data-effect="hr_max">HR max: обновление метаданных тренировок после отдельного пересчёта. Значение не меняет TSS или готовность.</p>
+        <p data-effect="weight">Вес: не меняет нагрузку или восстановление; пересчёт для веса не требуется.</p>
+      </div>
       <button class="profile-save" type="submit">Сохранить</button>
     </form>
   </section>
@@ -46,11 +58,27 @@
     </tbody></table></div>{% else %}<p>Пока нет записей.</p>{% endif %}
   </section>
 </main><script>
-document.querySelector('#metric').addEventListener('change', function () {
+const metric = document.querySelector('#metric');
+const currentValues = { {% for metric, row in current.items() %}{{ metric | tojson }}: {{ row.value | tojson }}{% if not loop.last %}, {% endif %}{% endfor %} };
+function updateMetric(fillValue) {
   const input = document.querySelector('#value');
-  input.max = this.value === 'hr_max' ? '250' : this.value === 'weight' ? '500' : '1000';
-  input.step = this.value === 'hr_max' ? '1' : '0.1';
+  input.max = metric.value === 'hr_max' ? '250' : metric.value === 'weight' ? '500' : '1000';
+  input.step = metric.value === 'hr_max' ? '1' : '0.1';
+  if (fillValue) {
+    input.type = 'number';
+    input.value = currentValues[metric.value] ?? '';
+  }
+  document.querySelectorAll('[data-effect]').forEach(item => {
+    item.hidden = item.dataset.effect !== metric.value;
+  });
+}
+metric.addEventListener('change', () => updateMetric(true));
+updateMetric(false);
+window.addEventListener('load', () => {
+  if (window.location.hash === '#profile-edit-title') document.querySelector('#value').focus();
 });
+const errors = document.querySelector('#profile-errors');
+if (errors) errors.focus();
 document.querySelectorAll('form').forEach(form => form.addEventListener('submit', () => {
   const button = form.querySelector('button'); button.disabled = true;
   button.textContent = form.action.endsWith('/recompute') ? 'Пересчитываем…' : 'Сохраняем…';

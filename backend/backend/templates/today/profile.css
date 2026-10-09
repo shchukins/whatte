@@ -45,3 +45,10 @@
     .values { grid-template-columns: minmax(0, 1fr); gap: 18px; }
     .values > div + div { padding: 16px 0 0; border-left: 0; border-top: 1px solid var(--line); }
 }
+
+.profile-edit { display: inline-flex; align-items: center; min-height: 44px; margin-top: 8px; color: var(--ink); font-size: 13px; text-underline-offset: 4px; }
+.profile-edit:focus-visible, #profile-errors a:focus-visible { outline: 2px solid var(--olive); outline-offset: 3px; }
+.profile-field [aria-invalid="true"] { border-color: var(--brick); }
+.profile-field .error { font-size: 13px; line-height: 1.5; }
+#profile-errors a { color: inherit; }
+#profile-effects p { margin: 8px 0 0; }
