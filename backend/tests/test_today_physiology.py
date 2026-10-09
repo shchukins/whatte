@@ -40,7 +40,8 @@ def test_missing_and_partial_records_render_independently(client, monkeypatch):
         _today_data(), today=DAY.isoformat(), manual_physiology=current.model_dump(),
     ))
     page = client.get("/today").text
-    assert 'name="sleep_duration_minutes"' in page
+    assert 'name="sleep_hours"' in page
+    assert '0 ч 0 мин' in page
     assert 'value="0"' in page
     assert 'Источник Telegram' in page
     assert 'name="hrv_ms" type="number" step="any" min="0" max="500" value=""' in page
@@ -53,7 +54,7 @@ def test_form_partial_clear_and_repeat_use_real_persistence(client, monkeypatch)
     monkeypatch.setattr(physiology, "get_conn", lambda: Connection(cursor))
     response = client.post("/today/physiology", data={
         "local_date": DAY.isoformat(), "sleep_quality": "5",
-        "sleep_duration_minutes": "", "hrv_ms": "58", "clear_hrv_ms": "1",
+        "sleep_hours": "", "sleep_minutes": "", "hrv_ms": "58", "clear_hrv_ms": "1",
     }, follow_redirects=False)
     assert response.status_code == 303
     assert response.headers["location"] == "/today?saved=physiology"
@@ -95,7 +96,7 @@ def test_api_and_today_read_the_same_record(client, monkeypatch):
 
 
 @pytest.mark.parametrize("field,value", [
-    ("sleep_duration_minutes", "1441"), ("sleep_duration_minutes", "1.5"),
+    ("sleep_hours", "25"), ("sleep_hours", "1.5"),
     ("sleep_quality", "6"), ("hrv_ms", "0"), ("hrv_ms", "nan"),
     ("resting_hr_bpm", "19"), ("resting_hr_bpm", "inf"),
 ])
@@ -171,7 +172,7 @@ def test_full_entry_creates_shared_observation_with_configured_user(client, monk
     cursor = Cursor(saved=saved)
     monkeypatch.setattr(physiology, "get_conn", lambda: Connection(cursor))
     response = client.post("/today/physiology", data={
-        "local_date": DAY.isoformat(), "sleep_duration_minutes": "450",
+        "local_date": DAY.isoformat(), "sleep_hours": "7", "sleep_minutes": "30",
         "sleep_quality": "4", "hrv_ms": "58", "resting_hr_bpm": "49",
     }, follow_redirects=False)
     assert response.status_code == 303
@@ -179,3 +180,65 @@ def test_full_entry_creates_shared_observation_with_configured_user(client, monk
                   if "insert into manual_physiology_observation (" in sql)
     assert params[:7] == (settings.daily_readiness_user_id, DAY, 450, 4, 58.0, 49.0, "web")
     assert any("insert into manual_physiology_observation_revision" in sql for sql, _ in cursor.calls)
+
+
+@pytest.mark.parametrize("parts,expected", [
+    ({"sleep_hours": "7", "sleep_minutes": "30"}, 450),
+    ({"sleep_hours": "0", "sleep_minutes": "0"}, 0),
+    ({"sleep_hours": "24", "sleep_minutes": "0"}, 1440),
+    ({"sleep_hours": "7", "sleep_minutes": ""}, 420),
+    ({"sleep_hours": "", "sleep_minutes": "30"}, 30),
+    ({"sleep_hours": "", "sleep_minutes": "", "hrv_ms": "60"}, "omitted"),
+    ({"sleep_hours": "invalid", "clear_sleep_duration_minutes": "1"}, None),
+])
+def test_sleep_parts_adapter_preserves_shared_patch(client, monkeypatch, parts, expected):
+    patches = []
+    monkeypatch.setattr(today_router, "save_manual_physiology_observation", lambda **kwargs: patches.append(kwargs["patch"]))
+    response = client.post("/today/physiology", data={"local_date": DAY.isoformat(), **parts}, follow_redirects=False)
+    assert response.status_code == 303
+    patch = patches[0]
+    if expected == "omitted":
+        assert "sleep_duration_minutes" not in patch.model_fields_set
+    else:
+        assert patch.sleep_duration_minutes == expected
+        assert "sleep_duration_minutes" in patch.model_fields_set
+    assert "sleep_quality" not in patch.model_fields_set
+    assert "resting_hr_bpm" not in patch.model_fields_set
+
+
+@pytest.mark.parametrize("parts,field", [
+    ({"sleep_hours": "24", "sleep_minutes": "1"}, "sleep_minutes"),
+    ({"sleep_minutes": "60"}, "sleep_minutes"),
+    ({"sleep_hours": "-1"}, "sleep_hours"),
+    ({"sleep_minutes": "-1"}, "sleep_minutes"),
+    ({"sleep_hours": "7.5"}, "sleep_hours"),
+    ({"sleep_minutes": "30.5"}, "sleep_minutes"),
+])
+def test_sleep_parts_errors_are_local_and_preserved(client, monkeypatch, parts, field):
+    monkeypatch.setattr(today_router, "save_manual_physiology_observation", lambda **kwargs: pytest.fail("invalid write"))
+    response = client.post("/today/physiology", data={"local_date": DAY.isoformat(), **parts})
+    assert response.status_code == 422
+    assert f'id="physiology-error-{field}"' in response.text
+    assert 'class="physiology-editor" open' in response.text
+    for value in parts.values():
+        assert f'value="{value}"' in response.text
+
+
+def test_sleep_round_trip_and_local_metadata(client, monkeypatch):
+    current = observation(sleep_duration_minutes=450, source="web")
+    monkeypatch.setattr(today_service, "get_today_data", lambda *args, **kwargs: replace(
+        _today_data(), today=DAY.isoformat(), manual_physiology=current.model_dump(),
+    ))
+    page = client.get("/today").text
+    assert "7 ч 30 мин" in page
+    assert 'max="24" value="7"' in page
+    assert 'max="59" value="30"' in page
+    assert current.updated_at.isoformat() not in page
+    assert today_service.format_readiness_timestamp(current.updated_at) in page
+    cursor = Cursor(current=current)
+    monkeypatch.setattr(physiology, "get_conn", lambda: Connection(cursor))
+    response = client.post("/today/physiology", data={
+        "local_date": DAY.isoformat(), "sleep_hours": "7", "sleep_minutes": "30",
+    }, follow_redirects=False)
+    assert response.status_code == 303
+    assert not any("insert" in sql or "update manual_physiology_observation set" in sql for sql, _ in cursor.calls)

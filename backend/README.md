@@ -299,6 +299,18 @@ backend-owned recommendation, briefing, signal-family availability, and source
 freshness. Missing physiology remains `unavailable`; the web layer does not
 convert missing data into a score and does not duplicate readiness logic.
 
+Optional sleep, sleep quality, HRV, and resting HR appear as a compact recorded
+summary. “Сон и другие наблюдения · Необязательно” opens the native form; source
+and update time in `WHATTE_TIMEZONE` appear inside these details. The web form
+converts integer `sleep_hours` (0–24) and `sleep_minutes` (0–59) to the existing
+`sleep_duration_minutes`, with a maximum of 1440 (24:00). Both blank parts omit
+sleep; one blank part counts as zero. Explicit zero is stored, while
+`clear_sleep_duration_minutes=1` removes sleep. Other empty fields retain their
+values; explicit clear actions remove them. Errors reopen the form with the
+submitted values and field messages. This works without JavaScript. The API
+and Telegram continue to accept minutes. These observations are stored separately
+and do not change today's readiness or recommendation; no model/schema changes.
+
 The two write paths reuse the existing subjective-feedback services:
 
 - today's `next_day_recovery` on the 1-5 scale; an idempotent upsert is followed
