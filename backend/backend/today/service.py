@@ -107,6 +107,18 @@ def _format_timestamp(value: Any) -> str:
     return value.astimezone(WHATTE_TZ).strftime("%d.%m, %H:%M")
 
 
+def format_readiness_timestamp(value: Any) -> str:
+    """Display stored aware timestamps in WHATTE_TIMEZONE, never invent a time."""
+    if isinstance(value, str):
+        try:
+            value = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            return "—"
+    if not isinstance(value, datetime) or value.tzinfo is None:
+        return "—"
+    return value.astimezone(WHATTE_TZ).strftime("%d.%m.%Y, %H:%M %Z")
+
+
 def _format_duration(value: int | None) -> str:
     if value is None or value < 0:
         return "—"

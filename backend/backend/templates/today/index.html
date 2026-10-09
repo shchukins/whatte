@@ -15,42 +15,60 @@
 
     <div class="stack">
         <section class="card hero" aria-labelledby="readiness-title">
+            {% if readiness %}
+            {% set historical = readiness.date != today %}
+            <p class="eyebrow">01 / Ответ на {{ readiness.date }}</p>
+            {% if historical or readiness.freshness_state == "stale" %}
+            <p class="stale-warning" role="status">Результат устарел. Рекомендация относится к {{ readiness.date }}; актуальная готовность на сегодня не подтверждена.</p>
+            {% endif %}
             <div class="hero-layout">
                 <div>
-                    <p class="eyebrow">01 / Готовность сегодня</p>
-            {% if readiness %}
-                    <h1 id="readiness-title">{{ readiness.status_text | today_label('status') }}</h1>
+                    <h1 id="readiness-title">{{ readiness.recommendation | today_label('recommendation') }}</h1>
+                    {% if historical %}<p class="hint">Сохранённая сводка за {{ readiness.date }}:</p>{% endif %}
                     <p class="briefing">{{ readiness.briefing_text or "Краткая рекомендация недоступна." }}</p>
                 </div>
                 <div class="hero-metric">
-                    {% if readiness.good_day_probability is defined and readiness.good_day_probability is not none %}
-                    <span class="metric-label">Вероятность хорошего дня</span>
-                    <p class="score">{{ (readiness.good_day_probability * 100) | round | int }}<span class="unit">%</span></p>
-                    <div class="metric-rule" aria-hidden="true"><span style="width: {{ (readiness.good_day_probability * 100) | round | int }}%"></span></div>
+                    <span class="metric-label">Готовность</span>
+                    {% if readiness.readiness_score is defined and readiness.readiness_score is not none %}
+                    <p class="score">{{ readiness.readiness_score | round(1) }}<span class="unit">/100</span></p>
                     {% else %}
-                    <span class="metric-label">Оценка готовности</span>
-                    <p class="score">{{ readiness.readiness_score | round | int }}</p>
-                    <div class="metric-rule" aria-hidden="true"><span style="width: {{ readiness.readiness_score | round | int }}%"></span></div>
+                    <p class="empty">Оценка недоступна</p>
                     {% endif %}
-                    <div class="metric-foot"><span>Состояние</span><strong class="positive">{{ readiness.status_text | today_label('status') }}</strong></div>
-                    <div class="metric-foot"><span>Рекомендация</span><strong>{{ readiness.recommendation | today_label('recommendation') }}</strong></div>
+                    <p class="readiness-status">{{ readiness.status_text | today_label('status') }}</p>
                 </div>
             </div>
             <div class="freshness">
                 <span>Данные <strong>{{ readiness.freshness_state | today_label('freshness') }}</strong></span>
-                <span>Дата готовности <strong>{{ readiness.date }}</strong></span>
-                <span>Рассчитано <strong>{{ readiness.readiness_computed_at or "—" }}</strong></span>
+                <span>Рассчитано <strong>{{ readiness.readiness_computed_at | today_timestamp }}</strong></span>
             </div>
+            <details class="readiness-explanation">
+                <summary>Почему такая рекомендация</summary>
+                <p class="hint">Доступность и участие сигналов указаны по данным модели.</p>
+                {% if factors %}
+                <div class="factor-list">
+                    {% for factor in factors %}
+                    <div class="factor">
+                        <span class="factor-name">{{ factor.key | today_label('factor') }}</span>
+                        <span class="factor-score">{{ factor.score | round(1) if factor.score is not none else "—" }}</span>
+                        <span class="badge {{ 'badge-used' if factor.used else '' }}">{{ 'учтено' if factor.used else (factor.availability | today_label('availability')) }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}<p class="empty">Факторы недоступны.</p>{% endif %}
+                <div class="freshness">
+                    <span>Источник тренировок <strong>{{ readiness.training_source_at | today_timestamp }}</strong></span>
+                    <span>Источник восстановления <strong>{{ readiness.recovery_source_at | today_timestamp }}</strong></span>
+                </div>
+                <details class="story-copy"><summary>Технические подробности рекомендации</summary>{{ readiness.reason }}</details>
+            </details>
             {% elif readiness_section.status == "error" %}
-                    <h1 id="readiness-title">Готовность недоступна.</h1>
-                    <p class="error">Не удалось загрузить готовность. </p><details class="error-details"><summary>Технические подробности</summary>{{ readiness_section.error }}</details>
-                </div>
-            </div>
+            <p class="eyebrow">01 / Ответ на {{ today }}</p>
+            <h1 id="readiness-title">Готовность недоступна.</h1>
+            <p class="error">Не удалось загрузить готовность. </p><details class="error-details"><summary>Технические подробности</summary>{{ readiness_section.error }}</details>
             {% else %}
-                    <h1 id="readiness-title">Готовность ещё не рассчитана.</h1>
-                    <p class="empty">Рекомендация появится, когда будет рассчитана готовность.</p>
-                </div>
-            </div>
+            <p class="eyebrow">01 / Ответ на {{ today }}</p>
+            <h1 id="readiness-title">Готовность ещё не рассчитана.</h1>
+            <p class="empty">Рекомендация появится, когда будет рассчитана готовность.</p>
             {% endif %}
         </section>
 
@@ -82,26 +100,8 @@
             {% endif %}
         </section>
 
-        <section class="card decision" aria-labelledby="decision-title">
-            <p class="section-index">03 / Рекомендация</p>
-            <p class="eyebrow">Тренировка / сегодня</p>
-            <h2 id="decision-title">Нагрузка на сегодня.</h2>
-            <p class="story-copy">Рекомендация основана на текущей сохранённой готовности.</p>
-            {% if readiness %}
-            <div class="decision-answer">
-                <span class="metric-label">Рекомендуемая нагрузка</span>
-                <h3>{{ readiness.recommendation | today_label('recommendation') }}</h3>
-                <details class="story-copy"><summary>Технические подробности рекомендации</summary>{{ readiness.reason }}</details>
-            </div>
-            {% elif readiness_section.status == "error" %}
-            <p class="error">Рекомендация недоступна без готовности.</p>
-            {% else %}
-            <p class="empty">Рекомендация появится, когда будет доступна готовность.</p>
-            {% endif %}
-        </section>
-
         <section class="card activity" aria-labelledby="rpe-title">
-            <p class="section-index">04 / Последняя тренировка</p>
+            <p class="section-index">03 / Последняя тренировка</p>
             <p class="eyebrow">Тренировка / оценка</p>
             <div class="section-head">
                 <div>
@@ -144,7 +144,7 @@
         </section>
 
         <section class="card manual-physiology" aria-labelledby="manual-physiology-title">
-            <p class="section-index">05 / Необязательные наблюдения</p>
+            <p class="section-index">04 / Необязательные наблюдения</p>
             <p class="eyebrow">Физиология / сегодня</p>
             <h2 id="manual-physiology-title">Дополнительные наблюдения.</h2>
             <p class="hint">Сон, HRV и пульс покоя необязательны. Эти наблюдения сохраняются отдельно от готовности на сегодня.</p>
@@ -183,32 +183,8 @@
             {% endif %}
         </section>
 
-        <section class="card factors" aria-labelledby="factors-title">
-            <p class="section-index">06 / Основания</p>
-            <p class="eyebrow">Сигналы / сегодня</p>
-            <div class="section-head">
-                <div>
-                    <h2 id="factors-title">Что влияет на готовность</h2>
-                    <p class="hint">Доступность и участие сигналов указаны по данным модели.</p>
-                </div>
-            </div>
-            {% if factors %}
-            <div class="factor-list">
-                {% for factor in factors %}
-                <div class="factor">
-                    <span class="factor-name">{{ factor.key | today_label('factor') }}</span>
-                    <span class="factor-score">{{ factor.score | round(1) if factor.score is not none else "—" }}</span>
-                    <span class="badge {{ 'badge-used' if factor.used else '' }}">{{ 'учтено' if factor.used else (factor.availability | today_label('availability')) }}</span>
-                </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            <p class="empty">Факторы появятся вместе с готовностью.</p>
-            {% endif %}
-        </section>
-
         <section class="card history" aria-labelledby="history-title">
-            <p class="section-index">07 / История</p>
+            <p class="section-index">05 / История</p>
             <p class="eyebrow">Готовность / 14 дней</p>
             <div class="section-head">
                 <div>

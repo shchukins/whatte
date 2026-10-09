@@ -13,11 +13,17 @@ an annotated figure and exact-value table.
 
 ## Current behavior
 
-- Shows the latest current-version materialized readiness, its deterministic
-  recommendation, reason, briefing, signal availability, source-data freshness,
-  and a 14-day calendar history. Good-day probability is shown only when the
-  stored backend field is available; otherwise the stored readiness score is
-  labeled as such. Neither value is recalculated by the browser.
+- Presents one main answer for the stored result date: backend recommendation,
+  shared briefing, and readiness labeled N/100. `good_day_probability` remains
+  in the API but is not displayed on Today. Status text uses neutral styling.
+- Shows calculation and source timestamps in `WHATTE_TIMEZONE`. A stale result
+  or a result from another date has an always-visible warning and its actual
+  date; a historical briefing is explicitly labeled with that date. Freshness
+  policy and shared briefing text remain unchanged.
+- Places existing signal availability/participation and source timestamps in
+  the keyboard-accessible «Почему такая рекомендация» disclosure under the
+  answer, followed by morning feedback. Missing/error states have no invented
+  score or recommendation. RPE, observations and 14-day history remain available.
 - Shows optional historical physiology only when it belongs to the same date;
   unavailable physiology is not an error and is not rendered as a fake score.
 - Lets the user create or edit today's one-tap next-day recovery score.

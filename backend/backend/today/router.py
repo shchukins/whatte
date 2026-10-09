@@ -35,6 +35,7 @@ templates = Jinja2Templates(
     directory=str(Path(__file__).resolve().parents[1] / "templates")
 )
 templates.env.filters["today_label"] = today_label
+templates.env.filters["today_timestamp"] = today_service.format_readiness_timestamp
 FeedbackScore = Annotated[int, FastAPIPath(ge=1, le=5)]
 RpeScore = Annotated[int, FastAPIPath(ge=1, le=10)]
 

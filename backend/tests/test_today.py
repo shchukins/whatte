@@ -333,7 +333,7 @@ def test_today_page_renders_mobile_working_surface(monkeypatch):
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/html")
     assert 'name="viewport"' in response.text
-    assert "Готовность сегодня" in response.text
+    assert "Ответ на 2026-08-30" in response.text
     assert "Хорошая готовность" in response.text
     assert "Как вы себя чувствуете сегодня?" in response.text
     assert "Morning Ride" in response.text
@@ -366,8 +366,8 @@ def test_today_editorial_metrics_and_figure_use_persisted_values(monkeypatch):
     response = TestClient(app_module.app).get("/today")
 
     assert response.status_code == 200
-    assert "Вероятность хорошего дня" in response.text
-    assert 'class="score">73<span class="unit">%</span>' in response.text
+    assert "Вероятность хорошего дня" not in response.text
+    assert 'class="score">68.0<span class="unit">/100</span>' in response.text
     assert '--bar-height: 68.0%' in response.text
     assert 'class="plot-missing"' in response.text
 
@@ -557,7 +557,7 @@ def test_today_labels_preserve_backend_contract(monkeypatch, state, label):
     page = TestClient(app_module.app).get("/today").text
     assert f"<strong>{label}</strong>" in page
     assert '<h1 id="readiness-title">Неизвестное состояние</h1>' in page
-    assert '<h3>Неизвестное состояние</h3>' in page
+    assert 'id="decision-title"' not in page
     assert readiness["readiness_score"] == 68.0
     assert readiness["recommendation"] == "future_zone"
     assert data.readiness["briefing_text"] in page
@@ -585,3 +585,69 @@ def test_today_saved_messages_remain_russian(monkeypatch, saved, message):
     page = TestClient(app_module.app).get(f"/today?saved={saved}").text
     assert message in page
     assert 'role="status"' in page
+
+
+def test_today_answer_disclosure_and_feedback_order(monkeypatch):
+    data = _today_data()
+    readiness = {**data.readiness, "training_source_at": "2026-08-30T05:00:00Z",
+                 "recovery_source_at": "2026-08-30T06:05:00+00:00"}
+    monkeypatch.setattr(today_service, "get_today_data", lambda *a, **k: replace(data, readiness=readiness))
+    page = TestClient(app_module.app).get("/today").text
+    assert page.count('<h1 id="readiness-title">Умеренная аэробная тренировка</h1>') == 1
+    assert 'class="card decision"' not in page
+    assert 'class="positive"' not in page
+    assert '<details class="readiness-explanation">' in page
+    assert '<summary>Почему такая рекомендация</summary>' in page
+    assert page.index('id="readiness-title"') < page.index('Почему такая рекомендация') < page.index('id="recovery-title"')
+    assert '30.08.2026, 09:00 MSK' in page
+    assert '30.08.2026, 08:00 MSK' in page
+    assert '30.08.2026, 09:05 MSK' in page
+    assert 'Отклик на тренировку' in page and 'Нет данных' in page
+    assert '/today/rpe/17855535922/5' in page
+    assert 'action="/today/physiology"' in page
+    assert 'id="history-title"' in page
+
+
+@pytest.mark.parametrize("result_date,state", [("2026-08-29", "stale"), ("2026-08-30", "stale"), ("2026-08-29", "fresh")])
+def test_today_stale_warning_is_outside_disclosure(monkeypatch, result_date, state):
+    data = _today_data()
+    monkeypatch.setattr(today_service, "get_today_data", lambda *a, **k: replace(
+        data, readiness={**data.readiness, "date": result_date, "freshness_state": state}))
+    page = TestClient(app_module.app).get("/today").text
+    assert f'Ответ на {result_date}' in page
+    assert f'Рекомендация относится к {result_date}' in page
+    assert page.index('Результат устарел.') < page.index('<details class="readiness-explanation">')
+    if result_date != data.today:
+        assert f'Сохранённая сводка за {result_date}:' in page
+
+
+@pytest.mark.parametrize("status", ["missing", "error"])
+def test_today_missing_and_error_have_no_score_or_answer(monkeypatch, status):
+    data = replace(_today_data(), readiness=None, factors=[],
+                   readiness_section=today_service.TodaySection(status, "failed"))
+    monkeypatch.setattr(today_service, "get_today_data", lambda *a, **k: data)
+    page = TestClient(app_module.app).get("/today").text
+    assert '<p class="score">' not in page
+    assert '<h1 id="readiness-title">Умеренная аэробная тренировка</h1>' not in page
+    assert 'class="positive"' not in page
+    assert 'class="readiness-explanation"' not in page
+    assert 'Готовность недоступна.' in page if status == "error" else 'Готовность ещё не рассчитана.' in page
+
+
+def test_today_null_score_does_not_fall_back_to_probability(monkeypatch):
+    data = _today_data()
+    monkeypatch.setattr(today_service, "get_today_data", lambda *a, **k: replace(
+        data, readiness={**data.readiness, "readiness_score": None, "good_day_probability": 0.73}))
+    page = TestClient(app_module.app).get("/today").text
+    assert 'Оценка недоступна' in page
+    assert '<p class="score">' not in page
+
+
+@pytest.mark.parametrize("timestamp", [None, "invalid", "2026-08-30T06:00:00", datetime(2026, 8, 30, 6)])
+def test_readiness_timestamp_missing_invalid_or_naive_is_unavailable(timestamp):
+    assert today_service.format_readiness_timestamp(timestamp) == "—"
+
+
+def test_readiness_timestamp_uses_configured_timezone(monkeypatch):
+    monkeypatch.setattr(today_service, "WHATTE_TZ", ZoneInfo("Europe/Berlin"))
+    assert today_service.format_readiness_timestamp("2026-08-30T23:00:00Z") == "31.08.2026, 01:00 CEST"
