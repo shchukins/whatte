@@ -40,7 +40,7 @@ a:hover { color: var(--olive); }
 .brand, .date, .profile-link, .edition-note, .eyebrow, .section-index,
 .metric-label, .metric-foot, .freshness, .badge, .activity-meta,
 .factor-score, .history-version, .history-table, .figure-label,
-.figure-caption, .rpe-anchors, .rpe-scroll-hint {
+.figure-caption, .rpe-anchor {
     font-family: var(--mono);
 }
 .brand { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: .04em; white-space: nowrap; }
@@ -171,11 +171,12 @@ h2 {
 .activity-meta { display: flex; flex-wrap: wrap; gap: 9px 19px; margin: 12px 0 0; padding: 0; list-style: none; color: var(--muted); font-size: 11px; }
 .activity-meta li { padding: 0; border-radius: 0; background: transparent; }
 .activity-meta li + li::before { content: "/"; margin-right: 19px; color: var(--line); }
-.rpe-scroll { overflow-x: auto; padding: 5px 3px 12px; scrollbar-color: var(--muted) var(--paper); }
-.rpe-scroll:focus-visible, .history-scroll:focus-visible { outline: 2px solid var(--olive); outline-offset: 2px; }
-.rpe-track { width: max-content; }
-.rpe-scale { display: grid; grid-template-columns: repeat(10, 78px); align-items: end; gap: 5px; height: 88px; }
-.rpe-scale form { display: flex; align-items: end; width: 78px; height: 100%; }
+/* Keep labels with their numeric control when the scale wraps into two rows. */
+.rpe-control { margin-top: 16px; padding: 4px 3px; }
+.history-scroll:focus-visible { outline: 2px solid var(--olive); outline-offset: 2px; }
+.rpe-scale { display: grid; grid-template-columns: repeat(10, minmax(0, 78px)); gap: 12px 5px; }
+.rpe-scale form { display: grid; grid-template-rows: 88px auto; min-width: 0; }
+.rpe-scale .rpe-button { align-self: end; }
 .rpe-button {
     width: 100%;
     height: var(--rpe-height);
@@ -201,11 +202,7 @@ h2 {
 .rpe-button:hover { border-color: var(--ink); }
 .rpe-button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .rpe-button[aria-pressed="true"] { border-color: var(--ink); box-shadow: inset 0 0 0 2px var(--paper); font-weight: 700; }
-.rpe-anchors { display: flex; justify-content: space-between; gap: 8px; margin-top: 8px; color: var(--muted); font-size: 11px; }
-.rpe-anchors span { flex: 1; text-align: center; }
-.rpe-anchors span:first-child { text-align: left; }
-.rpe-anchors span:last-child { text-align: right; }
-.rpe-scroll-hint { display: none; margin: 5px 3px 0; color: var(--muted); font-size: 11px; }
+.rpe-anchor { margin-top: 8px; color: var(--muted); font: 11px/1.3 var(--sans); text-align: center; hyphens: manual; overflow-wrap: anywhere; }
 .factors { grid-column: 1 / -1; }
 .factor-list { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); margin-top: 32px; border-top: 1px solid var(--ink); }
 .factor { min-width: 0; padding: 18px 16px 0 0; }
@@ -245,6 +242,7 @@ h2 {
 @media (max-width: 900px) {
     .shell { width: min(100% - 48px, 1376px); }
     .hero-layout { gap: 5%; }
+    .rpe-scale { grid-template-columns: repeat(5, minmax(0, 78px)); }
     .factor-list { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 22px; }
     .factor:nth-child(4) { border-left: 0; padding-left: 0; }
 }
@@ -275,12 +273,11 @@ h2 {
 @media (max-width: 420px) {
     .shell { width: min(100% - 24px, 560px); }
     .scale { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
-    .scale-button { height: 78px; padding: 8px 2px; }
+    .scale-button { height: 88px; padding: 8px 2px; }
     .scale-number { font-size: 28px; margin-bottom: 4px; }
-    .scale-label { font-size: 10px; }
+    .scale-label { font-size: 11px; hyphens: manual; }
     .plot-date { font-size: 9px; }
 }
-@media (max-width: 580px) { .rpe-scroll-hint { display: block; } }
 
 /* Optional raw observations follow the same paper, rules and numeric type as
    Today’s evidence. Collapse editing so recovery and RPE stay primary. */

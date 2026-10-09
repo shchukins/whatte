@@ -483,7 +483,8 @@ def test_today_recovery_submission_uses_web_source_and_redirects(monkeypatch):
     ]
 
 
-def test_today_rpe_submission_validates_activity_owner_and_redirects(monkeypatch):
+@pytest.mark.parametrize("score", [1, 3, 10])
+def test_today_rpe_submission_validates_activity_owner_and_redirects(monkeypatch, score):
     calls = []
     monkeypatch.setattr(
         today_service,
@@ -497,11 +498,11 @@ def test_today_rpe_submission_validates_activity_owner_and_redirects(monkeypatch
     )
     client = TestClient(app_module.app)
 
-    response = client.post("/today/rpe/17855535922/3", follow_redirects=False)
+    response = client.post(f"/today/rpe/17855535922/{score}", follow_redirects=False)
 
     assert response.status_code == 303
     assert response.headers["location"] == "/today?saved=rpe&activity_id=17855535922"
-    assert calls == [{"activity_id": 17855535922, "score": 3, "source": "web"}]
+    assert calls == [{"activity_id": 17855535922, "score": score, "source": "web"}]
 
 
 def test_today_rpe_submission_rejects_unowned_activity(monkeypatch):
@@ -651,3 +652,33 @@ def test_readiness_timestamp_missing_invalid_or_naive_is_unavailable(timestamp):
 def test_readiness_timestamp_uses_configured_timezone(monkeypatch):
     monkeypatch.setattr(today_service, "WHATTE_TZ", ZoneInfo("Europe/Berlin"))
     assert today_service.format_readiness_timestamp("2026-08-30T23:00:00Z") == "31.08.2026, 01:00 CEST"
+
+
+@pytest.mark.parametrize("web_score", [None, 1, 10])
+def test_today_rpe_web_selection_is_independent_of_effective_source(monkeypatch, web_score):
+    data = _today_data()
+    activity = replace(data.activity, rpe_score=8, rpe_value="strava",
+                       rpe_strava_score=8, rpe_web_score=web_score,
+                       rpe_disagreement=web_score is not None)
+    monkeypatch.setattr(today_service, "get_today_data",
+                        lambda *a, **k: replace(data, activity=activity))
+    page = TestClient(app_module.app).get("/today").text
+    buttons = re.findall(r'<button class="rpe-button"[^>]*>', page)
+    assert len(buttons) == 10
+    for score, button in enumerate(buttons, 1):
+        assert f'aria-pressed="{str(score == web_score).lower()}"' in button
+        assert f'aria-label="RPE {score}:' in button
+        assert f'action="/today/rpe/{activity.activity_id}/{score}"' in page
+    assert 'Итоговый RPE 8/10 · Strava' in page
+    assert f'Ваша оценка в Web: {str(web_score) + "/10" if web_score else "не выбрана"}.' in page
+    assert len(re.findall(r'<span class="rpe-anchor" aria-hidden="true">', page)) == 10
+    assert 'Прокрутите или используйте стрелки' not in page
+    assert 'прокрутите шкалу вбок' not in page
+
+
+def test_today_recovery_buttons_keep_numeric_accessible_names(monkeypatch):
+    monkeypatch.setattr(today_service, "get_today_data", lambda *a, **k: _today_data())
+    page = TestClient(app_module.app).get("/today").text
+    names = re.findall(r'aria-label="Самочувствие (\d): ([^"]+)"', page)
+    assert names == [("1", "Без сил"), ("2", "Усталость"), ("3", "Нормально"),
+                     ("4", "Бодро"), ("5", "Полон сил")]
