@@ -87,10 +87,10 @@
             <p class="error">Оценка самочувствия временно недоступна. </p><details class="error-details"><summary>Технические подробности</summary>{{ recovery_section.error }}</details>
             {% else %}
             <div class="scale" aria-label="Оценка самочувствия от одного до пяти">
-                {% set recovery_options = [(1, 'Без сил'), (2, 'Усталость'), (3, 'Нормально'), (4, 'Бодро'), (5, 'Полон сил')] %}
+                {% set recovery_options = [(1, 'Без сил'), (2, 'Уста­лость'), (3, 'Нор­мально'), (4, 'Бодро'), (5, 'Полон сил')] %}
                 {% for score, label in recovery_options %}
                 <form method="post" action="/today/recovery/{{ score }}" data-feedback-form>
-                    <button class="scale-button" data-score="{{ score }}" type="submit" formmethod="post" formaction="/today/recovery/{{ score }}" aria-label="Самочувствие: {{ label }}" aria-pressed="{{ 'true' if recovery and recovery.score == score else 'false' }}">
+                    <button class="scale-button" data-score="{{ score }}" type="submit" formmethod="post" formaction="/today/recovery/{{ score }}" aria-label="Самочувствие {{ score }}: {{ label | replace('­', '') }}" aria-pressed="{{ 'true' if recovery and recovery.score == score else 'false' }}">
                         <span class="scale-number" aria-hidden="true">{{ score }}</span>
                         <span class="scale-label">{{ label }}</span>
                     </button>
@@ -108,7 +108,7 @@
                     <h2 id="rpe-title">Как прошла тренировка?</h2>
                     <p class="hint">Последняя подходящая тренировка. Оценку RPE можно изменить.</p>
                 </div>
-                {% if activity and activity.rpe_score %}<span class="badge badge-used">RPE {{ activity.rpe_score }}/10 · {% if activity.rpe_value == 'strava' %}Strava{% elif activity.rpe_value == 'telegram' %}Telegram · резервный источник{% elif activity.rpe_value == 'web' %}Web · резервный источник{% endif %}</span>{% endif %}
+                {% if activity and activity.rpe_score %}<span class="badge badge-used">Итоговый RPE {{ activity.rpe_score }}/10 · {% if activity.rpe_value == 'strava' %}Strava{% elif activity.rpe_value == 'telegram' %}Telegram · резервный источник{% elif activity.rpe_value == 'web' %}Web · резервный источник{% endif %}</span>{% endif %}
             </div>
             {% if saved == "rpe" %}<p class="saved" role="status">RPE сохранён.</p>{% endif %}
             {% if activity and activity.rpe_disagreement %}
@@ -124,20 +124,17 @@
                 <li>{{ activity.duration }}</li>
                 <li>{{ activity.distance }}</li>
             </ul>
-            {% if activity.rpe_web_score is not none %}<p class="hint">Ваша оценка в Web: {{ activity.rpe_web_score }}/10.</p>{% endif %}
-            <div class="rpe-scroll" role="group" aria-label="Ощущаемая нагрузка от 1 до 10. Прокрутите или используйте стрелки, чтобы увидеть все оценки." tabindex="0">
-                <div class="rpe-track">
-                    <div class="rpe-scale">
-                        {% for score, label in rpe_options %}
-                        <form method="post" action="/today/rpe/{{ activity.activity_id }}/{{ score }}" data-feedback-form>
-                            <button class="rpe-button" data-score="{{ score }}" type="submit" aria-label="RPE {{ score }}: {{ label | today_label('rpe') }}" aria-pressed="{{ 'true' if activity.rpe_web_score == score else 'false' }}">{{ score }}</button>
-                        </form>
-                        {% endfor %}
-                    </div>
-                    <div class="rpe-anchors" aria-hidden="true"><span>Очень легко</span><span>Легко</span><span>Умеренно</span><span>Тяжело</span><span>Максимально</span></div>
+            <p class="hint">Ваша оценка в Web: {% if activity.rpe_web_score is not none %}{{ activity.rpe_web_score }}/10{% else %}не выбрана{% endif %}.</p>
+            <div class="rpe-control" role="group" aria-label="Ощущаемая нагрузка от 1 до 10">
+                <div class="rpe-scale">
+                    {% for score, label in rpe_options %}
+                    <form method="post" action="/today/rpe/{{ activity.activity_id }}/{{ score }}" data-feedback-form>
+                        <button class="rpe-button" data-score="{{ score }}" type="submit" aria-label="RPE {{ score }}: {{ label | today_label('rpe') }}" aria-pressed="{{ 'true' if activity.rpe_web_score == score else 'false' }}">{{ score }}</button>
+                        <span class="rpe-anchor" aria-hidden="true">{{ label | today_label('rpe') | replace('Комфортно', 'Комфорт­но') | replace('Максимально', 'Макси­мально') }}</span>
+                    </form>
+                    {% endfor %}
                 </div>
             </div>
-            <p class="rpe-scroll-hint">На узком экране прокрутите шкалу вбок, чтобы увидеть все 10 оценок.</p>
             {% else %}
             <p class="empty">Пока нет подходящей тренировки для оценки.</p>
             {% endif %}

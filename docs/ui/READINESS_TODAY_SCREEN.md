@@ -27,11 +27,16 @@ an annotated figure and exact-value table.
 - Shows optional historical physiology only when it belongs to the same date;
   unavailable physiology is not an error and is not rendered as a fake score.
 - Lets the user create or edit today's one-tap next-day recovery score.
+  The 1–5 scale stays in one row, with Russian labels wrapping at 320 px.
   The backend recomputes readiness for that date after the idempotent upsert.
 - Lets the user create or edit RPE for the latest eligible canonical activity.
-  The form uses a single horizontal 1-10 scale with numeric buttons, semantic
-  anchors, keyboard focus, and horizontal scrolling at narrow widths. The
-  displayed effective RPE identifies Strava, Telegram fallback, or Web
+  The form uses numeric 1–10 buttons in two rows (1–5, then 6–10) at widths
+  up to 900 px and a single row on wider screens. Each button has its own
+  semantic anchor and accessible name; all ten controls are visible without
+  horizontal scrolling, with keyboard focus in numeric order. Selection is
+  marked by a border and `aria-pressed` reflects only the Web observation.
+  The Web selection (including no selection) is shown separately from the
+  effective RPE, which identifies Strava, Telegram fallback, or Web
   fallback. If observations disagree, the page shows each recorded source
   score and the Strava > Telegram > Web resolution rule.
   A changed effective score updates the response path through backend
