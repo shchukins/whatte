@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import asdict
 from datetime import date
 from pathlib import Path
@@ -190,22 +191,28 @@ async def submit_physiology(request: Request):
         raise HTTPException(415, "Ожидается форма в формате URL-encoded")
     values = {}
     clears = set()
+    errors = {}
+    form_value_fields = (
+        *(name for name in VALUE_FIELDS if name != "sleep_duration_minutes"),
+        "sleep_hours", "sleep_minutes",
+    )
     try:
         fields = parse_qs(
             (await request.body()).decode("utf-8"),
-            keep_blank_values=True, max_num_fields=1 + 2 * len(VALUE_FIELDS),
+            keep_blank_values=True, max_num_fields=1 + len(form_value_fields) + len(VALUE_FIELDS),
         )
-        allowed = {"local_date", *VALUE_FIELDS, *(f"clear_{name}" for name in VALUE_FIELDS)}
+        allowed = {"local_date", *form_value_fields, *(f"clear_{name}" for name in VALUE_FIELDS)}
         if set(fields) - allowed or any(len(items) != 1 for items in fields.values()):
             raise ValueError("Unexpected or duplicate form field")
-        values = {name: fields.get(name, [""])[0].strip() for name in VALUE_FIELDS}
+        values = {name: fields.get(name, [""])[0].strip() for name in form_value_fields}
         clears = {name for name in VALUE_FIELDS if fields.get(f"clear_{name}") == ["1"]}
         if any(fields.get(f"clear_{name}", ["1"]) != ["1"] for name in VALUE_FIELDS):
             raise ValueError("Invalid clear action")
         target_date = date.fromisoformat(fields.get("local_date", [""])[0])
         if target_date != today_service.get_local_today():
             return await run_in_threadpool(
-                _today_page, request, physiology_errors={
+                _today_page, request, physiology_values=values, physiology_clears=clears,
+                physiology_errors={
                     "form": "Наступил новый день. Обновите страницу «Сегодня» перед сохранением.",
                 }, status_code=409,
             )
@@ -213,11 +220,34 @@ async def submit_physiology(request: Request):
         # shared model owns every numeric bound and persistence owns revisions.
         submitted = {name: None if name in clears else value
                      for name, value in values.items() if value or name in clears}
+        # Convert only in this web adapter. Blank parts omit sleep altogether;
+        # an explicit clear wins, including over an invalid typed value.
+        hours, minutes = values["sleep_hours"], values["sleep_minutes"]
+        if "sleep_duration_minutes" in clears:
+            submitted["sleep_duration_minutes"] = None
+        elif hours or minutes:
+            for name, maximum in (("sleep_hours", 24), ("sleep_minutes", 59)):
+                value = values[name]
+                if value and (not re.fullmatch(r"[0-9]+", value)
+                              or len(value.lstrip("0")) > len(str(maximum))
+                              or int(value.lstrip("0") or "0") > maximum):
+                    errors[name] = f"Введите целое число от 0 до {maximum}."
+            if not errors:
+                duration = int(hours.lstrip("0") or "0") * 60 + int(minutes.lstrip("0") or "0")
+                if duration > 1440:
+                    errors["sleep_hours"] = "24 часа допустимы только с 0 минутами."
+                    errors["sleep_minutes"] = errors["sleep_hours"]
+                else:
+                    submitted["sleep_duration_minutes"] = duration
+        submitted.pop("sleep_hours", None)
+        submitted.pop("sleep_minutes", None)
+        if errors:
+            raise ValueError("Invalid sleep parts")
         patch = ManualPhysiologyPatch(
             local_date=target_date, source="web", **submitted,
         )
     except ValueError as exc:
-        errors = {"form": "Проверьте введённые значения и повторите попытку."}
+        errors["form"] = "Проверьте введённые значения и повторите попытку."
         if isinstance(exc, ValidationError):
             errors.update({str(error["loc"][0]): physiology_error(error) for error in exc.errors()})
         return await run_in_threadpool(

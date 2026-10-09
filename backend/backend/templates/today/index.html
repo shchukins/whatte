@@ -150,9 +150,7 @@
 
         <section class="card manual-physiology" aria-labelledby="manual-physiology-title">
             <p class="section-index">04 / Необязательные наблюдения</p>
-            <p class="eyebrow">Физиология / сегодня</p>
-            <h2 id="manual-physiology-title">Дополнительные наблюдения.</h2>
-            <p class="hint">Сон, HRV и пульс покоя необязательны. Эти наблюдения сохраняются отдельно от готовности на сегодня.</p>
+            <h2 id="manual-physiology-title" class="sr-only">Необязательные наблюдения</h2>
             {% if saved == "physiology" %}<p class="saved" role="status">Наблюдения сохранены.</p>{% endif %}
             {% if manual_physiology_section.status == "error" and physiology_values is none %}
             <p class="error">Наблюдения временно недоступны. Обновите страницу «Сегодня», чтобы повторить попытку.</p>
@@ -161,12 +159,13 @@
             <div class="physiology-record">
                 {% for name, label, unit, step, minimum, maximum in physiology_fields %}
                 {% set current = manual_physiology[name] if manual_physiology else none %}
-                <div><span class="factor-name">{{ label }}</span><span class="physiology-value">{{ current if current is not none else '—' }}</span><span class="badge {{ 'badge-used' if current is not none else '' }}">{{ unit if current is not none else 'нет данных' }}</span></div>
+                <div><span class="factor-name">{{ label }}</span><span class="physiology-value">{% if name == 'sleep_duration_minutes' and current is not none %}{{ current // 60 }} ч {{ current % 60 }} мин{% else %}{{ current if current is not none else '—' }}{% endif %}</span><span class="badge {{ 'badge-used' if current is not none else '' }}">{{ ('записано' if name == 'sleep_duration_minutes' else unit) if current is not none else 'нет данных' }}</span></div>
                 {% endfor %}
             </div>
-            {% if manual_physiology %}<p class="physiology-meta">Источник {{ manual_physiology.source | today_label('source') }} / обновлено {{ manual_physiology.updated_at }}</p>{% endif %}
             <details class="physiology-editor" {% if physiology_errors %}open{% endif %}>
-                <summary>Добавить или изменить наблюдения <span class="badge">Необязательно</span></summary>
+                <summary>Сон и другие наблюдения · Необязательно</summary>
+                <p class="hint">Наблюдения записываются отдельно от готовности. Их ввод не меняет рекомендацию на сегодня.</p>
+                {% if manual_physiology %}<p class="physiology-meta">Источник {{ manual_physiology.source | today_label('source') }} / обновлено {{ manual_physiology.updated_at | today_timestamp }}</p>{% endif %}
                 <p class="hint">Оставьте поле пустым, чтобы сохранить прежнее значение. Отметьте «Очистить», чтобы удалить его.</p>
                 {% if physiology_errors.form %}<p class="error" role="alert">{{ physiology_errors.form }}</p>{% endif %}
                 <form method="post" action="/today/physiology">
@@ -174,8 +173,24 @@
                     <div class="physiology-fields">
                         {% for name, label, unit, step, minimum, maximum in physiology_fields %}
                         <div class="physiology-field">
+                            {% if name == 'sleep_duration_minutes' %}
+                            <fieldset class="sleep-duration">
+                                <legend>Длительность сна</legend>
+                                <div class="sleep-parts">
+                                    {% set current_sleep = manual_physiology.sleep_duration_minutes if manual_physiology else none %}
+                                    {% for part, label, maximum in [('sleep_hours', 'Часы', 24), ('sleep_minutes', 'Минуты', 59)] %}
+                                    <div>
+                                        <label for="physiology-{{ part }}">{{ label }}</label>
+                                        <input id="physiology-{{ part }}" name="{{ part }}" type="number" step="1" min="0" max="{{ maximum }}" value="{{ physiology_values.get(part, '') if physiology_values is not none else ((current_sleep // 60 if part == 'sleep_hours' else current_sleep % 60) if current_sleep is not none else '') }}" aria-describedby="physiology-help-{{ name }}{% if physiology_errors.get(part) %} physiology-error-{{ part }}{% endif %}" {% if physiology_errors.get(part) %}aria-invalid="true"{% endif %}>
+                                        {% if physiology_errors.get(part) %}<p class="error" id="physiology-error-{{ part }}">{{ physiology_errors[part] }}</p>{% endif %}
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </fieldset>
+                            {% else %}
                             <label for="physiology-{{ name }}">{{ label }} <span>{{ unit }}</span></label>
                             <input id="physiology-{{ name }}" name="{{ name }}" type="number" step="{{ step }}" min="{{ minimum }}" max="{{ maximum }}" value="{{ physiology_values.get(name, '') if physiology_values is not none else (manual_physiology[name] if manual_physiology and manual_physiology[name] is not none else '') }}" aria-describedby="physiology-help-{{ name }}{% if physiology_errors.get(name) %} physiology-error-{{ name }}{% endif %}" {% if physiology_errors.get(name) %}aria-invalid="true"{% endif %}>
+                            {% endif %}
                             <span class="physiology-help" id="physiology-help-{{ name }}">Необязательно{% if name == 'hrv_ms' %} · больше 0{% endif %}</span>
                             <label class="physiology-clear"><input type="checkbox" name="clear_{{ name }}" value="1" {% if name in physiology_clears %}checked{% endif %}> Очистить: {{ label }}</label>
                             {% if physiology_errors.get(name) %}<p class="error" id="physiology-error-{{ name }}">{{ physiology_errors[name] }}</p>{% endif %}
