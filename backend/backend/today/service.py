@@ -104,7 +104,7 @@ def _bounded_error(exc: Exception) -> str:
 def _format_timestamp(value: Any) -> str:
     if not isinstance(value, datetime):
         return "—"
-    return value.astimezone(WHATTE_TZ).strftime("%d %b, %H:%M")
+    return value.astimezone(WHATTE_TZ).strftime("%d.%m, %H:%M")
 
 
 def _format_duration(value: int | None) -> str:
@@ -113,14 +113,14 @@ def _format_duration(value: int | None) -> str:
     hours, remainder = divmod(value, 3600)
     minutes = remainder // 60
     if hours:
-        return f"{hours}h {minutes:02d}m"
-    return f"{minutes}m"
+        return f"{hours} ч {minutes:02d} мин"
+    return f"{minutes} мин"
 
 
 def _format_distance(value: float | None) -> str:
     if value is None:
         return "—"
-    return f"{value / 1000:.1f} km"
+    return f"{value / 1000:.1f} км"
 
 
 def get_local_today() -> date:

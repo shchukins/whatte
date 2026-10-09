@@ -1,0 +1,9 @@
+<header class="topline">
+    <p class="brand">WHATTE <span>/ СЕГОДНЯ</span></p>
+    <nav class="page-navigation" aria-label="Основная навигация">
+        <a href="/today"{% if active_page == 'today' %} aria-current="page"{% endif %}>Сегодня</a>
+        <span aria-hidden="true">·</span>
+        <a href="/today/profile"{% if active_page == 'profile' %} aria-current="page"{% endif %}>Профиль</a>
+    </nav>
+    <p class="date">{{ today }}</p>
+</header>

@@ -81,3 +81,14 @@ personal baselines. There are no physiology history charts or frontend scores.
 - [Subjective feedback](../models/SUBJECTIVE_FEEDBACK.md)
 
 - [Manual physiology](../data/MANUAL_PHYSIOLOGY.md)
+
+## Russian presentation and navigation
+
+Today and Profile share keyboard-accessible «Сегодня · Профиль» navigation,
+with `aria-current="page"`, an underlined active link and 44px minimum link height.
+Both pages declare `lang="ru"`. Forms, scales, units, saved messages, validation
+errors and empty states use Russian labels; FTP, HRV, RPE and source names remain.
+Web-only labels map existing backend codes without score thresholds. Unknown
+codes have a neutral label. The main briefing remains the shared formatter output;
+raw recommendation reasons and section errors are available as technical details.
+POST routes, values, source priority and calculation behavior are unchanged.

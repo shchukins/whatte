@@ -34,7 +34,7 @@ def test_missing_and_partial_records_render_independently(client, monkeypatch):
     assert 'action="/today/physiology"' in page
     assert 'name="local_date" value="2026-09-30"' in page
     assert '<details class="physiology-editor" >' in page
-    assert page.count('>unavailable</span>') >= 4
+    assert page.count('>нет данных</span>') >= 4
     current = observation(sleep_duration_minutes=0, hrv_ms=None, sleep_quality=None)
     monkeypatch.setattr(today_service, "get_today_data", lambda *args, **kwargs: replace(
         _today_data(), today=DAY.isoformat(), manual_physiology=current.model_dump(),
@@ -42,7 +42,7 @@ def test_missing_and_partial_records_render_independently(client, monkeypatch):
     page = client.get("/today").text
     assert 'name="sleep_duration_minutes"' in page
     assert 'value="0"' in page
-    assert 'Source telegram' in page
+    assert 'Источник Telegram' in page
     assert 'name="hrv_ms" type="number" step="any" min="0" max="500" value=""' in page
 
 
@@ -104,6 +104,8 @@ def test_invalid_field_preserves_input_without_write(client, monkeypatch, field,
     response = client.post("/today/physiology", data={"local_date": DAY.isoformat(), field: value})
     assert response.status_code == 422
     assert 'aria-invalid="true"' in response.text
+    assert 'Проверьте введённые значения и повторите попытку.' in response.text
+    assert 'Input should' not in response.text
     assert f'value="{value}"' in response.text
     assert 'role="alert"' in response.text
     assert 'class="physiology-editor" open' in response.text
@@ -139,8 +141,8 @@ def test_write_failure_preserves_input_and_never_claims_success(client, monkeypa
     response = client.post("/today/physiology", data={"local_date": DAY.isoformat(), "hrv_ms": "60"})
     assert response.status_code == 503
     assert 'value="60"' in response.text
-    assert "Physiology could not be saved" in response.text
-    assert "Physiology saved." not in response.text
+    assert "Не удалось сохранить наблюдения" in response.text
+    assert "Наблюдения сохранены." not in response.text
     assert "internal database detail" not in response.text
 
 
@@ -158,10 +160,10 @@ def test_read_failure_does_not_break_primary_sections(monkeypatch):
     monkeypatch.setattr(today_service, "get_today_data", lambda *args, **kwargs: data)
     response = TestClient(app_module.app).get("/today")
     assert response.status_code == 200
-    assert "Manual physiology is temporarily unavailable" in response.text
+    assert "Наблюдения временно недоступны" in response.text
     assert "internal database detail" not in response.text
-    assert "How do you feel today?" in response.text
-    assert "How did the workout feel?" in response.text
+    assert "Как вы себя чувствуете сегодня?" in response.text
+    assert "Как прошла тренировка?" in response.text
 
 
 def test_full_entry_creates_shared_observation_with_configured_user(client, monkeypatch):

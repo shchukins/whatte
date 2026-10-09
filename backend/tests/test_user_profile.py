@@ -151,3 +151,14 @@ def test_invalid_hr_max_form_does_not_save(page, monkeypatch, value):
     assert response.status_code == 422
     assert 'HR max' in response.text
     save.assert_not_called()
+
+
+def test_profile_shared_navigation_and_empty_state(page, monkeypatch):
+    monkeypatch.setattr(profile, 'get_profile', lambda user: dict(
+        current={}, history=[], today=date(2026, 9, 5), pending_from=None))
+    response = page.get('/today/profile?saved=true')
+    assert '<html lang="ru">' in response.text
+    assert 'href="/today">Сегодня</a>' in response.text
+    assert 'href="/today/profile" aria-current="page">Профиль</a>' in response.text
+    assert 'Пока нет записей.' in response.text
+    assert 'Значение сохранено.' in response.text

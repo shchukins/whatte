@@ -31,7 +31,6 @@
 .profile-history th:first-child, .profile-history td:first-child { padding-left: 0; white-space: nowrap; }
 @media (max-width: 580px) {
     .shell.profile-shell { width: calc(100% - 32px); }
-    .profile-shell .topline { grid-template-columns: 1fr auto; }
     .profile-shell .topline-title, .profile-shell .date { display: none; }
     .profile-fields { grid-template-columns: minmax(0, 1fr); gap: 14px; }
     .profile-intro h1 { font-size: 44px; }

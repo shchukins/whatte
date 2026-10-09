@@ -303,3 +303,16 @@ h2 {
 .physiology-field input[aria-invalid="true"] { border-color: var(--brick); }
 @media (max-width: 900px) { .physiology-record, .physiology-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 420px) { .physiology-fields { grid-template-columns: minmax(0, 1fr); } }
+
+/* Shared navigation stays readable and operable on both product pages. */
+.page-navigation { display: flex; align-items: center; justify-content: center; gap: 10px; font: 13px var(--mono); }
+.page-navigation a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 4px; text-decoration: none; }
+.page-navigation a[aria-current="page"] { font-weight: 700; text-decoration: underline; text-decoration-thickness: 2px; }
+.page-navigation a:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.topline > .date { justify-self: end; }
+.card, .edition-note, .factor, .hero h1, .decision-answer h3 { overflow-wrap: anywhere; }
+@media (max-width: 680px) {
+    .topline, .profile-shell .topline { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+    .page-navigation { justify-content: flex-start; }
+    .section-head { flex-wrap: wrap; }
+}

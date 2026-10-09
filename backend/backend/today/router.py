@@ -27,12 +27,14 @@ from backend.services.subjective_feedback_service import (
 )
 
 from . import service as today_service
+from .presentation import physiology_error, today_label
 from backend.services import user_profile_service as profile_service
 
 router = APIRouter(prefix="/today", tags=["today"])
 templates = Jinja2Templates(
     directory=str(Path(__file__).resolve().parents[1] / "templates")
 )
+templates.env.filters["today_label"] = today_label
 FeedbackScore = Annotated[int, FastAPIPath(ge=1, le=5)]
 RpeScore = Annotated[int, FastAPIPath(ge=1, le=10)]
 
@@ -41,10 +43,10 @@ def _reject_cross_site_request(request: Request) -> None:
     # Basic Auth protects the route at the edge. Sec-Fetch-Site adds a small,
     # deterministic CSRF boundary for state-changing native form submissions.
     if request.headers.get("sec-fetch-site", "").lower() == "cross-site":
-        raise HTTPException(status_code=403, detail="cross-site form submission rejected")
+        raise HTTPException(status_code=403, detail="Отправка формы с другого сайта запрещена")
     origin = request.headers.get("origin")
     if origin and urlsplit(origin).hostname != request.url.hostname:
-        raise HTTPException(status_code=403, detail="cross-site form submission rejected")
+        raise HTTPException(status_code=403, detail="Отправка формы с другого сайта запрещена")
 
 
 def _redirect_to_today(*, saved: str, activity_id: int | None = None) -> RedirectResponse:
@@ -83,7 +85,7 @@ def _today_page(
         name="today/index.html",
         status_code=status_code,
         context={
-            "page_title": "Whatte Today",
+            "page_title": "Сегодня · Whatte",
             "saved": saved if saved in {"recovery", "rpe", "physiology"} else None,
             "physiology_values": physiology_values,
             "physiology_errors": physiology_errors or {},
@@ -119,7 +121,7 @@ def submit_rpe(
         preferred_activity_id=activity_id,
     )
     if activity is None:
-        raise HTTPException(status_code=404, detail="eligible activity not found")
+        raise HTTPException(status_code=404, detail="Подходящая тренировка не найдена")
     upsert_activity_rpe_v2(
         activity_id=activity_id,
         score=score,
@@ -146,7 +148,7 @@ async def save_profile(request: Request):
     _reject_cross_site_request(request)
     # Native URL-encoded forms avoid adding a multipart parser dependency.
     if request.headers.get('content-type', '').split(';')[0] != 'application/x-www-form-urlencoded':
-        raise HTTPException(415, 'Expected a URL-encoded form')
+        raise HTTPException(415, 'Ожидается форма в формате URL-encoded')
     try:
         fields = parse_qs((await request.body()).decode('utf-8'), max_num_fields=3)
         if any(len(values) != 1 for values in fields.values()):
@@ -182,7 +184,7 @@ def recompute_profile(request: Request):
 async def submit_physiology(request: Request):
     _reject_cross_site_request(request)
     if request.headers.get("content-type", "").split(";")[0] != "application/x-www-form-urlencoded":
-        raise HTTPException(415, "Expected a URL-encoded form")
+        raise HTTPException(415, "Ожидается форма в формате URL-encoded")
     values = {}
     clears = set()
     try:
@@ -201,7 +203,7 @@ async def submit_physiology(request: Request):
         if target_date != today_service.get_local_today():
             return await run_in_threadpool(
                 _today_page, request, physiology_errors={
-                    "form": "The local day has changed. Reload Today before saving.",
+                    "form": "Наступил новый день. Обновите страницу «Сегодня» перед сохранением.",
                 }, status_code=409,
             )
         # Empty controls omit a value; only an explicit clear sends null. The
@@ -212,9 +214,9 @@ async def submit_physiology(request: Request):
             local_date=target_date, source="web", **submitted,
         )
     except ValueError as exc:
-        errors = {"form": "Check the entered values and try again."}
+        errors = {"form": "Проверьте введённые значения и повторите попытку."}
         if isinstance(exc, ValidationError):
-            errors.update({str(error["loc"][0]): error["msg"] for error in exc.errors()})
+            errors.update({str(error["loc"][0]): physiology_error(error) for error in exc.errors()})
         return await run_in_threadpool(
             _today_page, request, physiology_values=values,
             physiology_errors=errors, physiology_clears=clears, status_code=422,
@@ -222,7 +224,7 @@ async def submit_physiology(request: Request):
     if not submitted:
         return await run_in_threadpool(
             _today_page, request, physiology_values=values,
-            physiology_errors={"form": "Enter a value or select Clear before saving."},
+            physiology_errors={"form": "Введите значение или отметьте «Очистить» перед сохранением."},
             status_code=422,
         )
     try:
@@ -234,7 +236,7 @@ async def submit_physiology(request: Request):
         logging.getLogger(__name__).exception("today_physiology_save_failed")
         return await run_in_threadpool(
             _today_page, request, physiology_values=values,
-            physiology_errors={"form": "Physiology could not be saved. Try again."},
+            physiology_errors={"form": "Не удалось сохранить наблюдения. Повторите попытку."},
             physiology_clears=clears, status_code=503,
         )
     return _redirect_to_today(saved="physiology")

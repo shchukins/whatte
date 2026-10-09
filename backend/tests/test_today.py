@@ -28,10 +28,10 @@ def _readiness(*, physiology_available: bool = False):
         "user_id": "sergey",
         "date": "2026-08-30",
         "readiness_score": 68.0,
-        "status_text": "Good readiness",
+        "status_text": "Хорошая готовность",
         "recommendation": "moderate",
         "reason": "Freshness and morning feeling support moderate training.",
-        "briefing_text": "Moderate training fits the current backend state.",
+        "briefing_text": "Сегодня хорошая готовность. Рекомендуется умеренная аэробная тренировка.",
         "freshness_state": "fresh",
         "readiness_computed_at": "2026-08-30T06:00:00+00:00",
         "signal_families": {
@@ -93,8 +93,8 @@ def _today_data():
             name="Morning Ride",
             sport_type="Ride",
             start_time="30 Aug, 07:15",
-            distance="42.5 km",
-            duration="1h 23m",
+            distance="42.5 км",
+            duration="1 ч 23 мин",
             rpe_score=None,
             rpe_value=None,
         ),
@@ -289,8 +289,8 @@ def test_today_activity_query_selects_latest_and_scopes_user(monkeypatch):
     result = today_service.get_today_activity("sergey")
 
     assert result.activity_id == 17855535922
-    assert result.duration == "1h 23m"
-    assert result.distance == "42.5 km"
+    assert result.duration == "1 ч 23 мин"
+    assert result.distance == "42.5 км"
     assert cursor.params == ("sergey",)
     assert "where r.user_id = %s" in cursor.query
     assert "order by r.start_date desc nulls last" in cursor.query
@@ -333,12 +333,12 @@ def test_today_page_renders_mobile_working_surface(monkeypatch):
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/html")
     assert 'name="viewport"' in response.text
-    assert "Today’s readiness" in response.text
-    assert "Good readiness" in response.text
-    assert "How do you feel today?" in response.text
+    assert "Готовность сегодня" in response.text
+    assert "Хорошая готовность" in response.text
+    assert "Как вы себя чувствуете сегодня?" in response.text
     assert "Morning Ride" in response.text
-    assert "Physiology" in response.text
-    assert "unavailable" in response.text
+    assert "Физиология" in response.text
+    assert "Нет данных" in response.text
     assert "/today/recovery/4" in response.text
     assert "/today/rpe/17855535922/5" in response.text
     assert 'formmethod="post"' in response.text
@@ -366,7 +366,7 @@ def test_today_editorial_metrics_and_figure_use_persisted_values(monkeypatch):
     response = TestClient(app_module.app).get("/today")
 
     assert response.status_code == 200
-    assert "Good day probability" in response.text
+    assert "Вероятность хорошего дня" in response.text
     assert 'class="score">73<span class="unit">%</span>' in response.text
     assert '--bar-height: 68.0%' in response.text
     assert 'class="plot-missing"' in response.text
@@ -391,14 +391,14 @@ def test_today_rpe_scale_is_numeric_and_shows_source_resolution(monkeypatch):
     assert re.findall(r'<button class="rpe-button"[^>]*>(\d+)</button>', response.text) == [
         str(score) for score in range(1, 11)
     ]
-    assert 'aria-label="RPE 5: Moderate" aria-pressed="true"' in response.text
-    assert 'aria-label="RPE 8: Very hard" aria-pressed="false"' in response.text
+    assert 'aria-label="RPE 5: Умеренно" aria-pressed="true"' in response.text
+    assert 'aria-label="RPE 8: Очень тяжело" aria-pressed="false"' in response.text
     assert "RPE 8/10 · Strava" in response.text
     assert "Strava 8/10" in response.text
     assert "Telegram 6/10" in response.text
     assert "Web 5/10" in response.text
-    assert "Strava first, then Telegram, then Web" in response.text
-    assert "Your Web selection: 5/10" in response.text
+    assert "сначала используется Strava, затем Telegram, затем Web" in response.text
+    assert "Ваша оценка в Web: 5/10" in response.text
 
 
 def test_today_rpe_telegram_fallback_is_identified(monkeypatch):
@@ -408,8 +408,8 @@ def test_today_rpe_telegram_fallback_is_identified(monkeypatch):
 
     response = TestClient(app_module.app).get("/today")
 
-    assert "RPE 7/10 · Telegram fallback" in response.text
-    assert "RPE sources differ" not in response.text
+    assert "RPE 7/10 · Telegram · резервный источник" in response.text
+    assert "Оценки RPE из разных источников различаются" not in response.text
 
 
 def test_today_rpe_disagreement_without_strava_shows_both_manual_sources(monkeypatch):
@@ -427,7 +427,7 @@ def test_today_rpe_disagreement_without_strava_shows_both_manual_sources(monkeyp
     response = TestClient(app_module.app).get("/today")
 
     assert "Telegram 7/10, Web 4/10" in response.text
-    assert "RPE 7/10 · Telegram fallback" in response.text
+    assert "RPE 7/10 · Telegram · резервный источник" in response.text
 
 
 def test_today_history_table_renders_versions_and_missing_values(monkeypatch):
@@ -450,11 +450,11 @@ def test_today_history_table_renders_versions_and_missing_values(monkeypatch):
     response = TestClient(app_module.app).get("/today")
 
     assert response.status_code == 200
-    assert "Current persisted daily history" in response.text
-    assert "No readiness" in response.text
-    assert "No feedback" in response.text
-    assert "Not mapped" in response.text
-    assert "moderate" in response.text
+    assert "Текущая сохранённая история по дням" in response.text
+    assert "Нет готовности" in response.text
+    assert "Нет оценки" in response.text
+    assert "Не определяется" in response.text
+    assert "Умеренная аэробная тренировка" in response.text
     assert 'scope="col"' in response.text
     assert 'tabindex="0"' in response.text
 
@@ -546,3 +546,42 @@ def test_today_scores_are_limited_to_documented_scale():
     assert client.post("/today/recovery/6").status_code == 422
     assert client.post("/today/rpe/123/0").status_code == 422
     assert client.post("/today/rpe/123/11").status_code == 422
+
+
+@pytest.mark.parametrize("state,label", [("fresh", "Актуальны"), ("stale", "Устарели"), ("partial", "Неполные"), ("missing", "Нет данных"), ("future_state", "Неизвестное состояние")])
+def test_today_labels_preserve_backend_contract(monkeypatch, state, label):
+    data = _today_data()
+    readiness = {**data.readiness, "freshness_state": state,
+                 "recommendation": "future_zone", "status_text": "future_status"}
+    monkeypatch.setattr(today_service, "get_today_data", lambda *args, **kwargs: replace(data, readiness=readiness))
+    page = TestClient(app_module.app).get("/today").text
+    assert f"<strong>{label}</strong>" in page
+    assert '<h1 id="readiness-title">Неизвестное состояние</h1>' in page
+    assert '<h3>Неизвестное состояние</h3>' in page
+    assert readiness["readiness_score"] == 68.0
+    assert readiness["recommendation"] == "future_zone"
+    assert data.readiness["briefing_text"] in page
+    assert data.readiness["reason"] in page
+
+
+@pytest.mark.parametrize("status", ["missing", "error"])
+def test_today_empty_and_error_states_have_russian_navigation(monkeypatch, status):
+    data = replace(_today_data(), readiness=None, recovery=None, activity=None,
+                   factors=[], history_groups=[],
+                   readiness_section=today_service.TodaySection(status, "technical failure" if status == "error" else None))
+    monkeypatch.setattr(today_service, "get_today_data", lambda *args, **kwargs: data)
+    page = TestClient(app_module.app).get("/today").text
+    assert '<html lang="ru">' in page
+    assert 'href="/today" aria-current="page">Сегодня</a>' in page
+    assert 'href="/today/profile">Профиль</a>' in page
+    assert '/today/history' not in page
+    assert "Пока нет подходящей тренировки для оценки." in page
+    assert ("Готовность недоступна." if status == "error" else "Готовность ещё не рассчитана.") in page
+
+
+@pytest.mark.parametrize("saved,message", [("recovery", "Самочувствие сохранено. Готовность на сегодня пересчитана."), ("rpe", "RPE сохранён."), ("physiology", "Наблюдения сохранены.")])
+def test_today_saved_messages_remain_russian(monkeypatch, saved, message):
+    monkeypatch.setattr(today_service, "get_today_data", lambda *args, **kwargs: _today_data())
+    page = TestClient(app_module.app).get(f"/today?saved={saved}").text
+    assert message in page
+    assert 'role="status"' in page

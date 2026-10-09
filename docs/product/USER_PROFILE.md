@@ -63,3 +63,10 @@ Migration 020 extends validation and backfills valid legacy HR max rows without
 overwriting existing entries or scheduling recalculation for the backfill.
 Verify current values, independent date histories and pending status. Production
 migrations and user data corrections are not applied by a code deployment alone.
+
+## Navigation and language
+
+Profile shares the «Сегодня · Профиль» navigation with Today. The active page
+is underlined and marked with `aria-current="page"`; links support keyboard focus
+and have a minimum height of 44px. Both pages use Russian UI labels and `lang="ru"`.
+The dated values, save and recompute behavior remain unchanged.

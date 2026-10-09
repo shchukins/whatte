@@ -9,11 +9,8 @@
     {% include "today/profile.css" %}</style>
 </head>
 <body><main class="shell profile-shell">
-  <header class="topline">
-    <p class="brand">WHATTE <span>/ DAILY</span></p>
-    <span class="topline-title">Профиль</span>
-    <div class="topline-end"><a class="profile-link" href="/today">← Сегодня</a><p class="date">{{ today }}</p></div>
-  </header>
+  {% set active_page = "profile" %}
+  {% include "today/navigation.html" %}
   <div class="edition-note"><span>Профиль / история значений</span><span>FTP + HR max + вес</span></div>
   <div class="profile-intro">
   <h1>Профиль</h1>
