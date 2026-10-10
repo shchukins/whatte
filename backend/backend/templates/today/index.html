@@ -1,3 +1,4 @@
+{% from "today/history_figure.html" import readiness_figure %}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -5,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light">
     <title>{{ page_title }}</title>
-    <style>{% include "today/editorial.css" %}</style>
+    <style>{% include "today/editorial.css" %}{% include "today/history.css" %}</style>
 </head>
 <body>
 <main class="shell">
@@ -205,52 +206,22 @@
 
         <section class="card history" aria-labelledby="history-title">
             <p class="section-index">05 / История</p>
-            <p class="eyebrow">Готовность / 14 дней</p>
-            <div class="section-head">
-                <div>
-                    <h2 id="history-title">Последние 14 дней</h2>
-                    <p class="hint">Текущая сохранённая история по дням. Значения могут измениться после пересчёта; это не неизменяемые утренние решения или отправленные сообщения.</p>
-                    <p class="hint">На узком экране прокрутите таблицу вбок.</p>
-                </div>
-            </div>
+            <p class="eyebrow">Готовность / 7 дней</p>
+            <h2 id="history-title">Последние 7 дней</h2>
+            <p class="hint">Текущая сохранённая история по дням. Значения могут измениться после пересчёта; это не неизменяемые утренние решения или отправленные сообщения.</p>
+            <a class="diary-rpe" href="/today/history">Открыть дневник</a>
             {% if history_section.status == "error" %}
-            <p class="error">История временно недоступна. </p><details class="error-details"><summary>Технические подробности</summary>{{ history_section.error }}</details>
+            <p class="error">История временно недоступна. Обновите страницу, чтобы повторить попытку.</p>
             {% else %}
             {% for group in history_groups %}
             <div class="history-group">
                 <h3 class="history-version">Модель {{ group.version }}{% if not group.supported %} · Историческая версия; рекомендация не определяется{% endif %}</h3>
-                {% if group.supported %}
-                <figure class="figure">
-                    <div class="figure-label"><strong>РИС. 01 / ДИНАМИКА ГОТОВНОСТИ</strong><span>14 КАЛЕНДАРНЫХ ДНЕЙ</span></div>
-                    <div class="plot" role="img" aria-label="Готовность за последние 14 дней. Дни без данных отмечены короткими серыми линиями. Точные значения приведены в таблице.">
-                        {% for row in group.rows | reverse %}
-                        <div class="plot-day" title="{{ row.date }}: {{ row.readiness_score if row.readiness_score is not none else 'Нет готовности' }}">
-                            {% if row.readiness_score is not none %}
-                            <span class="plot-bar" style="--bar-height: {{ row.readiness_score }}%"></span>
-                            {% else %}
-                            <span class="plot-missing"></span>
-                            {% endif %}
-                        </div>
-                        {% endfor %}
-                    </div>
-                    <figcaption class="figure-caption">Текущая сохранённая готовность по дням. Серые линии обозначают дни без оценки; точные значения и самочувствие приведены ниже.</figcaption>
-                </figure>
-                {% endif %}
-                <div class="history-scroll" role="region" aria-label="История готовности для модели {{ group.version }}" tabindex="0">
-                    <table class="history-table">
-                        <thead><tr><th scope="col">Дата</th><th scope="col">Готовность</th><th scope="col">Рекомендация</th><th scope="col">Утреннее самочувствие</th></tr></thead>
-                        <tbody>
-                        {% for row in group.rows %}
-                        <tr>
-                            <th scope="row">{{ row.date }}</th>
-                            <td>{% if row.readiness_score is not none %}{{ row.readiness_score }}{% else %}<span class="history-missing">Нет готовности</span>{% endif %}</td>
-                            <td>{% if row.recommendation %}{{ row.recommendation | today_label('recommendation') }}{% elif not group.supported and row.readiness_score is not none %}<span class="history-missing">Не определяется</span>{% else %}<span class="history-missing">Нет рекомендации</span>{% endif %}</td>
-                            <td>{% if row.recovery_score is not none %}{{ row.recovery_score }}/5 · {{ row.recovery_value | today_label('recovery') }}{% else %}<span class="history-missing">Нет оценки</span>{% endif %}</td>
-                        </tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+                {% if group.supported %}{{ readiness_figure(group.rows[:7]) }}{% endif %}
+                <ul class="overview-values" aria-label="Точные значения готовности">
+                {% for row in group.rows[:7] %}
+                    <li><time datetime="{{ row.date }}">{{ row.date }}</time>: {% if row.readiness_score is not none %}{{ row.readiness_score }}/100{% else %}Нет готовности{% endif %}</li>
+                {% endfor %}
+                </ul>
             </div>
             {% endfor %}
             {% endif %}

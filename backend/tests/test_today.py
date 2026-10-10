@@ -368,8 +368,8 @@ def test_today_editorial_metrics_and_figure_use_persisted_values(monkeypatch):
     assert response.status_code == 200
     assert "Вероятность хорошего дня" not in response.text
     assert 'class="score">68.0<span class="unit">/100</span>' in response.text
-    assert '--bar-height: 68.0%' in response.text
-    assert 'class="plot-missing"' in response.text
+    assert 'height: 68.0%' in response.text
+    assert 'class="diary-gap"' in response.text
 
 
 def test_today_rpe_scale_is_numeric_and_shows_source_resolution(monkeypatch):
@@ -430,7 +430,7 @@ def test_today_rpe_disagreement_without_strava_shows_both_manual_sources(monkeyp
     assert "RPE 7/10 · Telegram · резервный источник" in response.text
 
 
-def test_today_history_table_renders_versions_and_missing_values(monkeypatch):
+def test_today_history_overview_renders_versions_and_missing_values(monkeypatch):
     data = _today_data()
     data = today_service.TodayData(
         **{**data.__dict__, "history_groups": [
@@ -452,11 +452,10 @@ def test_today_history_table_renders_versions_and_missing_values(monkeypatch):
     assert response.status_code == 200
     assert "Текущая сохранённая история по дням" in response.text
     assert "Нет готовности" in response.text
-    assert "Нет оценки" in response.text
-    assert "Не определяется" in response.text
-    assert "Умеренная аэробная тренировка" in response.text
-    assert 'scope="col"' in response.text
-    assert 'tabindex="0"' in response.text
+    assert "Историческая версия; рекомендация не определяется" in response.text
+    assert "Последние 7 дней" in response.text
+    assert "Открыть дневник" in response.text
+    assert 'class="history-table"' not in response.text
 
 
 def test_today_recovery_submission_uses_web_source_and_redirects(monkeypatch):
@@ -575,7 +574,7 @@ def test_today_empty_and_error_states_have_russian_navigation(monkeypatch, statu
     assert '<html lang="ru">' in page
     assert 'href="/today" aria-current="page">Сегодня</a>' in page
     assert 'href="/today/profile">Профиль</a>' in page
-    assert '/today/history' not in page
+    assert 'href="/today/history">Дневник</a>' in page
     assert "Пока нет подходящей тренировки для оценки." in page
     assert ("Готовность недоступна." if status == "error" else "Готовность ещё не рассчитана.") in page
 

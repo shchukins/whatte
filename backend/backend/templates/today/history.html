@@ -1,0 +1,64 @@
+{% from "today/history_figure.html" import readiness_figure %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Дневник · Whatte</title>
+    <style>{% include "today/editorial.css" %}{% include "today/history.css" %}</style>
+</head>
+<body>
+<main class="shell diary-shell">
+    {% set active_page = 'history' %}
+    {% include "today/navigation.html" %}
+    <section class="card diary-intro" aria-labelledby="diary-title">
+        <p class="eyebrow">Готовность / тренировки / оценки</p>
+        <h1 id="diary-title">Последние 14 дней</h1>
+        <p class="hint">Текущие сохранённые значения могут измениться после пересчёта; это не неизменяемая история утренних решений или отправленных сообщений.</p>
+        {% if diary.history_section.status == 'error' %}<p class="error">Готовность и утреннее самочувствие временно недоступны. Обновите дневник, чтобы повторить попытку.</p>{% endif %}
+        {% if diary.activity_section.status == 'error' %}<p class="error">Тренировки временно недоступны. Обновите дневник, чтобы повторить попытку.</p>{% endif %}
+        {% for group in diary.history_groups if group.supported %}
+        <p class="history-version">Модель {{ group.version }}</p>
+        {{ readiness_figure(group.rows) }}
+        {% endfor %}
+    </section>
+    <section aria-label="Дни дневника">
+        {% for day in diary.days %}
+        <article class="diary-day" aria-labelledby="day-{{ day.date }}">
+            <h2 id="day-{{ day.date }}"><time datetime="{{ day.date }}">{{ day.date }}</time></h2>
+            <div class="diary-reading">
+                {% if diary.history_section.status == 'error' %}<p class="history-missing">Не удалось загрузить готовность и самочувствие</p>{% endif %}
+                {% for group in diary.history_groups %}
+                {% set row = group.rows | selectattr('date', 'equalto', day.date) | first %}
+                {% if row is defined %}
+                <div class="diary-version">
+                    <p class="history-version">{{ 'Текущая модель' if group.supported else 'Историческая версия' }} · {{ group.version }}</p>
+                    <p>Готовность: {% if row.readiness_score is not none %}<strong>{{ row.readiness_score }}/100</strong>{% else %}<span class="history-missing">Нет готовности</span>{% endif %}</p>
+                    <p>Рекомендация: {% if group.supported and row.recommendation %}{{ row.recommendation | today_label('recommendation') }}{% elif not group.supported %}<span class="history-missing">Не определяется для этой версии</span>{% else %}<span class="history-missing">Нет рекомендации</span>{% endif %}</p>
+                    {% if group.supported %}<p>Утреннее самочувствие: {% if row.recovery_score is not none %}{{ row.recovery_score }}/5 · {{ row.recovery_value | today_label('recovery') }}{% else %}<span class="history-missing">Нет оценки</span>{% endif %}</p>{% endif %}
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+            <div class="diary-workouts">
+                {% if day.activity_message %}<p class="history-missing">{{ day.activity_message }}</p>{% endif %}
+                {% for activity in day.activities or [] %}
+                <div class="diary-workout">
+                    <h3>{{ activity.name }}</h3>
+                    <p class="activity-meta">{{ activity.sport_type }} · {{ activity.start_time.strftime('%H:%M %Z') }} · {% if activity.duration_s is not none %}{{ activity.duration_s // 3600 }} ч {{ (activity.duration_s % 3600) // 60 }} мин {{ activity.duration_s % 60 }} с{% else %}Нет длительности{% endif %}</p>
+                    <p>Итоговый RPE: {% if activity.rpe_score is not none %}{{ activity.rpe_score }}/10 · {{ activity.rpe_source | today_label('source') }}{% else %}<span class="history-missing">Нет оценки</span>{% endif %}</p>
+                    {% if activity.rpe_disagreement %}<p class="hint">Оценки источников различаются.</p>{% endif %}
+                    {% if activity.rpe_disagreement or (activity.rpe_score is none and activity.rpe_web_score is not none) %}
+                    <p class="hint">{% for source, score in [('Strava', activity.rpe_strava_score), ('Telegram', activity.rpe_telegram_score), ('Web', activity.rpe_web_score)] %}{% if score is not none %}{{ source }} {{ score }}/10. {% endif %}{% endfor %}</p>
+                    {% endif %}
+                    <a class="diary-rpe" href="/today?activity_id={{ activity.activity_id }}#rpe">{{ 'Изменить RPE' if activity.rpe_web_score is not none else 'Оценить RPE' }}</a>
+                </div>
+                {% endfor %}
+            </div>
+        </article>
+        {% endfor %}
+    </section>
+    <footer class="footer"><strong>WHATTE / ДНЕВНИК</strong><a href="/today">Вернуться к сегодня</a></footer>
+</main>
+</body>
+</html>

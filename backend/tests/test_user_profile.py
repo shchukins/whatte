@@ -159,6 +159,7 @@ def test_profile_shared_navigation_and_empty_state(page, monkeypatch):
     response = page.get('/today/profile?saved=true')
     assert '<html lang="ru">' in response.text
     assert 'href="/today">Сегодня</a>' in response.text
+    assert 'href="/today/history">Дневник</a>' in response.text
     assert 'href="/today/profile" aria-current="page">Профиль</a>' in response.text
     assert 'Пока нет записей.' in response.text
     assert 'Значение сохранено.' in response.text

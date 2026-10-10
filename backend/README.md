@@ -349,8 +349,12 @@ Activity and history reads have independent section statuses. Each day contains
 `activities=[]` and “Нет записанных тренировок” after a successful empty read;
 `activities=None` and “Не удалось загрузить тренировки” denote activity failure.
 Absence of a workout does not imply rest. This model performs no writes, Strava
-calls, recomputation or aggregation. A Diary route/HTML is still planned (#161);
-the existing Today page does not call the new model.
+calls, recomputation or aggregation. The protected `/today/history` page renders this model as a 14-day diary,
+with exact daily scores, separate historical versions and all recorded workouts.
+RPE links select the activity on `/today?activity_id=…#rpe`; editing remains there.
+Today shows a compact 7-day readiness overview from the same history contract.
+All three pages share Today / Diary / Profile navigation and work without JS.
+The history is current stored state, not immutable morning decisions/messages.
 
 Текущий core orchestration pipeline:
 
