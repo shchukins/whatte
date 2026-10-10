@@ -28,6 +28,7 @@ from backend.services.subjective_feedback_service import (
 )
 
 from . import service as today_service
+from .history_service import get_diary_data
 from .presentation import physiology_error, today_label
 from backend.services import user_profile_service as profile_service
 
@@ -68,6 +69,15 @@ def today_index(
     saved: str | None = Query(default=None),
 ):
     return _today_page(request, activity_id=activity_id, saved=saved)
+
+
+@router.get("/history")
+def history_page(request: Request):
+    data = get_diary_data(settings.daily_readiness_user_id, today_service.get_local_today())
+    return templates.TemplateResponse(
+        request=request, name="today/history.html",
+        context={"today": data.target_date, "diary": data},
+    )
 
 
 def _today_page(

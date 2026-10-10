@@ -1,0 +1,24 @@
+/* Calendar columns never connect incompatible versions or fill missing scores. */
+.diary-figure { margin: 24px 0 0; }
+.diary-plot { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 5px; }
+.diary-point { min-width: 0; text-align: center; }
+.diary-track { height: 100px; display: flex; align-items: flex-end; justify-content: center; border-bottom: 1px solid var(--line); }
+.diary-bar { display: block; width: 60%; max-width: 28px; background: var(--olive); }
+.diary-gap { color: var(--muted); }
+.diary-point time { display: block; margin-top: 8px; font: 10px var(--mono); }
+.diary-shell { width: min(100% - 48px, 960px); }
+.diary-intro h1 { font: 400 52px/1.05 var(--serif); letter-spacing: -.05em; }
+.diary-day { display: grid; grid-template-columns: 120px minmax(0, 1fr) minmax(0, 1fr); gap: 24px; padding: 28px 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+.diary-day h2 { margin: 0; font: 13px var(--mono); }
+.diary-day p { margin: 8px 0; line-height: 1.5; }
+.diary-version + .diary-version, .diary-workout + .diary-workout { margin-top: 20px; padding-top: 12px; border-top: 1px solid var(--line); }
+.diary-workout h3 { margin: 0; font: 400 24px var(--serif); }
+.diary-rpe { display: inline-flex; align-items: center; min-height: 44px; }
+.diary-rpe:focus-visible { outline: 2px solid var(--olive); outline-offset: 3px; }
+.overview-values { display: flex; flex-wrap: wrap; gap: 12px 24px; padding: 0; list-style: none; font: 12px/1.6 var(--mono); }
+@media (max-width: 680px) {
+    .diary-shell { width: calc(100% - 32px); }
+    .diary-day { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+    .diary-intro h1 { font-size: 40px; }
+    .diary-point time { writing-mode: vertical-rl; margin-inline: auto; }
+}

@@ -8,8 +8,7 @@ readiness, recommendation, or missing-data fallbacks in the browser.
 
 Its visual language follows [Whatte visual identity](VISUAL_IDENTITY.md):
 the daily reading is presented as an editorial issue, with the stored
-decision first, supporting signals and feedback next, and 14-day history as
-an annotated figure and exact-value table.
+decision first, supporting signals and feedback next, and a compact 7-day overview linking to the 14-day diary.
 
 ## Current behavior
 
@@ -23,7 +22,7 @@ an annotated figure and exact-value table.
 - Places existing signal availability/participation and source timestamps in
   the keyboard-accessible «Почему такая рекомендация» disclosure under the
   answer, followed by morning feedback. Missing/error states have no invented
-  score or recommendation. RPE, observations and 14-day history remain available.
+  score or recommendation. RPE, observations and the history overview remain available.
 - Shows optional historical physiology only when it belongs to the same date;
   unavailable physiology is not an error and is not rendered as a fake score.
 - Lets the user create or edit today's one-tap next-day recovery score.
@@ -95,11 +94,32 @@ personal baselines. There are no physiology history charts or frontend scores.
 
 ## Russian presentation and navigation
 
-Today and Profile share keyboard-accessible «Сегодня · Профиль» navigation,
+Today, Diary and Profile share keyboard-accessible «Сегодня · Дневник · Профиль» navigation,
 with `aria-current="page"`, an underlined active link and 44px minimum link height.
-Both pages declare `lang="ru"`. Forms, scales, units, saved messages, validation
+All three pages declare `lang="ru"`. Forms, scales, units, saved messages, validation
 errors and empty states use Russian labels; FTP, HRV, RPE and source names remain.
 Web-only labels map existing backend codes without score thresholds. Unknown
 codes have a neutral label. The main briefing remains the shared formatter output;
 raw recommendation reasons and section errors are available as technical details.
 POST routes, values, source priority and calculation behavior are unchanged.
+
+## Diary
+
+`/today/history` uses the same Caddy `/today*` protection and configured user
+as Today/Profile. It presents all 14 local dates, including missing days, with
+a small dated readiness figure and exact readiness, morning feeling and
+backend recommendation in the daily list. Unsupported model versions are
+separate, have no plot and do not receive newly derived recommendations.
+The caption explicitly describes current saved values that can change after
+recomputation, rather than immutable morning decisions or delivered messages.
+
+Each day includes every recorded eligible canonical workout, local start time,
+nullable duration and persisted effective RPE/source. Source conflicts show
+the separate observations. No recorded workouts means only absence of records.
+Activity and readiness/recovery failures have independent states.
+At narrow widths the list becomes a vertical feed; desktop uses compact
+columns. Exact data never depends on hover or JavaScript.
+
+«Оценить/изменить RPE» links to `/today?activity_id=…#rpe`; writes still use
+Today's existing eligibility/user checks. There is no historical recovery editor.
+Today retains a 7-day figure and exact scores plus «Открыть дневник».

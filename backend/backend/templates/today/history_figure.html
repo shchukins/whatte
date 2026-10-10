@@ -1,0 +1,14 @@
+{% macro readiness_figure(rows) %}
+<figure class="diary-figure">
+    <p class="figure-label">Готовность / 0–100</p>
+    <div class="diary-plot" role="img" aria-label="Готовность по датам. Пропуски отмечены тире; точные значения доступны в списке дней.">
+        {% for row in rows | reverse %}
+        <div class="diary-point">
+            <div class="diary-track">{% if row.readiness_score is not none %}<span class="diary-bar" style="height: {{ row.readiness_score }}%"></span>{% else %}<span class="diary-gap">—</span>{% endif %}</div>
+            <time datetime="{{ row.date }}">{{ row.date[8:] }}.{{ row.date[5:7] }}</time>
+        </div>
+        {% endfor %}
+    </div>
+    <figcaption class="figure-caption">Каждая дата показана отдельно. Тире — нет готовности, а не ноль.</figcaption>
+</figure>
+{% endmacro %}

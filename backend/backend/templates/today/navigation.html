@@ -1,7 +1,9 @@
 <header class="topline">
-    <p class="brand">WHATTE <span>/ СЕГОДНЯ</span></p>
+    <p class="brand">WHATTE <span>/ {{ 'ДНЕВНИК' if active_page == 'history' else 'ПРОФИЛЬ' if active_page == 'profile' else 'СЕГОДНЯ' }}</span></p>
     <nav class="page-navigation" aria-label="Основная навигация">
         <a href="/today"{% if active_page == 'today' %} aria-current="page"{% endif %}>Сегодня</a>
+        <span aria-hidden="true">·</span>
+        <a href="/today/history"{% if active_page == 'history' %} aria-current="page"{% endif %}>Дневник</a>
         <span aria-hidden="true">·</span>
         <a href="/today/profile"{% if active_page == 'profile' %} aria-current="page"{% endif %}>Профиль</a>
     </nav>
