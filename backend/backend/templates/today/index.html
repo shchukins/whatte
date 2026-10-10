@@ -96,8 +96,8 @@
                 <form method="post" action="/today/recovery/{{ score }}" data-feedback-form>
                     <button class="scale-button" data-score="{{ score }}" type="submit" formmethod="post" formaction="/today/recovery/{{ score }}" aria-label="Самочувствие {{ score }}: {{ label | replace('­', '') }}" aria-pressed="{{ 'true' if recovery and recovery.score == score else 'false' }}">
                         <span class="scale-number" aria-hidden="true">{{ score }}</span>
-                        <span class="scale-label">{{ label }}</span>
                     </button>
+                    <span class="scale-label" aria-hidden="true">{{ label }}</span>
                 </form>
                 {% endfor %}
             </div>
@@ -173,29 +173,34 @@
                     <input type="hidden" name="local_date" value="{{ today }}">
                     <div class="physiology-fields">
                         {% for name, label, unit, step, minimum, maximum in physiology_fields %}
-                        <div class="physiology-field">
-                            {% if name == 'sleep_duration_minutes' %}
-                            <fieldset class="sleep-duration">
-                                <legend>Длительность сна</legend>
-                                <div class="sleep-parts">
-                                    {% set current_sleep = manual_physiology.sleep_duration_minutes if manual_physiology else none %}
-                                    {% for part, label, maximum in [('sleep_hours', 'Часы', 24), ('sleep_minutes', 'Минуты', 59)] %}
-                                    <div>
-                                        <label for="physiology-{{ part }}">{{ label }}</label>
-                                        <input id="physiology-{{ part }}" name="{{ part }}" type="number" step="1" min="0" max="{{ maximum }}" value="{{ physiology_values.get(part, '') if physiology_values is not none else ((current_sleep // 60 if part == 'sleep_hours' else current_sleep % 60) if current_sleep is not none else '') }}" aria-describedby="physiology-help-{{ name }}{% if physiology_errors.get(part) %} physiology-error-{{ part }}{% endif %}" {% if physiology_errors.get(part) %}aria-invalid="true"{% endif %}>
-                                        {% if physiology_errors.get(part) %}<p class="error" id="physiology-error-{{ part }}">{{ physiology_errors[part] }}</p>{% endif %}
-                                    </div>
-                                    {% endfor %}
+                        {% if name == 'sleep_duration_minutes' %}
+                        <fieldset class="physiology-field sleep-duration">
+                            <legend class="sr-only">Длительность сна</legend>
+                            <div class="physiology-heading">
+                                <span aria-hidden="true">Длительность сна</span>
+                                <div class="sleep-part-labels">
+                                    <label for="physiology-sleep_hours">Часы</label>
+                                    <label for="physiology-sleep_minutes">Минуты</label>
                                 </div>
-                            </fieldset>
-                            {% else %}
-                            <label for="physiology-{{ name }}">{{ label }} <span>{{ unit }}</span></label>
+                            </div>
+                            <div class="sleep-parts">
+                                {% set current_sleep = manual_physiology.sleep_duration_minutes if manual_physiology else none %}
+                                {% for part, label, maximum in [('sleep_hours', 'Часы', 24), ('sleep_minutes', 'Минуты', 59)] %}
+                                <div>
+                                    <input id="physiology-{{ part }}" name="{{ part }}" type="number" step="1" min="0" max="{{ maximum }}" value="{{ physiology_values.get(part, '') if physiology_values is not none else ((current_sleep // 60 if part == 'sleep_hours' else current_sleep % 60) if current_sleep is not none else '') }}" aria-describedby="physiology-help-{{ name }}{% if physiology_errors.get(part) %} physiology-error-{{ part }}{% endif %}" {% if physiology_errors.get(part) %}aria-invalid="true"{% endif %}>
+                                    {% if physiology_errors.get(part) %}<p class="error" id="physiology-error-{{ part }}">{{ physiology_errors[part] }}</p>{% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                        <div class="physiology-field">
+                            <label class="physiology-heading" for="physiology-{{ name }}">{{ label }} <span>{{ unit }}</span></label>
                             <input id="physiology-{{ name }}" name="{{ name }}" type="number" step="{{ step }}" min="{{ minimum }}" max="{{ maximum }}" value="{{ physiology_values.get(name, '') if physiology_values is not none else (manual_physiology[name] if manual_physiology and manual_physiology[name] is not none else '') }}" aria-describedby="physiology-help-{{ name }}{% if physiology_errors.get(name) %} physiology-error-{{ name }}{% endif %}" {% if physiology_errors.get(name) %}aria-invalid="true"{% endif %}>
-                            {% endif %}
+                        {% endif %}
                             <span class="physiology-help" id="physiology-help-{{ name }}">Необязательно{% if name == 'hrv_ms' %} · больше 0{% endif %}</span>
                             <label class="physiology-clear"><input type="checkbox" name="clear_{{ name }}" value="1" {% if name in physiology_clears %}checked{% endif %}> Очистить: {{ label }}</label>
                             {% if physiology_errors.get(name) %}<p class="error" id="physiology-error-{{ name }}">{{ physiology_errors[name] }}</p>{% endif %}
-                        </div>
+                        {% if name == 'sleep_duration_minutes' %}</fieldset>{% else %}</div>{% endif %}
                         {% endfor %}
                     </div>
                     <button class="physiology-save" type="submit">Сохранить наблюдения</button>

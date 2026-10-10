@@ -137,7 +137,7 @@ h2 {
 .decision-answer .story-copy { border-top: 1px solid var(--line); padding-top: 17px; }
 .recovery .scale { margin-top: 37px; }
 .scale { display: grid; grid-template-columns: repeat(5, 68px); gap: 7px; }
-.scale form { display: flex; min-width: 0; }
+.scale form { display: grid; grid-template-rows: auto auto; min-width: 0; align-content: start; }
 .scale-button {
     width: 100%;
     height: 68px;
@@ -158,8 +158,8 @@ h2 {
 .scale-button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .scale-button[aria-pressed="true"] { border-color: var(--ink); box-shadow: inset 0 0 0 2px var(--paper); font-weight: 700; }
 .scale-button:disabled, .rpe-button:disabled { cursor: wait; opacity: .65; }
-.scale-number { display: block; margin-bottom: 6px; font-family: var(--serif); font-size: 31px; line-height: 1; }
-.scale-label { display: block; font-size: 11px; line-height: 1.2; }
+.scale-number { display: block; font-family: var(--serif); font-size: 31px; line-height: 1; }
+.scale-label { display: block; margin-top: 8px; color: var(--muted); font: 11px/1.3 var(--sans); text-align: center; hyphens: manual; overflow-wrap: anywhere; }
 .saved, .error, .empty { margin: 17px 0 0; padding: 12px 0; border: 0; border-top: 1px solid var(--line); border-radius: 0; background: transparent; line-height: 1.5; }
 .saved { color: var(--olive); }
 .error { color: var(--brick); }
@@ -274,7 +274,7 @@ h2 {
     .shell { width: min(100% - 24px, 560px); }
     .scale { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
     .scale-button { height: 88px; padding: 8px 2px; }
-    .scale-number { font-size: 28px; margin-bottom: 4px; }
+    .scale-number { font-size: 28px; }
     .scale-label { font-size: 11px; hyphens: manual; }
     .plot-date { font-size: 9px; }
 }
@@ -292,9 +292,11 @@ h2 {
 .physiology-editor { margin-top: 24px; border-top: 1px solid var(--line); padding-top: 12px; }
 .physiology-editor summary { padding: 10px 0; cursor: pointer; font-size: 16px; }
 .physiology-editor summary .badge { margin-left: 12px; }
-.physiology-field > label:first-child { display: block; font-size: 14px; }
-.physiology-field > label:first-child span { display: block; margin-top: 6px; color: var(--muted); font: 11px var(--mono); }
-.physiology-field input[type="number"] { width: 100%; min-width: 0; min-height: 48px; margin: 12px 0 4px; padding: 10px; border: 1px solid var(--line); border-radius: 0; background: transparent; color: var(--ink); font: 18px var(--mono); }
+/* Share header and control rows so wrapped hints do not shift adjacent inputs. */
+.physiology-field { display: grid; grid-row: span 5; grid-template-rows: subgrid; row-gap: 8px; align-content: start; }
+.physiology-heading { display: block; align-self: start; font: 14px/1.4 var(--sans); }
+.physiology-heading > span:not([aria-hidden]) { display: block; margin-top: 6px; color: var(--muted); font: 11px/1.6 var(--mono); }
+.physiology-field input[type="number"] { width: 100%; min-width: 0; height: 48px; margin: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 0; background: transparent; color: var(--ink); font: 18px var(--mono); }
 .physiology-clear { display: flex; gap: 8px; align-items: center; min-height: 44px; font-size: 12px; color: var(--muted); }
 .physiology-clear input { accent-color: var(--olive); }
 .physiology-save { margin-top: 22px; min-height: 48px; padding: 12px 20px; border: 1px solid var(--ink); border-radius: 0; background: var(--ink); color: var(--paper); cursor: pointer; }
@@ -338,6 +340,6 @@ h2 {
 [data-feedback-section][aria-busy="true"] button { cursor: wait; opacity: .55; }
 
 .sleep-duration { margin: 0; padding: 0; border: 0; min-width: 0; }
-.sleep-duration legend, .sleep-parts label { font-size: 14px; }
-.sleep-parts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 6px; }
+.sleep-parts, .sleep-part-labels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.sleep-part-labels { margin-top: 6px; color: var(--muted); font: 11px/1.6 var(--mono); }
 .sleep-parts > div { min-width: 0; }
