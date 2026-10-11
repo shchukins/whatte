@@ -468,7 +468,7 @@ def test_today_recovery_submission_uses_web_source_and_redirects(monkeypatch):
     )
     client = TestClient(app_module.app)
 
-    response = client.post("/today/recovery/4", follow_redirects=False)
+    response = client.post("/today/recovery/4", data={"local_date": "2026-08-30"}, follow_redirects=False)
 
     assert response.status_code == 303
     assert response.headers["location"] == "/today?saved=recovery#recovery"
@@ -480,6 +480,69 @@ def test_today_recovery_submission_uses_web_source_and_redirects(monkeypatch):
             "source": "web",
         }
     ]
+
+
+@pytest.mark.parametrize("fetch", [False, True])
+@pytest.mark.parametrize("body,status", [
+    ("local_date=2026-08-29", 409),
+    ("local_date=2026-08-31", 409),
+    ("", 422),
+    ("local_date=", 422),
+    ("local_date=invalid", 422),
+    ("local_date=2026-02-30", 422),
+    ("local_date=20260830", 422),
+    ("local_date=2026-08-30&local_date=2026-08-30", 422),
+    ("local_date=2026-08-30&user_id=other", 422),
+    ("local_date=" + "x" * 129, 422),
+    (b"local_date=\xff", 422),
+])
+def test_recovery_date_refusal_never_writes(monkeypatch, fetch, body, status):
+    monkeypatch.setattr(today_service, "get_local_today", lambda: date(2026, 8, 30))
+    monkeypatch.setattr(today_service, "get_today_data", lambda *args, **kwargs: _today_data())
+    def unexpected_write(**kwargs):
+        pytest.fail("Rejected date must not write recovery")
+    monkeypatch.setattr(today_router_module, "upsert_next_day_recovery_feedback", unexpected_write)
+    headers = {"Content-Type": "application/x-www-form-urlencoded"}
+    if fetch:
+        headers["X-Requested-With"] = "Whatte-Today"
+    response = TestClient(app_module.app).post(
+        "/today/recovery/4", content=body, headers=headers, follow_redirects=False,
+    )
+    assert response.status_code == status
+    assert "location" not in response.headers
+    assert 'data-recovery-error' in response.text
+    assert 'href="/today#recovery">Обновить «Сегодня»' in response.text
+    assert "Самочувствие не сохранено" in response.text
+    assert "Самочувствие сохранено." not in response.text
+
+
+@pytest.mark.parametrize("fetch", [False, True])
+def test_recovery_midnight_uses_whatte_timezone(monkeypatch, fetch):
+    class Clock(datetime):
+        instant = datetime(2026, 8, 30, 20, 59, tzinfo=ZoneInfo("UTC"))
+
+        @classmethod
+        def now(cls, tz=None):
+            return cls.instant.astimezone(tz)
+
+    monkeypatch.setattr(today_service, "datetime", Clock)
+    monkeypatch.setattr(today_service, "WHATTE_TZ", MOSCOW_TZ)
+    monkeypatch.setattr(today_service, "get_today_data", lambda *args, **kwargs: _today_data())
+    calls = []
+    monkeypatch.setattr(today_router_module, "upsert_next_day_recovery_feedback", lambda **kw: calls.append(kw))
+    client = TestClient(app_module.app)
+    page = client.get("/today").text
+    assert page.count('name="local_date" value="2026-08-30"') == 6
+    headers = {"X-Requested-With": "Whatte-Today"} if fetch else {}
+    Clock.instant = datetime(2026, 8, 30, 21, 1, tzinfo=ZoneInfo("UTC"))
+    assert today_service.get_local_today() == date(2026, 8, 31)
+    stale = client.post("/today/recovery/4", data={"local_date": "2026-08-30"}, headers=headers)
+    assert stale.status_code == 409
+    assert calls == []
+    valid = client.post("/today/recovery/4", data={"local_date": "2026-08-31"}, headers=headers, follow_redirects=False)
+    assert valid.status_code == 303
+    assert calls[0]["target_date"] == date(2026, 8, 31)
+    assert "body: new URLSearchParams(new FormData(form))" in page
 
 
 @pytest.mark.parametrize("score", [1, 3, 10])

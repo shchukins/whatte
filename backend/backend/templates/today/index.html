@@ -85,6 +85,7 @@
             </div>
             <p class="saved feedback-status" role="status" aria-live="polite" aria-atomic="true">{% if saved == "recovery" %}{% if recovery_section.status == "ok" and recovery %}Самочувствие сохранено.{% else %}Не удалось подтвердить сохранение. Проверьте сохранённое состояние.{% endif %}{% endif %}</p>
             <div class="feedback-actions" hidden><a href="/today#recovery">Проверить сохранённое состояние</a> · <button type="button" data-feedback-retry>Повторить отправку</button></div>
+            {% if recovery_error %}<p class="error" role="alert" data-recovery-error>{{ recovery_error }} <a href="/today#recovery">Обновить «Сегодня»</a></p>{% endif %}
             {% if recovery_section.status == "error" %}
             <p class="error">Оценка самочувствия временно недоступна. </p><details class="error-details"><summary>Технические подробности</summary>{{ recovery_section.error }}</details>
             {% else %}
@@ -94,6 +95,7 @@
                 {% set recovery_options = [(1, 'Без сил'), (2, 'Уста­лость'), (3, 'Нор­мально'), (4, 'Бодро'), (5, 'Полон сил')] %}
                 {% for score, label in recovery_options %}
                 <form method="post" action="/today/recovery/{{ score }}" data-feedback-form>
+                    <input type="hidden" name="local_date" value="{{ today }}">
                     <button class="scale-button" data-score="{{ score }}" type="submit" formmethod="post" formaction="/today/recovery/{{ score }}" aria-label="Самочувствие {{ score }}: {{ label | replace('­', '') }}" aria-pressed="{{ 'true' if recovery and recovery.score == score else 'false' }}">
                         <span class="scale-number" aria-hidden="true">{{ score }}</span>
                     </button>
@@ -258,7 +260,16 @@
                 method: "POST",
                 credentials: "same-origin",
                 headers: {"X-Requested-With": "Whatte-Today"},
+                body: new URLSearchParams(new FormData(form)),
             });
+            if (section.id === "recovery" && [409, 422].includes(response.status)) {
+                const page = new DOMParser().parseFromString(await response.text(), "text/html");
+                const refusal = page.querySelector("[data-recovery-error]");
+                if (refusal) {
+                    status.replaceChildren(...refusal.childNodes);
+                    return;
+                }
+            }
             if (!response.ok || !response.redirected) throw new Error("Unconfirmed save");
             const page = new DOMParser().parseFromString(await response.text(), "text/html");
             const selected = page.querySelector(`#${section.id} [data-score="${submitter.dataset.score}"][aria-pressed="true"]`);
