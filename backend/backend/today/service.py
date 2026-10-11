@@ -56,6 +56,7 @@ class TodayActivity:
     rpe_manual_score: int | None = None
     rpe_web_score: int | None = None
     rpe_telegram_score: int | None = None
+    local_date: str | None = None
 
 
 @dataclass(frozen=True)
@@ -316,6 +317,7 @@ def get_today_activity(
         name=str(row[1]),
         sport_type=str(row[2]),
         start_time=_format_timestamp(row[3]),
+        local_date=row[3].astimezone(WHATTE_TZ).date().isoformat() if row[3] else None,
         distance=_format_distance(row[4]),
         duration=_format_duration(row[5]),
         rpe_score=int(row[6]) if row[6] is not None else None,

@@ -351,10 +351,21 @@ Activity and history reads have independent section statuses. Each day contains
 Absence of a workout does not imply rest. This model performs no writes, Strava
 calls, recomputation or aggregation. The protected `/today/history` page renders this model as a 14-day diary,
 with exact daily scores, separate historical versions and all recorded workouts.
-RPE links select the activity on `/today?activity_id=…#rpe`; editing remains there.
+RPE links select the activity on `/today?activity_id=…&return_day=YYYY-MM-DD#rpe`; editing remains there.
 Today shows a compact 7-day readiness overview from the same history contract.
 All three pages share Today / Diary / Profile navigation and work without JS.
 The history is current stored state, not immutable morning decisions/messages.
+
+Historical RPE navigation (#174): Diary links carry `activity_id` and the ISO
+`return_day`. Today titles an explicitly selected workout with its local date;
+the readiness above remains today's readiness. Native RPE forms, successful
+POST→303→GET and save-error pages preserve the selected activity and validated
+day. «Вернуться к дню в дневнике» points only to `/today/history#day-YYYY-MM-DD`.
+Return context is accepted only for the owned activity's local date inside the
+current 14-day diary window; malformed, mismatched and out-of-window context
+is discarded. No URL or arbitrary anchor is accepted. Diary day anchors are
+stable, and both readiness figures use keyboard-accessible day links, including
+missing days, with exact dated values in accessible labels.
 
 Текущий core orchestration pipeline:
 

@@ -289,6 +289,7 @@ def test_today_activity_query_selects_latest_and_scopes_user(monkeypatch):
     result = today_service.get_today_activity("sergey")
 
     assert result.activity_id == 17855535922
+    assert result.local_date == "2026-08-30"
     assert result.duration == "1 ч 23 мин"
     assert result.distance == "42.5 км"
     assert cursor.params == ("sergey",)
@@ -809,3 +810,11 @@ def test_saved_feedback_does_not_claim_success_when_read_fails(monkeypatch, sect
     assert "Не удалось подтвердить сохранение." in page
     assert "Самочувствие сохранено." not in page
     assert "RPE сохранён в Web." not in page
+
+
+def test_selected_activity_date_uses_local_calendar_day(monkeypatch):
+    cursor = _ActivityCursor((42, "Ride", "Ride",
+        datetime(2026, 8, 29, 22, tzinfo=ZoneInfo("UTC")),
+        None, None, None, None, None, None, None, None, None))
+    monkeypatch.setattr(today_service, "get_conn", lambda: _ActivityConn(cursor))
+    assert today_service.get_today_activity("sergey", preferred_activity_id=42).local_date == "2026-08-30"

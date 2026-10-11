@@ -26,8 +26,8 @@
     </section>
     <section aria-label="Дни дневника">
         {% for day in diary.days %}
-        <article class="diary-day" aria-labelledby="day-{{ day.date }}">
-            <h2 id="day-{{ day.date }}"><time datetime="{{ day.date }}">{{ day.date }}</time></h2>
+        <article class="diary-day" id="day-{{ day.date }}" aria-labelledby="day-title-{{ day.date }}" tabindex="-1">
+            <h2 id="day-title-{{ day.date }}"><time datetime="{{ day.date }}">{{ day.date }}</time></h2>
             <div class="diary-reading">
                 {% if diary.history_section.status == 'error' %}<p class="history-missing">Не удалось загрузить готовность и самочувствие</p>{% endif %}
                 {% for group in diary.history_groups %}
@@ -53,7 +53,7 @@
                     {% if activity.rpe_disagreement or (activity.rpe_score is none and activity.rpe_web_score is not none) %}
                     <p class="hint">{% for source, score in [('Strava', activity.rpe_strava_score), ('Telegram', activity.rpe_telegram_score), ('Web', activity.rpe_web_score)] %}{% if score is not none %}{{ source }} {{ score }}/10. {% endif %}{% endfor %}</p>
                     {% endif %}
-                    <a class="diary-rpe" href="/today?activity_id={{ activity.activity_id }}#rpe">{{ 'Изменить RPE' if activity.rpe_web_score is not none else 'Оценить RPE' }}</a>
+                    <a class="diary-rpe" href="/today?activity_id={{ activity.activity_id }}&amp;return_day={{ day.date }}#rpe">{{ 'Изменить RPE' if activity.rpe_web_score is not none else 'Оценить RPE' }}</a>
                 </div>
                 {% endfor %}
             </div>

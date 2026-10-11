@@ -65,7 +65,8 @@ def test_diary_route_calendar_sections_and_access_boundary(monkeypatch, failure)
         assert 'Workout &lt;unsafe&gt;' in page and 'Second workout' in page
         assert '0 ч 0 мин 0 с' in page and 'Нет длительности' in page
         assert '7/10 · Strava' in page and 'Web 4/10' in page
-        assert '/today?activity_id=101#rpe' in page and '/today?activity_id=102#rpe' in page
+        assert '/today?activity_id=101&amp;return_day=2026-08-30#rpe' in page
+        assert '/today?activity_id=102&amp;return_day=2026-08-30#rpe' in page
         assert 'Нет записанных тренировок' in page
     else:
         assert 'Не удалось загрузить тренировки' in page
@@ -104,3 +105,88 @@ def test_empty_diary_has_fourteen_dates_and_explicit_missingness(monkeypatch):
     assert page.count('Нет готовности') == 14
     assert 'Нет оценки' in page and 'Нет рекомендации' in page
     assert '/100' not in page
+
+
+@pytest.mark.parametrize("save_fails", [False, True])
+def test_historical_rpe_keeps_owned_activity_and_day_through_native_post(monkeypatch, save_fails):
+    from dataclasses import replace
+    from test_today import _today_data
+    data = _today_data()
+    activity = replace(data.activity, local_date="2026-08-27")
+    selected = []
+    writes = []
+    monkeypatch.setattr(today, 'get_local_today', lambda: date(2026, 8, 30))
+    def read(*args, preferred_activity_id=None):
+        selected.append(preferred_activity_id)
+        return replace(data, activity=activity)
+    monkeypatch.setattr(today, 'get_today_data', read)
+    monkeypatch.setattr(today, 'get_today_activity', lambda *a, **k: activity)
+    def save(**kwargs):
+        nonlocal activity
+        writes.append(kwargs)
+        if save_fails:
+            raise RuntimeError('private save error')
+        activity = replace(activity, rpe_web_score=6)
+    monkeypatch.setattr(router, 'upsert_activity_rpe_v2', save)
+    client = TestClient(app_module.app)
+    url = f"/today?activity_id={activity.activity_id}&return_day=2026-08-27"
+    page = client.get(url).text
+    assert 'Оценка тренировки за 2026-08-27' in page
+    assert 'Последняя подходящая тренировка' not in page
+    assert 'Готовность выше относится к сегодняшнему дню' in page
+    action = f"/today/rpe/{activity.activity_id}/6?return_day=2026-08-27"
+    assert f'action="{action}"' in page
+    response = client.post(action, follow_redirects=False)
+    if save_fails:
+        assert response.status_code == 503
+        assert 'Не удалось сохранить RPE' in response.text
+        assert 'private save error' not in response.text
+        page = response.text
+    else:
+        assert response.status_code == 303
+        assert response.headers['location'] == f"/today?saved=rpe&activity_id={activity.activity_id}&return_day=2026-08-27#rpe"
+        page = client.get(response.headers['location']).text
+        assert 'RPE сохранён в Web.' in page
+    assert 'href="/today/history#day-2026-08-27"' in page
+    assert set(selected) == {activity.activity_id}
+    assert writes == [dict(activity_id=activity.activity_id, score=6, source='web')]
+
+
+@pytest.mark.parametrize('raw', ['https://evil.example', '//evil.example', '2026-08-27#evil',
+                                '2026-02-30', '2026-08-26', '2026-09-01', '2026-08-01', ''])
+def test_invalid_return_context_never_becomes_a_link_or_redirect(monkeypatch, raw):
+    from dataclasses import replace
+    from test_today import _today_data
+    data = _today_data()
+    activity = replace(data.activity, local_date=raw if raw in ['2026-09-01', '2026-08-01'] else '2026-08-27')
+    monkeypatch.setattr(today, 'get_local_today', lambda: date(2026, 8, 30))
+    monkeypatch.setattr(today, 'get_today_data', lambda *a, **k: replace(data, activity=activity))
+    monkeypatch.setattr(today, 'get_today_activity', lambda *a, **k: activity)
+    monkeypatch.setattr(router, 'upsert_activity_rpe_v2', lambda **k: None)
+    client = TestClient(app_module.app)
+    page = client.get('/today', params={'activity_id': activity.activity_id, 'return_day': raw}).text
+    assert 'Вернуться к дню в дневнике' not in page
+    response = client.post(f'/today/rpe/{activity.activity_id}/6', params={'return_day': raw}, follow_redirects=False)
+    assert response.headers['location'] == f'/today?saved=rpe&activity_id={activity.activity_id}#rpe'
+
+
+def test_diary_and_today_figure_links_include_missing_days(monkeypatch):
+    from dataclasses import replace
+    from test_today import _today_data
+    monkeypatch.setattr(today, 'get_local_today', lambda: date(2026, 8, 30))
+    monkeypatch.setattr(diary, 'get_diary_activities', lambda *a: [])
+    monkeypatch.setattr(today, 'get_readiness_daily_calendar_history', lambda *a: [])
+    monkeypatch.setattr(today, '_get_recovery_history', lambda *a: {})
+    client = TestClient(app_module.app)
+    page = client.get('/today/history').text
+    for i in range(14):
+        day = str(date(2026, 8, 30) - diary.timedelta(days=i))
+        assert f'id="day-{day}"' in page
+        assert f'href="/today/history#day-{day}" aria-label="{day}: нет готовности' in page
+    assert 'role="img"' not in page
+    data = replace(_today_data(), history_groups=diary.get_diary_data('test', date(2026, 8, 30)).history_groups)
+    monkeypatch.setattr(today, 'get_today_data', lambda *a, **k: data)
+    page = client.get('/today').text
+    assert 'Последняя подходящая тренировка' in page
+    assert page.count('class="diary-point" href=') == 7
+    assert 'href="/today/history#day-2026-08-24"' in page
