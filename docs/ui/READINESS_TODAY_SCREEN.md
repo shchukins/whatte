@@ -135,6 +135,17 @@ Activity and readiness/recovery failures have independent states.
 At narrow widths the list becomes a vertical feed; desktop uses compact
 columns. Exact data never depends on hover or JavaScript.
 
-«Оценить/изменить RPE» links to `/today?activity_id=…#rpe`; writes still use
+«Оценить/изменить RPE» links to `/today?activity_id=…&return_day=YYYY-MM-DD#rpe`; writes still use
 Today's existing eligibility/user checks. There is no historical recovery editor.
 Today retains a 7-day figure and exact scores plus «Открыть дневник».
+
+Historical RPE navigation (#174): Diary links carry `activity_id` and the ISO
+`return_day`. Today titles an explicitly selected workout with its local date;
+the readiness above remains today's readiness. Native RPE forms, successful
+POST→303→GET and save-error pages preserve the selected activity and validated
+day. «Вернуться к дню в дневнике» points only to `/today/history#day-YYYY-MM-DD`.
+Return context is accepted only for the owned activity's local date inside the
+current 14-day diary window; malformed, mismatched and out-of-window context
+is discarded. No URL or arbitrary anchor is accepted. Diary day anchors are
+stable, and both readiness figures use keyboard-accessible day links, including
+missing days, with exact dated values in accessible labels.

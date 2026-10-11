@@ -110,17 +110,19 @@
         </section>
 
         <section id="rpe" tabindex="-1" data-feedback-section class="card activity" aria-labelledby="rpe-title">
-            <p class="section-index">03 / Последняя тренировка</p>
+            <p class="section-index">03 / {{ "Выбранная тренировка" if selected_activity else "Последняя тренировка" }}</p>
             <p class="eyebrow">Тренировка / оценка</p>
             <div class="section-head">
                 <div>
-                    <h2 id="rpe-title">Как прошла тренировка?</h2>
-                    <p class="hint">Последняя подходящая тренировка. Оценку RPE можно изменить.</p>
+                    <h2 id="rpe-title">{% if selected_activity %}Оценка тренировки{% if activity and activity.local_date %} за {{ activity.local_date }}{% endif %}{% else %}Как прошла тренировка?{% endif %}</h2>
+                    <p class="hint">{% if selected_activity %}Выбранная тренировка. Готовность выше относится к сегодняшнему дню.{% else %}Последняя подходящая тренировка.{% endif %} Оценку RPE можно изменить.</p>
                 </div>
                 {% if activity and activity.rpe_score %}<span class="badge badge-used">Итоговый RPE {{ activity.rpe_score }}/10 · {% if activity.rpe_value == 'strava' %}Strava{% elif activity.rpe_value == 'telegram' %}Telegram · резервный источник{% elif activity.rpe_value == 'web' %}Web · резервный источник{% endif %}</span>{% endif %}
             </div>
             <p class="saved feedback-status" role="status" aria-live="polite" aria-atomic="true">{% if saved == "rpe" %}{% if activity_section.status == "ok" and activity and activity.rpe_web_score is not none %}RPE сохранён в Web.{% else %}Не удалось подтвердить сохранение. Проверьте сохранённое состояние.{% endif %}{% endif %}</p>
-            <div class="feedback-actions" hidden><a href="/today{% if activity %}?activity_id={{ activity.activity_id }}{% endif %}#rpe">Проверить сохранённое состояние</a> · <button type="button" data-feedback-retry>Повторить отправку</button></div>
+            <div class="feedback-actions" hidden><a href="/today{% if activity %}?activity_id={{ activity.activity_id }}{% if return_day %}&amp;return_day={{ return_day }}{% endif %}{% endif %}#rpe">Проверить сохранённое состояние</a> · <button type="button" data-feedback-retry>Повторить отправку</button></div>
+            {% if rpe_error %}<p class="error" role="alert">{{ rpe_error }}</p>{% endif %}
+            {% if return_day %}<a class="diary-rpe" href="/today/history#day-{{ return_day }}">Вернуться к дню в дневнике</a>{% endif %}
             {% if activity and activity.rpe_disagreement %}
             <p class="hint">Оценки RPE из разных источников различаются: {% if activity.rpe_strava_score is not none %}Strava {{ activity.rpe_strava_score }}/10{% endif %}{% if activity.rpe_telegram_score is not none %}{% if activity.rpe_strava_score is not none %}, {% endif %}Telegram {{ activity.rpe_telegram_score }}/10{% endif %}{% if activity.rpe_web_score is not none %}{% if activity.rpe_strava_score is not none or activity.rpe_telegram_score is not none %}, {% endif %}Web {{ activity.rpe_web_score }}/10{% endif %}. Для итоговой оценки сначала используется Strava, затем Telegram, затем Web.</p>
             {% endif %}
@@ -142,7 +144,7 @@
             <div class="rpe-control" role="group" aria-label="Ощущаемая нагрузка от 1 до 10">
                 <div class="rpe-scale">
                     {% for score, label in rpe_options %}
-                    <form method="post" action="/today/rpe/{{ activity.activity_id }}/{{ score }}" data-feedback-form>
+                    <form method="post" action="/today/rpe/{{ activity.activity_id }}/{{ score }}{% if return_day %}?return_day={{ return_day }}{% endif %}" data-feedback-form>
                         <button class="rpe-button" data-score="{{ score }}" type="submit" aria-label="RPE {{ score }}: {{ label | today_label('rpe') }}" aria-pressed="{{ 'true' if activity.rpe_web_score == score else 'false' }}">{{ score }}</button>
                         <span class="rpe-anchor" aria-hidden="true">{{ label | today_label('rpe') | replace('Комфортно', 'Комфорт­но') | replace('Максимально', 'Макси­мально') }}</span>
                     </form>

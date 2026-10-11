@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import re
 from dataclasses import asdict
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Annotated
 from urllib.parse import parse_qs, urlsplit
@@ -53,13 +53,30 @@ def _reject_cross_site_request(request: Request) -> None:
         raise HTTPException(status_code=403, detail="Отправка формы с другого сайта запрещена")
 
 
-def _redirect_to_today(*, saved: str, activity_id: int | None = None) -> RedirectResponse:
+def _redirect_to_today(*, saved: str, activity_id: int | None = None, return_day: str | None = None) -> RedirectResponse:
     location = f"/today?saved={saved}"
     if activity_id is not None:
         location += f"&activity_id={activity_id}"
+    if return_day is not None:
+        location += f"&return_day={return_day}"
     if saved in {"recovery", "rpe"}:
         location += f"#{saved}"
     return RedirectResponse(location, status_code=303)
+
+
+def _validated_return_day(raw: str | None, activity: today_service.TodayActivity | None) -> str | None:
+    # Only an ISO day in the visible diary window matching the owned activity
+    # can become a fixed internal link; never accept a URL or arbitrary anchor.
+    if not raw or not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", raw):
+        return None
+    try:
+        day = date.fromisoformat(raw)
+    except ValueError:
+        return None
+    today = today_service.get_local_today()
+    if activity and activity.local_date == raw and today - timedelta(days=13) <= day <= today:
+        return raw
+    return None
 
 
 @router.get("")
@@ -68,8 +85,9 @@ def today_index(
     request: Request,
     activity_id: int | None = Query(default=None, ge=1),
     saved: str | None = Query(default=None),
+    return_day: str | None = Query(default=None),
 ):
-    return _today_page(request, activity_id=activity_id, saved=saved)
+    return _today_page(request, activity_id=activity_id, saved=saved, return_day=return_day)
 
 
 @router.get("/history")
@@ -86,6 +104,8 @@ def _today_page(
     *,
     activity_id: int | None = None,
     saved: str | None = None,
+    return_day: str | None = None,
+    rpe_error: str | None = None,
     recovery_error: str | None = None,
     physiology_values: dict[str, str] | None = None,
     physiology_errors: dict[str, str] | None = None,
@@ -102,6 +122,9 @@ def _today_page(
         status_code=status_code,
         context={
             "page_title": "Сегодня · Whatte",
+            "selected_activity": activity_id is not None,
+            "return_day": _validated_return_day(return_day, data.activity),
+            "rpe_error": rpe_error,
             "recovery_error": recovery_error,
             "saved": saved if saved in {"recovery", "rpe", "physiology"} else None,
             "physiology_values": physiology_values,
@@ -155,6 +178,7 @@ def submit_rpe(
     request: Request,
     activity_id: Annotated[int, FastAPIPath(ge=1)],
     score: RpeScore,
+    return_day: str | None = Query(default=None),
 ):
     _reject_cross_site_request(request)
     activity = today_service.get_today_activity(
@@ -163,12 +187,18 @@ def submit_rpe(
     )
     if activity is None:
         raise HTTPException(status_code=404, detail="Подходящая тренировка не найдена")
-    upsert_activity_rpe_v2(
-        activity_id=activity_id,
-        score=score,
-        source=FEEDBACK_SOURCE_WEB,
-    )
-    return _redirect_to_today(saved="rpe", activity_id=activity_id)
+    return_day = _validated_return_day(return_day, activity)
+    try:
+        upsert_activity_rpe_v2(
+            activity_id=activity_id, score=score, source=FEEDBACK_SOURCE_WEB,
+        )
+    except Exception:
+        logging.getLogger(__name__).exception("today_rpe_save_failed")
+        return _today_page(
+            request, activity_id=activity_id, return_day=return_day, status_code=503,
+            rpe_error="Не удалось сохранить RPE. Проверьте сохранённое состояние и повторите отправку.",
+        )
+    return _redirect_to_today(saved="rpe", activity_id=activity_id, return_day=return_day)
 
 
 PROFILE_LABELS = {"ftp": "FTP", "hr_max": "HR max", "weight": "Вес"}
