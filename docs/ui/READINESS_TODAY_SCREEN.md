@@ -38,6 +38,13 @@ decision first, supporting signals and feedback next, and a compact 7-day overvi
   effective RPE, which identifies Strava, Telegram fallback, or Web
   fallback. If observations disagree, the page shows each recorded source
   score and the Strava > Telegram > Web resolution rule.
+  When effective RPE is available, the page says additional input is unnecessary
+  and keeps the voluntary Web editor in closed native details, including
+  Strava-only and Telegram-only observations. Without effective RPE the editor
+  opens immediately, even if a Web observation exists without resolution.
+  Saved Web selections remain available for editing. Before input, the editor
+  explains that Web is stored separately and cannot override available Strava
+  or Telegram observations. Native forms and details work without JavaScript.
   A changed effective score updates the response path through backend
   services; raw RPE is not a direct readiness score.
 - Provides dated FTP/weight profile history and an explicit stored-data-only

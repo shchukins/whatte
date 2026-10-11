@@ -738,6 +738,44 @@ def test_today_rpe_web_selection_is_independent_of_effective_source(monkeypatch,
     assert 'прокрутите шкалу вбок' not in page
 
 
+@pytest.mark.parametrize(
+    "scores,editor_open,source",
+    [
+        ({}, True, None),
+        ({"rpe_score": 8, "rpe_value": "strava", "rpe_strava_score": 8}, False, "Strava"),
+        ({"rpe_score": 7, "rpe_value": "telegram", "rpe_telegram_score": 7}, False, "Telegram"),
+        ({"rpe_score": 5, "rpe_value": "web", "rpe_web_score": 5}, False, "Web"),
+        ({"rpe_score": 8, "rpe_value": "strava", "rpe_strava_score": 8,
+          "rpe_telegram_score": 7, "rpe_web_score": 5, "rpe_disagreement": True}, False, "Strava"),
+        ({"rpe_web_score": 5}, True, None),
+    ],
+    ids=["no-score", "strava-only", "telegram-only", "web-only", "conflict", "web-without-resolution"],
+)
+def test_today_rpe_editor_opens_only_without_effective_score(monkeypatch, scores, editor_open, source):
+    data = _today_data()
+    activity = replace(data.activity, **scores)
+    monkeypatch.setattr(today_service, "get_today_data", lambda *a, **k: replace(data, activity=activity))
+    page = TestClient(app_module.app).get("/today").text
+    section = page.split('<section id="rpe"', 1)[1].split('</section>', 1)[0]
+    editor = re.search(r'<details class="feedback-editor"([^>]*)>(.*?)</details>', section, re.S)
+    assert editor is not None
+    assert ("open" in editor.group(1)) is editor_open
+    assert ("Дополнительный ввод не нужен." in section) is (source is not None)
+    if source:
+        assert f'Итоговый RPE {activity.rpe_score}/10 · {source}' in section
+    assert "Web-оценка сохраняется отдельно и не заменяет оценку Strava или Telegram" in editor.group(2)
+    assert editor.group(2).index("Web-оценка сохраняется отдельно") < editor.group(2).index('class="rpe-control"')
+    buttons = re.findall(r'<button class="rpe-button"[^>]*>', section)
+    assert len(buttons) == 10
+    for score, button in enumerate(buttons, 1):
+        assert f'aria-pressed="{str(score == activity.rpe_web_score).lower()}"' in button
+        assert f'method="post" action="/today/rpe/{activity.activity_id}/{score}"' in section
+    if activity.rpe_web_score is not None:
+        assert f'Web RPE: {activity.rpe_web_score}/10 · <span>Изменить</span>' in section
+    if activity.rpe_disagreement:
+        assert "Strava 8/10, Telegram 7/10, Web 5/10" in section
+
+
 def test_today_recovery_buttons_keep_numeric_accessible_names(monkeypatch):
     monkeypatch.setattr(today_service, "get_today_data", lambda *a, **k: _today_data())
     page = TestClient(app_module.app).get("/today").text

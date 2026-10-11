@@ -135,8 +135,10 @@
                 <li>{{ activity.distance }}</li>
             </ul>
             <p class="hint">Ваша оценка в Web: {% if activity.rpe_web_score is not none %}{{ activity.rpe_web_score }}/10{% else %}не выбрана{% endif %}.</p>
-            <details class="feedback-editor" {% if activity.rpe_web_score is none %}open{% endif %}>
+            {% if activity.rpe_score is not none %}<p class="hint">Дополнительный ввод не нужен.</p>{% endif %}
+            <details class="feedback-editor" {% if activity.rpe_score is none %}open{% endif %}>
                 <summary>{% if activity.rpe_web_score is not none %}Web RPE: {{ activity.rpe_web_score }}/10 · <span>Изменить</span>{% else %}Оценить нагрузку в Web{% endif %}</summary>
+                <p class="hint">Web-оценка сохраняется отдельно и не заменяет оценку Strava или Telegram, если она доступна. Приоритет итогового RPE: Strava → Telegram → Web.</p>
             <div class="rpe-control" role="group" aria-label="Ощущаемая нагрузка от 1 до 10">
                 <div class="rpe-scale">
                     {% for score, label in rpe_options %}
