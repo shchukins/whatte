@@ -24,6 +24,11 @@
         {{ readiness_figure(group.rows) }}
         {% endfor %}
     </section>
+    <nav class="diary-filters" aria-label="Фильтр тренировок">
+        <a href="/today/history?rpe=all"{% if rpe_filter == 'all' %} aria-current="true"{% endif %}>Все</a>
+        <a href="/today/history?rpe=missing"{% if rpe_filter == 'missing' %} aria-current="true"{% endif %}>Без RPE</a>
+        <p class="hint">Без итогового RPE за 14 дней: {% if missing_rpe_count is not none %}{{ missing_rpe_count }}{% else %}количество недоступно{% endif %}</p>
+    </nav>
     <section aria-label="Дни дневника">
         {% for day in diary.days %}
         <article class="diary-day" id="day-{{ day.date }}" aria-labelledby="day-title-{{ day.date }}" tabindex="-1">
@@ -43,8 +48,9 @@
                 {% endfor %}
             </div>
             <div class="diary-workouts">
-                {% if day.activity_message %}<p class="history-missing">{{ day.activity_message }}</p>{% endif %}
-                {% for activity in day.activities or [] %}
+                {% if day.activities is none %}<p class="history-missing">{{ day.activity_message }}</p>
+                {% elif not visible_activities[day.date] %}<p class="history-missing">{{ 'Нет тренировок без RPE' if rpe_filter == 'missing' else day.activity_message }}</p>{% endif %}
+                {% for activity in visible_activities[day.date] %}
                 <div class="diary-workout">
                     <h3>{{ activity.name }}</h3>
                     <p class="activity-meta">{{ activity.sport_type }} · {{ activity.start_time.strftime('%H:%M %Z') }} · {% if activity.duration_s is not none %}{{ activity.duration_s // 3600 }} ч {{ (activity.duration_s % 3600) // 60 }} мин {{ activity.duration_s % 60 }} с{% else %}Нет длительности{% endif %}</p>
