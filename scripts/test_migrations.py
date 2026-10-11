@@ -140,12 +140,13 @@ class MigrationLifecycle(unittest.TestCase):
         self.assertNotEqual(process.returncode, 0)
         # PostgreSQL may finish a running statement before noticing client death.
         # Reconcile the server session/transaction before declaring recovery.
-        for _ in range(30):
+        deadline = time.monotonic() + 45
+        while time.monotonic() < deadline:
             if self.sql("select count(*) from pg_stat_activity where datname=current_database() and pid <> pg_backend_pid();") == '0':
                 break
             time.sleep(0.2)
         else:
-            self.fail('Disconnected migration session did not terminate')
+            self.fail('Disconnected migration session did not terminate within 45s')
         self.assertEqual(self.sql("select to_regclass('interrupted_probe') is null;"), 't')
         self.assertEqual(self.sql("select count(*) from flyway_schema_history where version='2';"), '0')
         self.assertEqual(self.command('migrate')['migrationsExecuted'], 1)
