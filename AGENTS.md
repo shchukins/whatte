@@ -9,7 +9,7 @@ Current product priority:
 > deterministic core first  
 > AI is auxiliary
 
-This file is a short entrypoint for agents. Detailed workflow, style, PR, and documentation rules live in dedicated documents.
+This file is a short entrypoint for agents. Detailed workflow, style, Git, optional PR, and documentation rules live in dedicated documents.
 
 ## Mental model
 
@@ -92,6 +92,25 @@ Use them for:
 - PR scope and process
 - code comments and style expectations
 - documentation update requirements
+
+## Development and delivery
+
+Default workflow: `Issue → Codex → Tests → Commit → Push main → CI/CD`.
+
+- Work directly on `main` when the execution environment permits it. Do not
+  create feature branches or worktrees unless explicitly requested or required
+  by the environment. Do not create PRs without explicit instruction.
+- Inspect Git state first and preserve existing uncommitted changes. Run relevant
+  checks before small, logically scoped commits, referencing the related issue.
+- Push completed changes to `origin/main` when requested. Never force-push,
+  rewrite published history or bypass repository protections.
+- Follow [Git and optional PR rules](docs/ai/rules/PR_WORKFLOW_RULES.md) for
+  environment limitations, safe publication and production verification.
+- Never deploy production manually when centralized CI/CD is available. During
+  the transition, manual delivery requires explicit authorization and successful
+  CI for the exact commit. Do not enable automatic deployment or automatic issue
+  closure until prerequisites are implemented, tested and explicitly approved
+  for activation. See [production delivery](docs/architecture/PRODUCTION_DELIVERY.md).
 
 ## Skills
 

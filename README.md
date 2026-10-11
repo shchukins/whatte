@@ -97,3 +97,4 @@ The dashboard shows local backend and database state for System, Connection, Ing
 - [Product scenarios](docs/product/SCENARIOS.md)
 - [Backend](backend/README.md)
 - [Contributing](CONTRIBUTING.md)
+- [Git workflow and optional PRs](docs/ai/rules/PR_WORKFLOW_RULES.md)

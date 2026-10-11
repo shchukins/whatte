@@ -78,6 +78,16 @@ the worker runs packaged code. Exact worker source revision remains unverified.
 
 ## 2. Current manual delivery
 
+Development now defaults to direct work on `main`, with small issue-referenced
+commits and requested pushes after relevant checks. PRs are optional and require
+explicit instruction; environment constraints and repository protections remain
+binding. See [Git and optional PR rules](../ai/rules/PR_WORKFLOW_RULES.md).
+This #186 workflow update does not activate delivery automation. Until the target
+CI/CD is available, manual delivery requires explicit authorization and successful
+CI for the exact SHA; documentation-only delivery updates and verifies the server
+checkout without restarting services. Once centralized CI/CD is available, use
+it instead of manual deployment. The activation gates in section 7 still apply.
+
 The current repository has tests in
   [.github/workflows/backend-ci.yml](../../.github/workflows/backend-ci.yml),
 including a twice-run database bootstrap and integration tests. It has no
