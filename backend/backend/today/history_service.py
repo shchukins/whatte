@@ -11,6 +11,7 @@ from backend.today.service import (
     TodaySection,
     _bounded_error,
     get_today_history,
+    get_profile_pending,
 )
 
 
@@ -52,6 +53,8 @@ class DiaryData:
     activity_section: TodaySection
     history_groups: list[TodayHistoryGroup]
     history_section: TodaySection
+    profile_pending: dict[str, date] | None = None
+    profile_pending_section: TodaySection = TodaySection(status="ok", error=None)
 
 
 def get_diary_activities(user_id: str, target_date: date) -> list[DiaryActivity]:
@@ -141,6 +144,8 @@ def get_diary_data(user_id: str, target_date: date) -> DiaryData:
     except Exception as exc:
         history_section = TodaySection(status="error", error=_bounded_error(exc))
 
+    profile_pending, profile_pending_section = get_profile_pending(user_id)
+
     return DiaryData(
         user_id=user_id,
         target_date=target_date.isoformat(),
@@ -151,4 +156,6 @@ def get_diary_data(user_id: str, target_date: date) -> DiaryData:
         activity_section=activity_section,
         history_groups=history_groups,
         history_section=history_section,
+        profile_pending=profile_pending,
+        profile_pending_section=profile_pending_section,
     )

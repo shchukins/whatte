@@ -1,3 +1,4 @@
+{% from "today/profile_pending.html" import profile_pending_notice %}
 {% from "today/history_figure.html" import readiness_figure %}
 <!DOCTYPE html>
 <html lang="ru">
@@ -12,6 +13,7 @@
 <main class="shell">
     {% set active_page = "today" %}
     {% include "today/navigation.html" %}
+    {{ profile_pending_notice(profile_pending, profile_pending_section) }}
     <div class="edition-note"><span>Тренировки / личный обзор</span><span>Сохранённые данные</span></div>
 
     <div class="stack">

@@ -1,0 +1,14 @@
+{% macro profile_pending_notice(pending, section) %}
+{% if section.status == 'error' %}
+<aside class="profile-pending-notice" aria-label="Состояние расчётов профиля">
+    <p class="error">Не удалось проверить, ожидают ли изменения профиля пересчёта. Актуальность связанных расчётов не подтверждена.</p>
+    <a href="/today/profile#profile-pending-title">Проверить в профиле</a>
+</aside>
+{% elif pending %}
+<aside class="profile-pending-notice" aria-label="Изменения профиля ожидают обновления">
+    {% if pending.ftp %}<p>FTP изменён с {{ pending.ftp }}. Связанные расчёты TSS, отклика на тренировки и готовности ожидают обновления.</p>{% endif %}
+    {% if pending.hr_max %}<p>HR max изменён с {{ pending.hr_max }}. Метаданные тренировок ожидают обновления; HR max не меняет TSS или готовность.</p>{% endif %}
+    <a href="/today/profile#profile-pending-title">Перейти к пересчёту в профиле</a>
+</aside>
+{% endif %}
+{% endmacro %}

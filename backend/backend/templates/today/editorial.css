@@ -343,3 +343,9 @@ h2 {
 .sleep-parts, .sleep-part-labels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .sleep-part-labels { margin-top: 6px; color: var(--muted); font: 11px/1.6 var(--mono); }
 .sleep-parts > div { min-width: 0; }
+
+/* Compact profile state uses the same editorial rules on Today and Diary. */
+.profile-pending-notice { padding: 16px 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+.profile-pending-notice p { margin: 0 0 8px; line-height: 1.5; }
+.profile-pending-notice a { display: inline-flex; align-items: center; min-height: 44px; }
+.profile-pending-notice a:focus-visible { outline: 2px solid var(--olive); outline-offset: 3px; }
