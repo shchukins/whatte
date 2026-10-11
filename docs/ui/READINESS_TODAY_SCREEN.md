@@ -66,6 +66,14 @@ personal baselines. There are no physiology history charts or frontend scores.
 
 ## Ownership and safety
 
+Recovery forms carry the rendered `local_date` (ISO YYYY-MM-DD). Both native
+POST and fetch send URL-encoded fields. Before writing, the server compares
+that date with the current date in `WHATTE_TIMEZONE`; a stale date returns 409,
+and missing/invalid/duplicate dates return 422. Parsing accepts only one date
+field and at most 128 body bytes. Refusals show an accessible message and a
+reload Today link, without a success redirect or saving on another day.
+The configured user, recovery score and backend recomputation remain unchanged.
+
 - `DAILY_READINESS_USER_ID` selects the account; browsers cannot select an
   arbitrary user.
 - Caddy protects `/today*`; the technical API domain does not expose these

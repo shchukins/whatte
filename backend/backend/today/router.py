@@ -40,6 +40,7 @@ templates.env.filters["today_label"] = today_label
 templates.env.filters["today_timestamp"] = today_service.format_readiness_timestamp
 FeedbackScore = Annotated[int, FastAPIPath(ge=1, le=5)]
 RpeScore = Annotated[int, FastAPIPath(ge=1, le=10)]
+RECOVERY_FORM_MAX_BYTES = 128
 
 
 def _reject_cross_site_request(request: Request) -> None:
@@ -85,6 +86,7 @@ def _today_page(
     *,
     activity_id: int | None = None,
     saved: str | None = None,
+    recovery_error: str | None = None,
     physiology_values: dict[str, str] | None = None,
     physiology_errors: dict[str, str] | None = None,
     physiology_clears: set[str] | tuple[str, ...] = (),
@@ -100,6 +102,7 @@ def _today_page(
         status_code=status_code,
         context={
             "page_title": "Сегодня · Whatte",
+            "recovery_error": recovery_error,
             "saved": saved if saved in {"recovery", "rpe", "physiology"} else None,
             "physiology_values": physiology_values,
             "physiology_errors": physiology_errors or {},
@@ -111,10 +114,34 @@ def _today_page(
 
 
 @router.post("/recovery/{score}")
-def submit_recovery(request: Request, score: FeedbackScore):
+async def submit_recovery(request: Request, score: FeedbackScore):
     _reject_cross_site_request(request)
-    target_date = today_service.get_local_today()
-    upsert_next_day_recovery_feedback(
+    try:
+        if request.headers.get("content-type", "").split(";")[0] != "application/x-www-form-urlencoded":
+            raise ValueError("Expected URL-encoded form")
+        # One ISO date is sufficient; bound the body before decoding/parsing.
+        body = bytearray()
+        async for chunk in request.stream():
+            if len(body) + len(chunk) > RECOVERY_FORM_MAX_BYTES:
+                raise ValueError("Recovery form too large")
+            body.extend(chunk)
+        fields = parse_qs(body.decode("utf-8"), keep_blank_values=True, max_num_fields=1)
+        raw_date = fields.get("local_date", [""])[0]
+        if set(fields) != {"local_date"} or not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", raw_date):
+            raise ValueError("Expected one ISO local date")
+        target_date = date.fromisoformat(raw_date)
+    except ValueError:
+        return await run_in_threadpool(
+            _today_page, request, status_code=422,
+            recovery_error="Самочувствие не сохранено: дата формы недействительна. Обновите страницу «Сегодня» перед отправкой.",
+        )
+    if target_date != today_service.get_local_today():
+        return await run_in_threadpool(
+            _today_page, request, status_code=409,
+            recovery_error="Самочувствие не сохранено: дата формы устарела. Обновите страницу «Сегодня» перед отправкой.",
+        )
+    await run_in_threadpool(
+        upsert_next_day_recovery_feedback,
         user_id=settings.daily_readiness_user_id,
         target_date=target_date,
         score=score,
