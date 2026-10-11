@@ -48,7 +48,7 @@
       <button class="profile-save" type="submit">Сохранить</button>
     </form>
   </section>
-  {% if pending_from %}<section class="card profile-pending" aria-labelledby="profile-pending-title"><p class="eyebrow">Расчёты / ожидают обновления</p><h2 id="profile-pending-title">Нужно обновить расчёты</h2>
+  {% if pending_from %}<section class="card profile-pending" aria-labelledby="profile-pending-title"><p class="eyebrow">Расчёты / ожидают обновления</p><h2 id="profile-pending-title" tabindex="-1">Нужно обновить расчёты</h2>
     <p>FTP или HR max изменён с {{ pending_from }}. Метаданные тренировок требуют обновления; после изменения FTP также пересчитываются TSS, отклик на тренировки и состояние готовности. Ранее отправленные уведомления останутся прежними.</p>
     <form method="post" action="/today/profile/recompute"><button class="profile-save" type="submit">Пересчитать тренировки и готовность</button></form>
   </section>{% endif %}

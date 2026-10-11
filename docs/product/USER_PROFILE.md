@@ -89,3 +89,17 @@ Validation failures retain the raw metric, value and date, link an alert summary
 to the invalid fields, and use `aria-invalid`/`aria-describedby` for inline errors.
 Save failures retain the form for retry. A recalculation failure or lock conflict
 keeps the pending section and separate retry button visible.
+
+## Pending state on Today and Diary
+
+Today and the 14-day Diary show a compact read-only notice from persisted
+`needs_recompute` flags, using one aggregate query for the earliest pending date
+per FTP/HR max metric without loading profile history. FTP warns about affected
+TSS, response and readiness calculations; HR max warns only about workout
+metadata. Mixed pending shows both metric-specific dates and consequences.
+Weight creates no notice. The link targets `/today/profile#profile-pending-title`
+and its separate recalculation action, including keyboard/no-JavaScript use.
+Opening either page never starts recalculation. After a confirmed successful
+recalculation clears the flags, the notice disappears on the next page read.
+Read errors report unknown calculation currency without hiding other sections
+or exposing database details.

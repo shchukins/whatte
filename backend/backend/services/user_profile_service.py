@@ -70,6 +70,18 @@ def get_profile(user_id: str) -> dict:
                 pending_from=min(pending) if pending else None, today=local_today())
 
 
+def get_pending_profile_recompute(user_id: str) -> dict[str, date]:
+    """Read only pending metrics and their earliest dates, without profile history."""
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute('''select metric, min(effective_from)
+                           from user_profile_value
+                           where user_id = %s and needs_recompute
+                             and metric in ('ftp', 'hr_max')
+                           group by metric''', (user_id,))
+            return dict(cur.fetchall())
+
+
 def save_profile_value(user_id: str, change: ProfileChange) -> None:
     with _profile_lock(user_id) as conn:
         with conn.cursor() as cur:

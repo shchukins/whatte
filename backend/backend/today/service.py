@@ -10,6 +10,7 @@ from fastapi import HTTPException
 from backend.config import settings
 from backend.db import get_conn
 from backend.services.manual_physiology_service import get_manual_physiology_observation
+from backend.services.user_profile_service import get_pending_profile_recompute
 from backend.services.readiness_composition import READINESS_MODEL_VERSION
 from backend.services.readiness_query import (
     get_latest_readiness_daily,
@@ -94,6 +95,16 @@ class TodayData:
     history_section: TodaySection
     manual_physiology: dict[str, Any] | None = None
     manual_physiology_section: TodaySection = TodaySection(status="ok", error=None)
+    profile_pending: dict[str, date] | None = None
+    profile_pending_section: TodaySection = TodaySection(status="ok", error=None)
+
+
+def get_profile_pending(user_id: str) -> tuple[dict[str, date] | None, TodaySection]:
+    try:
+        return get_pending_profile_recompute(user_id), TodaySection(status="ok", error=None)
+    except Exception:
+        # A failed read is unknown, never evidence that calculations are current.
+        return None, TodaySection(status="error", error=None)
 
 
 def _bounded_error(exc: Exception) -> str:
@@ -375,6 +386,8 @@ def get_today_data(
         # database details into a form error.
         manual_physiology_section = TodaySection(status="error", error=None)
 
+    profile_pending, profile_pending_section = get_profile_pending(user_id)
+
     return TodayData(
         user_id=user_id,
         today=target_date.isoformat(),
@@ -389,4 +402,6 @@ def get_today_data(
         history_section=history_section,
         manual_physiology=manual_physiology,
         manual_physiology_section=manual_physiology_section,
+        profile_pending=profile_pending,
+        profile_pending_section=profile_pending_section,
     )
