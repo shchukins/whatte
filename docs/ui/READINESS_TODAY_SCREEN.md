@@ -135,6 +135,15 @@ Activity and readiness/recovery failures have independent states.
 At narrow widths the list becomes a vertical feed; desktop uses compact
 columns. Exact data never depends on hover or JavaScript.
 
+Diary workout links «Все» (`/today/history?rpe=all`, also the default) and
+«Без RPE» (`/today/history?rpe=missing`) work without JavaScript. Only workouts
+with persisted effective `rpe_score is None` appear in the latter; scored
+Strava, Telegram and Web observations, including conflicts with an effective
+score, are excluded. The count uses the same 14-day read. Calendar days and
+the readiness figure remain complete. Days without matches say «Нет тренировок
+без RPE»; failed activity reads say «Не удалось загрузить тренировки» and the
+count is unavailable. Unknown filter values return HTTP 422 before reading.
+
 «Оценить/изменить RPE» links to `/today?activity_id=…&return_day=YYYY-MM-DD#rpe`; writes still use
 Today's existing eligibility/user checks. There is no historical recovery editor.
 Today retains a 7-day figure and exact scores plus «Открыть дневник».

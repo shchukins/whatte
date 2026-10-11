@@ -356,6 +356,13 @@ Today shows a compact 7-day readiness overview from the same history contract.
 All three pages share Today / Diary / Profile navigation and work without JS.
 The history is current stored state, not immutable morning decisions/messages.
 
+Diary GET filter `rpe=all` (default) / `rpe=missing` filters only the workout
+list using persisted effective `rpe_score is None`, with a count from the same
+14-day selection. It retains all calendar dates and the readiness figure,
+canonical/user boundaries and activity-specific RPE links. Successful empty
+filtered days say «Нет тренировок без RPE»; activity errors retain their error
+message and an unavailable count. Other query values return HTTP 422.
+
 Historical RPE navigation (#174): Diary links carry `activity_id` and the ISO
 `return_day`. Today titles an explicitly selected workout with its local date;
 the readiness above remains today's readiness. Native RPE forms, successful

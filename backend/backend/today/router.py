@@ -91,11 +91,26 @@ def today_index(
 
 
 @router.get("/history")
-def history_page(request: Request):
+def history_page(request: Request, rpe: str = Query(default="all")):
+    if rpe not in {"all", "missing"}:
+        raise HTTPException(status_code=422, detail="Неизвестный фильтр RPE")
     data = get_diary_data(settings.daily_readiness_user_id, today_service.get_local_today())
+    missing_count = None
+    visible_activities = {}
+    if data.activity_section.status == "ok":
+        missing_count = sum(
+            activity.rpe_score is None
+            for day in data.days for activity in day.activities or []
+        )
+    for day in data.days:
+        visible_activities[day.date] = [
+            activity for activity in day.activities or []
+            if rpe == "all" or activity.rpe_score is None
+        ]
     return templates.TemplateResponse(
         request=request, name="today/history.html",
-        context={"today": data.target_date, "diary": data},
+        context={"today": data.target_date, "diary": data, "rpe_filter": rpe,
+                 "missing_rpe_count": missing_count, "visible_activities": visible_activities},
     )
 
 

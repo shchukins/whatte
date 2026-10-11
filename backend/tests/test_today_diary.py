@@ -12,6 +12,76 @@ import importlib
 router = importlib.import_module('backend.today.router')
 
 
+@pytest.mark.parametrize('rpe', ['all', 'missing'])
+@pytest.mark.parametrize('failure', [False, True])
+def test_diary_rpe_filter_uses_effective_score_and_preserves_calendar(monkeypatch, rpe, failure):
+    target = date(2026, 8, 30)
+    monkeypatch.setattr(today, 'get_local_today', lambda: target)
+    users = []
+
+    def activities(user, day):
+        users.append((user, day))
+        if failure:
+            raise RuntimeError('private error')
+        return [diary.DiaryActivity(
+            ident, name, 'Ride', datetime(2026, 8, 30, 10, tzinfo=today.WHATTE_TZ),
+            3600, score, source, web, strava, telegram, conflict)
+            for ident, name, score, source, web, strava, telegram, conflict in [
+                (1, 'Strava scored', 7, 'strava', None, 7, None, False),
+                (2, 'Telegram scored', 6, 'telegram', None, None, 6, False),
+                (3, 'Web scored', 5, 'web', 5, None, None, False),
+                (4, 'Scored conflict', 7, 'strava', 4, 7, 6, True),
+                (5, 'Missing score', None, None, None, None, None, False),
+                (6, 'Unresolved Web observation', None, None, 4, None, None, False),
+                (7, 'Stored zero', 0, 'strava', None, 0, None, False),
+            ]]
+
+    monkeypatch.setattr(diary, 'get_diary_activities', activities)
+    monkeypatch.setattr(today, 'get_readiness_daily_calendar_history', lambda *a: [])
+    monkeypatch.setattr(today, '_get_recovery_history', lambda *a: {})
+    page = TestClient(app_module.app).get('/today/history', params={
+        'rpe': rpe, 'user_id': 'someone_else'}).text
+    assert users == [(router.settings.daily_readiness_user_id, target)]
+    assert page.count('class="diary-day"') == 14
+    assert page.count('class="diary-gap"') == 14
+    assert f'href="/today/history?rpe={rpe}" aria-current="true"' in page
+    assert '<script' not in page
+    if failure:
+        assert 'Без итогового RPE за 14 дней: количество недоступно' in page
+        assert page.count('Не удалось загрузить тренировки') == 14
+        assert 'Нет тренировок без RPE' not in page
+        assert 'Нет записанных тренировок' not in page
+        assert 'private error' not in page
+    else:
+        assert 'Без итогового RPE за 14 дней: 2' in page
+        assert 'Missing score' in page and 'Unresolved Web observation' in page
+        assert '/today?activity_id=5&amp;return_day=2026-08-30#rpe' in page
+        assert '/today?activity_id=6&amp;return_day=2026-08-30#rpe' in page
+        for name in ['Strava scored', 'Telegram scored', 'Web scored', 'Scored conflict', 'Stored zero']:
+            assert (name in page) == (rpe == 'all')
+        assert page.count('Нет тренировок без RPE' if rpe == 'missing' else 'Нет записанных тренировок') == 13
+
+
+@pytest.mark.parametrize('raw', ['', 'unknown', 'MISSING', 'https://evil.example', '<script>'])
+def test_diary_rejects_unknown_filter_before_read(monkeypatch, raw):
+    def unexpected_read(*a):
+        pytest.fail('invalid filter must not query diary')
+    monkeypatch.setattr(router, 'get_diary_data', unexpected_read)
+    response = TestClient(app_module.app).get('/today/history', params={'rpe': raw})
+    assert response.status_code == 422
+
+
+def test_empty_missing_rpe_filter_has_explicit_zero(monkeypatch):
+    monkeypatch.setattr(today, 'get_local_today', lambda: date(2026, 8, 30))
+    monkeypatch.setattr(diary, 'get_diary_activities', lambda *a: [])
+    monkeypatch.setattr(today, 'get_readiness_daily_calendar_history', lambda *a: [])
+    monkeypatch.setattr(today, '_get_recovery_history', lambda *a: {})
+    page = TestClient(app_module.app).get('/today/history?rpe=missing').text
+    assert 'Без итогового RPE за 14 дней: 0' in page
+    assert page.count('Нет тренировок без RPE') == 14
+    assert 'Не удалось загрузить тренировки' not in page
+
+
 @pytest.mark.parametrize('failure', [None, 'history', 'activities', 'both'])
 def test_diary_route_calendar_sections_and_access_boundary(monkeypatch, failure):
     target = date(2026, 8, 30)
