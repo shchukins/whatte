@@ -1,0 +1,6444 @@
+{
+  "column/analytics/daily_state/activities_count": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "integer"
+  },
+  "column/analytics/daily_state/awake_minutes": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/analytics/daily_state/daily_tss": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/analytics/daily_state/date": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "date"
+  },
+  "column/analytics/daily_state/deep_minutes": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/analytics/daily_state/deep_sleep_pct": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/analytics/daily_state/distance_m": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/analytics/daily_state/elevation_gain_m": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/analytics/daily_state/fatigue_fast": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/analytics/daily_state/fatigue_slow": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/analytics/daily_state/fatigue_total": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/analytics/daily_state/fitness": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/analytics/daily_state/freshness": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/analytics/daily_state/good_day_probability": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/analytics/daily_state/hrv_daily_median_ms": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/analytics/daily_state/load_input_nonlinear": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/analytics/daily_state/load_model_version": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "text"
+  },
+  "column/analytics/daily_state/readiness_freshness": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/analytics/daily_state/readiness_recovery_score": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/analytics/daily_state/readiness_score": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/analytics/daily_state/readiness_status": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "text"
+  },
+  "column/analytics/daily_state/readiness_version": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "text"
+  },
+  "column/analytics/daily_state/recovery_score_simple": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/analytics/daily_state/rem_minutes": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/analytics/daily_state/rem_sleep_pct": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/analytics/daily_state/resting_hr_bpm": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/analytics/daily_state/sleep_efficiency_pct": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/analytics/daily_state/sleep_minutes": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/analytics/daily_state/training_duration_s": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "integer"
+  },
+  "column/analytics/daily_state/user_id": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "text"
+  },
+  "column/analytics/daily_state/weight_kg": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/analytics/daily_state/work_kj": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/activity_delivery_log/activity_id": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/activity_delivery_log/created_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/activity_delivery_log/delivery_status": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/activity_delivery_log/delivery_type": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/activity_delivery_log/id": {
+    "acl": null,
+    "collation": "-",
+    "default": "nextval('activity_delivery_log_id_seq'::regclass)",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/activity_delivery_log/payload_json": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "jsonb"
+  },
+  "column/public/activity_delivery_log/telegram_message_id": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "bigint"
+  },
+  "column/public/activity_delivery_log/updated_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/activity_delivery_log/user_id": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/activity_metrics/avg_heartrate": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/activity_metrics/avg_power": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/activity_metrics/avg_speed_mps": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/activity_metrics/computed_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/activity_metrics/distance_m": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/activity_metrics/duration_s": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "integer"
+  },
+  "column/public/activity_metrics/elevation_gain_m": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/activity_metrics/hr_drift_pct": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/activity_metrics/id": {
+    "acl": null,
+    "collation": "-",
+    "default": "nextval('activity_metrics_id_seq'::regclass)",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/activity_metrics/intensity_factor": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/activity_metrics/max_heartrate": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/activity_metrics/max_power": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/activity_metrics/max_speed_mps": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/activity_metrics/moving_time_s": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "integer"
+  },
+  "column/public/activity_metrics/normalized_power": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/activity_metrics/raw_json": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "jsonb"
+  },
+  "column/public/activity_metrics/strava_activity_id": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/activity_metrics/time_in_hr_z1_s": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "integer"
+  },
+  "column/public/activity_metrics/time_in_hr_z2_s": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "integer"
+  },
+  "column/public/activity_metrics/time_in_hr_z3_s": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "integer"
+  },
+  "column/public/activity_metrics/time_in_hr_z4_s": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "integer"
+  },
+  "column/public/activity_metrics/time_in_hr_z5_s": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "integer"
+  },
+  "column/public/activity_metrics/time_in_power_z1_s": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "integer"
+  },
+  "column/public/activity_metrics/time_in_power_z2_s": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "integer"
+  },
+  "column/public/activity_metrics/time_in_power_z3_s": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "integer"
+  },
+  "column/public/activity_metrics/time_in_power_z4_s": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "integer"
+  },
+  "column/public/activity_metrics/time_in_power_z5_s": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "integer"
+  },
+  "column/public/activity_metrics/time_in_power_z6_s": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "integer"
+  },
+  "column/public/activity_metrics/time_in_power_z7_s": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "integer"
+  },
+  "column/public/activity_metrics/trimp": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/activity_metrics/tss": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/activity_metrics/user_id": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/activity_metrics/variability_index": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/activity_metrics/version": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": "'v1'::text",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/activity_metrics/weighted_avg_power": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/activity_metrics/work_kj": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/activity_response_metrics/activity_date": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "date"
+  },
+  "column/public/activity_response_metrics/activity_type": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "text"
+  },
+  "column/public/activity_response_metrics/aerobic_decoupling_pct": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/activity_response_metrics/availability_json": {
+    "acl": null,
+    "collation": "-",
+    "default": "'{}'::jsonb",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "jsonb"
+  },
+  "column/public/activity_response_metrics/avg_hr_bpm": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/activity_response_metrics/avg_power_to_hr": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/activity_response_metrics/avg_power_w": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/activity_response_metrics/baseline_json": {
+    "acl": null,
+    "collation": "-",
+    "default": "'{}'::jsonb",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "jsonb"
+  },
+  "column/public/activity_response_metrics/computed_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/activity_response_metrics/duration_s": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "integer"
+  },
+  "column/public/activity_response_metrics/explanation_json": {
+    "acl": null,
+    "collation": "-",
+    "default": "'{}'::jsonb",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "jsonb"
+  },
+  "column/public/activity_response_metrics/id": {
+    "acl": null,
+    "collation": "-",
+    "default": "nextval('activity_response_metrics_id_seq'::regclass)",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/activity_response_metrics/intensity_band": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "text"
+  },
+  "column/public/activity_response_metrics/intensity_factor": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/activity_response_metrics/normalized_power_to_hr": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/activity_response_metrics/normalized_power_w": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/activity_response_metrics/rpe_per_intensity_factor": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/activity_response_metrics/rpe_score": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "integer"
+  },
+  "column/public/activity_response_metrics/session_rpe_load": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/activity_response_metrics/session_rpe_load_per_tss": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/activity_response_metrics/strava_activity_id": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/activity_response_metrics/user_id": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/activity_response_metrics/version": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/activity_rpe_observation/canonical_activity_id": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/activity_rpe_observation/id": {
+    "acl": null,
+    "collation": "-",
+    "default": "nextval('activity_rpe_observation_id_seq'::regclass)",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/activity_rpe_observation/observed_at": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "timestamp with time zone"
+  },
+  "column/public/activity_rpe_observation/received_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/activity_rpe_observation/scale_version": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": "'rpe_1_10'::text",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/activity_rpe_observation/schema_version": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": "'rpe_observation_v1'::text",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/activity_rpe_observation/score": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "integer"
+  },
+  "column/public/activity_rpe_observation/source": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/activity_rpe_observation/source_payload": {
+    "acl": null,
+    "collation": "-",
+    "default": "'{}'::jsonb",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "jsonb"
+  },
+  "column/public/activity_rpe_observation/user_id": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/activity_rpe_resolution/canonical_activity_id": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/activity_rpe_resolution/disagreement": {
+    "acl": null,
+    "collation": "-",
+    "default": "false",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "boolean"
+  },
+  "column/public/activity_rpe_resolution/effective_score": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "integer"
+  },
+  "column/public/activity_rpe_resolution/effective_source": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "text"
+  },
+  "column/public/activity_rpe_resolution/resolved_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/activity_rpe_resolution/user_id": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/activity_subjective_feedback/activity_date": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "date"
+  },
+  "column/public/activity_subjective_feedback/canonical_activity_id": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "bigint"
+  },
+  "column/public/activity_subjective_feedback/context_json": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "jsonb"
+  },
+  "column/public/activity_subjective_feedback/created_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/activity_subjective_feedback/feedback_payload": {
+    "acl": null,
+    "collation": "-",
+    "default": "'{}'::jsonb",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "jsonb"
+  },
+  "column/public/activity_subjective_feedback/feedback_schema_version": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": "'v1_extensible'::text",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/activity_subjective_feedback/feedback_score": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "integer"
+  },
+  "column/public/activity_subjective_feedback/feedback_type": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/activity_subjective_feedback/feedback_value": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/activity_subjective_feedback/id": {
+    "acl": null,
+    "collation": "-",
+    "default": "nextval('activity_subjective_feedback_id_seq'::regclass)",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/activity_subjective_feedback/source": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/activity_subjective_feedback/strava_activity_id": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "bigint"
+  },
+  "column/public/activity_subjective_feedback/updated_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/activity_subjective_feedback/user_id": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/daily_fitness_state/computed_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/daily_fitness_state/daily_tss": {
+    "acl": null,
+    "collation": "-",
+    "default": "0",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "double precision"
+  },
+  "column/public/daily_fitness_state/date": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "date"
+  },
+  "column/public/daily_fitness_state/fatigue_signal": {
+    "acl": null,
+    "collation": "-",
+    "default": "0",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "double precision"
+  },
+  "column/public/daily_fitness_state/fitness_signal": {
+    "acl": null,
+    "collation": "-",
+    "default": "0",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "double precision"
+  },
+  "column/public/daily_fitness_state/freshness_signal": {
+    "acl": null,
+    "collation": "-",
+    "default": "0",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "double precision"
+  },
+  "column/public/daily_fitness_state/id": {
+    "acl": null,
+    "collation": "-",
+    "default": "nextval('daily_fitness_state_id_seq'::regclass)",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/daily_fitness_state/model_version": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": "'v1'::text",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/daily_fitness_state/user_id": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/daily_training_load/activities_count": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "integer"
+  },
+  "column/public/daily_training_load/computed_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/daily_training_load/date": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "date"
+  },
+  "column/public/daily_training_load/distance_m": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/daily_training_load/duration_s": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "integer"
+  },
+  "column/public/daily_training_load/elevation_gain_m": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/daily_training_load/id": {
+    "acl": null,
+    "collation": "-",
+    "default": "nextval('daily_training_load_id_seq'::regclass)",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/daily_training_load/tss": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/daily_training_load/user_id": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/daily_training_load/work_kj": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/decision_context_snapshot/captured_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/decision_context_snapshot/content_fingerprint": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/decision_context_snapshot/event_type": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/decision_context_snapshot/good_day_probability": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/decision_context_snapshot/id": {
+    "acl": null,
+    "collation": "-",
+    "default": "nextval('decision_context_snapshot_id_seq'::regclass)",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/decision_context_snapshot/model_version": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/decision_context_snapshot/readiness_score": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/decision_context_snapshot/recommendation": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "text"
+  },
+  "column/public/decision_context_snapshot/reference_key": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/decision_context_snapshot/snapshot_date": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "date"
+  },
+  "column/public/decision_context_snapshot/snapshot_json": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "jsonb"
+  },
+  "column/public/decision_context_snapshot/status_text": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "text"
+  },
+  "column/public/decision_context_snapshot/user_id": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/document/content": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/document/created_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/document/external_id": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "text"
+  },
+  "column/public/document/id": {
+    "acl": null,
+    "collation": "-",
+    "default": "nextval('document_id_seq'::regclass)",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/document/source": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/document/title": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/document_chunk/chunk_index": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "integer"
+  },
+  "column/public/document_chunk/content": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/document_chunk/created_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/document_chunk/document_id": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/document_chunk/embedding": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "vector(768)"
+  },
+  "column/public/document_chunk/id": {
+    "acl": null,
+    "collation": "-",
+    "default": "nextval('document_chunk_id_seq'::regclass)",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/events/event_type": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/events/id": {
+    "acl": null,
+    "collation": "-",
+    "default": "nextval('events_id_seq'::regclass)",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/events/payload": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "jsonb"
+  },
+  "column/public/events/received_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/events/source": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/health_hrv_sample/created_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/health_hrv_sample/id": {
+    "acl": null,
+    "collation": "-",
+    "default": "nextval('health_hrv_sample_id_seq'::regclass)",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/health_hrv_sample/sample_start_at": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/health_hrv_sample/source": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": "'healthkit'::text",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/health_hrv_sample/user_id": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/health_hrv_sample/value_ms": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "double precision"
+  },
+  "column/public/health_recovery_daily/awake_minutes": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/health_recovery_daily/created_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/health_recovery_daily/date": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "date"
+  },
+  "column/public/health_recovery_daily/deep_minutes": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/health_recovery_daily/hrv_daily_median_ms": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/health_recovery_daily/id": {
+    "acl": null,
+    "collation": "-",
+    "default": "nextval('health_recovery_daily_id_seq'::regclass)",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/health_recovery_daily/recovery_explanation_json": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "jsonb"
+  },
+  "column/public/health_recovery_daily/recovery_score_simple": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/health_recovery_daily/rem_minutes": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/health_recovery_daily/resting_hr_bpm": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/health_recovery_daily/sleep_minutes": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/health_recovery_daily/updated_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/health_recovery_daily/user_id": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/health_recovery_daily/weight_kg": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/health_resting_hr_daily/bpm": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "double precision"
+  },
+  "column/public/health_resting_hr_daily/created_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/health_resting_hr_daily/date": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "date"
+  },
+  "column/public/health_resting_hr_daily/id": {
+    "acl": null,
+    "collation": "-",
+    "default": "nextval('health_resting_hr_daily_id_seq'::regclass)",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/health_resting_hr_daily/source": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": "'healthkit'::text",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/health_resting_hr_daily/updated_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/health_resting_hr_daily/user_id": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/health_sleep_night/awake_minutes": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "double precision"
+  },
+  "column/public/health_sleep_night/core_minutes": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "double precision"
+  },
+  "column/public/health_sleep_night/created_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/health_sleep_night/deep_minutes": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "double precision"
+  },
+  "column/public/health_sleep_night/id": {
+    "acl": null,
+    "collation": "-",
+    "default": "nextval('health_sleep_night_id_seq'::regclass)",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/health_sleep_night/in_bed_minutes": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/health_sleep_night/rem_minutes": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "double precision"
+  },
+  "column/public/health_sleep_night/sleep_end_at": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/health_sleep_night/sleep_start_at": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/health_sleep_night/source": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": "'healthkit'::text",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/health_sleep_night/total_sleep_minutes": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "double precision"
+  },
+  "column/public/health_sleep_night/updated_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/health_sleep_night/user_id": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/health_sleep_night/wake_date": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "date"
+  },
+  "column/public/health_weight_measurement/created_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/health_weight_measurement/id": {
+    "acl": null,
+    "collation": "-",
+    "default": "nextval('health_weight_measurement_id_seq'::regclass)",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/health_weight_measurement/kilograms": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "double precision"
+  },
+  "column/public/health_weight_measurement/measured_at": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/health_weight_measurement/source": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": "'healthkit'::text",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/health_weight_measurement/user_id": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/healthkit_ingest_raw/generated_at": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/healthkit_ingest_raw/id": {
+    "acl": null,
+    "collation": "-",
+    "default": "nextval('healthkit_ingest_raw_id_seq'::regclass)",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/healthkit_ingest_raw/payload_json": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "jsonb"
+  },
+  "column/public/healthkit_ingest_raw/received_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/healthkit_ingest_raw/timezone": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/healthkit_ingest_raw/user_id": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/load_state_daily_v2/created_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/load_state_daily_v2/date": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "date"
+  },
+  "column/public/load_state_daily_v2/fatigue_fast": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/load_state_daily_v2/fatigue_slow": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/load_state_daily_v2/fatigue_total": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/load_state_daily_v2/fitness": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/load_state_daily_v2/freshness": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/load_state_daily_v2/id": {
+    "acl": null,
+    "collation": "-",
+    "default": "nextval('load_state_daily_v2_id_seq'::regclass)",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/load_state_daily_v2/load_input_nonlinear": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/load_state_daily_v2/tss": {
+    "acl": null,
+    "collation": "-",
+    "default": "0",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "double precision"
+  },
+  "column/public/load_state_daily_v2/updated_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/load_state_daily_v2/user_id": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/load_state_daily_v2/version": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": "'v2'::text",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/manual_physiology_observation/created_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/manual_physiology_observation/hrv_ms": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/manual_physiology_observation/id": {
+    "acl": null,
+    "collation": "-",
+    "default": "nextval('manual_physiology_observation_id_seq'::regclass)",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/manual_physiology_observation/local_date": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "date"
+  },
+  "column/public/manual_physiology_observation/observed_at": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "timestamp with time zone"
+  },
+  "column/public/manual_physiology_observation/resting_hr_bpm": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/manual_physiology_observation/revision": {
+    "acl": null,
+    "collation": "-",
+    "default": "1",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "integer"
+  },
+  "column/public/manual_physiology_observation/schema_version": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": "'manual_physiology_observation_v1'::text",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/manual_physiology_observation/sleep_duration_minutes": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "integer"
+  },
+  "column/public/manual_physiology_observation/sleep_quality": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "integer"
+  },
+  "column/public/manual_physiology_observation/source": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/manual_physiology_observation/updated_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/manual_physiology_observation/user_id": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/manual_physiology_observation_revision/changed_fields": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text[]"
+  },
+  "column/public/manual_physiology_observation_revision/hrv_ms": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/manual_physiology_observation_revision/id": {
+    "acl": null,
+    "collation": "-",
+    "default": "nextval('manual_physiology_observation_revision_id_seq'::regclass)",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/manual_physiology_observation_revision/local_date": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "date"
+  },
+  "column/public/manual_physiology_observation_revision/observation_id": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/manual_physiology_observation_revision/observed_at": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "timestamp with time zone"
+  },
+  "column/public/manual_physiology_observation_revision/received_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/manual_physiology_observation_revision/resting_hr_bpm": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/manual_physiology_observation_revision/revision": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "integer"
+  },
+  "column/public/manual_physiology_observation_revision/schema_version": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/manual_physiology_observation_revision/sleep_duration_minutes": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "integer"
+  },
+  "column/public/manual_physiology_observation_revision/sleep_quality": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "integer"
+  },
+  "column/public/manual_physiology_observation_revision/source": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/manual_physiology_observation_revision/user_id": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/notification_log/content_fingerprint": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "text"
+  },
+  "column/public/notification_log/delivery_status": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "text"
+  },
+  "column/public/notification_log/freshness_status": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "text"
+  },
+  "column/public/notification_log/id": {
+    "acl": null,
+    "collation": "-",
+    "default": "nextval('notification_log_id_seq'::regclass)",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/notification_log/notification_date": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "date"
+  },
+  "column/public/notification_log/notification_type": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/notification_log/payload_json": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "jsonb"
+  },
+  "column/public/notification_log/recovery_date": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "date"
+  },
+  "column/public/notification_log/related_activity_id": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "bigint"
+  },
+  "column/public/notification_log/sent_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/notification_log/telegram_chat_id": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "text"
+  },
+  "column/public/notification_log/telegram_message_id": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "bigint"
+  },
+  "column/public/notification_log/updated_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/notification_log/user_id": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/personal_physiology_feature_daily/baseline_min_observations": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "integer"
+  },
+  "column/public/personal_physiology_feature_daily/baseline_window_days": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "integer"
+  },
+  "column/public/personal_physiology_feature_daily/computed_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/personal_physiology_feature_daily/feature_version": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/personal_physiology_feature_daily/hrv_availability": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/personal_physiology_feature_daily/hrv_baseline_ms": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/personal_physiology_feature_daily/hrv_baseline_state": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/personal_physiology_feature_daily/hrv_deviation": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/personal_physiology_feature_daily/hrv_observation_count": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "integer"
+  },
+  "column/public/personal_physiology_feature_daily/hrv_ratio": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/personal_physiology_feature_daily/local_date": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "date"
+  },
+  "column/public/personal_physiology_feature_daily/observed_at": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "timestamp with time zone"
+  },
+  "column/public/personal_physiology_feature_daily/resting_hr_availability": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/personal_physiology_feature_daily/resting_hr_baseline_bpm": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/personal_physiology_feature_daily/resting_hr_baseline_state": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/personal_physiology_feature_daily/resting_hr_delta_bpm": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/personal_physiology_feature_daily/resting_hr_observation_count": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "integer"
+  },
+  "column/public/personal_physiology_feature_daily/sleep_duration_availability": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/personal_physiology_feature_daily/sleep_duration_baseline_minutes": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/personal_physiology_feature_daily/sleep_duration_baseline_state": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/personal_physiology_feature_daily/sleep_duration_debt_minutes": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/personal_physiology_feature_daily/sleep_duration_deviation_minutes": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/personal_physiology_feature_daily/sleep_duration_observation_count": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "integer"
+  },
+  "column/public/personal_physiology_feature_daily/source_observation_id": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/personal_physiology_feature_daily/source_revision": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "integer"
+  },
+  "column/public/personal_physiology_feature_daily/source_staleness": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/personal_physiology_feature_daily/source_updated_at": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/personal_physiology_feature_daily/user_id": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/readiness_daily/created_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/readiness_daily/date": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "date"
+  },
+  "column/public/readiness_daily/explanation_json": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "jsonb"
+  },
+  "column/public/readiness_daily/freshness": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/readiness_daily/good_day_probability": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/readiness_daily/id": {
+    "acl": null,
+    "collation": "-",
+    "default": "nextval('readiness_daily_id_seq'::regclass)",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/readiness_daily/readiness_score": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/readiness_daily/readiness_score_raw": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/readiness_daily/recovery_score_simple": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/readiness_daily/status_text": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "text"
+  },
+  "column/public/readiness_daily/updated_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/readiness_daily/user_id": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/readiness_daily/version": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": "'v2'::text",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/research_experiment/baseline_experiment_id": {
+    "acl": [
+      "whatte_research_writer=a/human_engine"
+    ],
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "text"
+  },
+  "column/public/research_experiment/candidate_config": {
+    "acl": [
+      "whatte_research_writer=a/human_engine"
+    ],
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "jsonb"
+  },
+  "column/public/research_experiment/candidate_config_hash": {
+    "acl": [
+      "whatte_research_writer=a/human_engine"
+    ],
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/research_experiment/candidate_model_version": {
+    "acl": [
+      "whatte_research_writer=a/human_engine"
+    ],
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/research_experiment/created_at": {
+    "acl": [
+      "whatte_research_writer=a/human_engine"
+    ],
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/research_experiment/dataset_hash": {
+    "acl": [
+      "whatte_research_writer=a/human_engine"
+    ],
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/research_experiment/dataset_partition": {
+    "acl": [
+      "whatte_research_writer=a/human_engine"
+    ],
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/research_experiment/dataset_version": {
+    "acl": [
+      "whatte_research_writer=a/human_engine"
+    ],
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/research_experiment/evaluator_specification_hash": {
+    "acl": [
+      "whatte_research_writer=a/human_engine"
+    ],
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/research_experiment/evaluator_version": {
+    "acl": [
+      "whatte_research_writer=a/human_engine"
+    ],
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/research_experiment/execution_duration_ms": {
+    "acl": [
+      "whatte_research_writer=w/human_engine"
+    ],
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "bigint"
+  },
+  "column/public/research_experiment/execution_metadata": {
+    "acl": [
+      "whatte_research_writer=w/human_engine"
+    ],
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "jsonb"
+  },
+  "column/public/research_experiment/experiment_id": {
+    "acl": [
+      "whatte_research_writer=a/human_engine"
+    ],
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/research_experiment/failure_log_reference": {
+    "acl": [
+      "whatte_research_writer=w/human_engine"
+    ],
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "text"
+  },
+  "column/public/research_experiment/failure_reason": {
+    "acl": [
+      "whatte_research_writer=w/human_engine"
+    ],
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "text"
+  },
+  "column/public/research_experiment/finished_at": {
+    "acl": [
+      "whatte_research_writer=w/human_engine"
+    ],
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "timestamp with time zone"
+  },
+  "column/public/research_experiment/hypothesis": {
+    "acl": [
+      "whatte_research_writer=a/human_engine"
+    ],
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/research_experiment/id": {
+    "acl": null,
+    "collation": "-",
+    "default": "nextval('research_experiment_id_seq'::regclass)",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/research_experiment/metrics_json": {
+    "acl": [
+      "whatte_research_writer=w/human_engine"
+    ],
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "jsonb"
+  },
+  "column/public/research_experiment/parent_experiment_id": {
+    "acl": [
+      "whatte_research_writer=a/human_engine"
+    ],
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "text"
+  },
+  "column/public/research_experiment/provider_metadata": {
+    "acl": [
+      "whatte_research_writer=a/human_engine"
+    ],
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "jsonb"
+  },
+  "column/public/research_experiment/started_at": {
+    "acl": [
+      "whatte_research_writer=a/human_engine"
+    ],
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/research_experiment/status": {
+    "acl": [
+      "whatte_research_writer=aw/human_engine"
+    ],
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/research_feature_snapshot/captured_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/research_feature_snapshot/content_fingerprint": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/research_feature_snapshot/cutoff_at": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/research_feature_snapshot/event_type": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/research_feature_snapshot/feature_json": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "jsonb"
+  },
+  "column/public/research_feature_snapshot/feature_vector_version": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/research_feature_snapshot/id": {
+    "acl": null,
+    "collation": "-",
+    "default": "nextval('research_feature_snapshot_id_seq'::regclass)",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/research_feature_snapshot/local_date": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "date"
+  },
+  "column/public/research_feature_snapshot/reference_key": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/research_feature_snapshot/user_id": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/strava_activity_ingest_job/attempt_count": {
+    "acl": null,
+    "collation": "-",
+    "default": "0",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "integer"
+  },
+  "column/public/strava_activity_ingest_job/created_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/strava_activity_ingest_job/finished_at": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "timestamp with time zone"
+  },
+  "column/public/strava_activity_ingest_job/id": {
+    "acl": null,
+    "collation": "-",
+    "default": "nextval('strava_activity_ingest_job_id_seq'::regclass)",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/strava_activity_ingest_job/last_error": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "text"
+  },
+  "column/public/strava_activity_ingest_job/reason": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/strava_activity_ingest_job/scheduled_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/strava_activity_ingest_job/started_at": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "timestamp with time zone"
+  },
+  "column/public/strava_activity_ingest_job/status": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": "'pending'::text",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/strava_activity_ingest_job/strava_activity_id": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/strava_activity_ingest_job/strava_athlete_id": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/strava_activity_ingest_job/user_id": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/strava_activity_ingest_job/webhook_event_id": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "bigint"
+  },
+  "column/public/strava_activity_raw/activity_type": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "text"
+  },
+  "column/public/strava_activity_raw/average_heartrate": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/strava_activity_raw/average_speed_mps": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/strava_activity_raw/average_watts": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/strava_activity_raw/commute": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "boolean"
+  },
+  "column/public/strava_activity_raw/deduplication_manual_override": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "text"
+  },
+  "column/public/strava_activity_raw/distance_m": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/strava_activity_raw/duplicate_candidate_activity_id": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "bigint"
+  },
+  "column/public/strava_activity_raw/duplicate_confidence": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/strava_activity_raw/duplicate_detected_at": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "timestamp with time zone"
+  },
+  "column/public/strava_activity_raw/duplicate_detection_version": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "text"
+  },
+  "column/public/strava_activity_raw/duplicate_of_activity_id": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "bigint"
+  },
+  "column/public/strava_activity_raw/duplicate_reason": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "jsonb"
+  },
+  "column/public/strava_activity_raw/elapsed_time_s": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "integer"
+  },
+  "column/public/strava_activity_raw/exclusion_reason": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "text"
+  },
+  "column/public/strava_activity_raw/fetched_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/strava_activity_raw/id": {
+    "acl": null,
+    "collation": "-",
+    "default": "nextval('strava_activity_raw_id_seq'::regclass)",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/strava_activity_raw/is_deleted": {
+    "acl": null,
+    "collation": "-",
+    "default": "false",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "boolean"
+  },
+  "column/public/strava_activity_raw/is_excluded": {
+    "acl": null,
+    "collation": "-",
+    "default": "false",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "boolean"
+  },
+  "column/public/strava_activity_raw/kilojoules": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/strava_activity_raw/manual": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "boolean"
+  },
+  "column/public/strava_activity_raw/max_heartrate": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/strava_activity_raw/max_speed_mps": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/strava_activity_raw/max_watts": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/strava_activity_raw/moving_time_s": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "integer"
+  },
+  "column/public/strava_activity_raw/name": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "text"
+  },
+  "column/public/strava_activity_raw/raw_json": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "jsonb"
+  },
+  "column/public/strava_activity_raw/start_date": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "timestamp with time zone"
+  },
+  "column/public/strava_activity_raw/strava_activity_id": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/strava_activity_raw/strava_athlete_id": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/strava_activity_raw/timezone": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "text"
+  },
+  "column/public/strava_activity_raw/total_elevation_gain_m": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/strava_activity_raw/trainer": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "boolean"
+  },
+  "column/public/strava_activity_raw/updated_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/strava_activity_raw/user_id": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/strava_activity_raw/weighted_average_watts": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/strava_activity_stream_raw/data_json": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "jsonb"
+  },
+  "column/public/strava_activity_stream_raw/fetched_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/strava_activity_stream_raw/id": {
+    "acl": null,
+    "collation": "-",
+    "default": "nextval('strava_activity_stream_raw_id_seq'::regclass)",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/strava_activity_stream_raw/original_size": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "integer"
+  },
+  "column/public/strava_activity_stream_raw/resolution": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "text"
+  },
+  "column/public/strava_activity_stream_raw/series_type": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "text"
+  },
+  "column/public/strava_activity_stream_raw/strava_activity_id": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/strava_activity_stream_raw/stream_type": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/strava_webhook_event/aspect_type": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/strava_webhook_event/dedupe_key": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/strava_webhook_event/error_text": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "text"
+  },
+  "column/public/strava_webhook_event/event_time": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/strava_webhook_event/id": {
+    "acl": null,
+    "collation": "-",
+    "default": "nextval('strava_webhook_event_id_seq'::regclass)",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/strava_webhook_event/object_id": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/strava_webhook_event/object_type": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/strava_webhook_event/owner_id": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/strava_webhook_event/payload": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "jsonb"
+  },
+  "column/public/strava_webhook_event/received_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/strava_webhook_event/status": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": "'new'::text",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/strava_webhook_event/subscription_id": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "bigint"
+  },
+  "column/public/strava_webhook_event/updates": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "jsonb"
+  },
+  "column/public/subjective_feedback_prompt_log/created_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/subjective_feedback_prompt_log/delivery_status": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/subjective_feedback_prompt_log/id": {
+    "acl": null,
+    "collation": "-",
+    "default": "nextval('subjective_feedback_prompt_log_id_seq'::regclass)",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/subjective_feedback_prompt_log/prompt_type": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/subjective_feedback_prompt_log/sent_at": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "timestamp with time zone"
+  },
+  "column/public/subjective_feedback_prompt_log/source": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/subjective_feedback_prompt_log/target_date": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "date"
+  },
+  "column/public/subjective_feedback_prompt_log/telegram_message_id": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "bigint"
+  },
+  "column/public/subjective_feedback_prompt_log/updated_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/subjective_feedback_prompt_log/user_id": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/telegram_physiology_checkin_session/created_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/telegram_physiology_checkin_session/current_field": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "text"
+  },
+  "column/public/telegram_physiology_checkin_session/id": {
+    "acl": null,
+    "collation": "-",
+    "default": "nextval('telegram_physiology_checkin_session_id_seq'::regclass)",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/telegram_physiology_checkin_session/local_date": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "date"
+  },
+  "column/public/telegram_physiology_checkin_session/session_token": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/telegram_physiology_checkin_session/status": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/telegram_physiology_checkin_session/telegram_chat_id": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/telegram_physiology_checkin_session/updated_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/telegram_physiology_checkin_session/user_id": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/user_profile_value/effective_from": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "date"
+  },
+  "column/public/user_profile_value/metric": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/user_profile_value/needs_recompute": {
+    "acl": null,
+    "collation": "-",
+    "default": "false",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "boolean"
+  },
+  "column/public/user_profile_value/updated_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/user_profile_value/user_id": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/user_profile_value/value": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "numeric"
+  },
+  "column/public/user_strava_connection/access_token": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/user_strava_connection/created_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/user_strava_connection/expires_at": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/user_strava_connection/id": {
+    "acl": null,
+    "collation": "-",
+    "default": "nextval('user_strava_connection_id_seq'::regclass)",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/user_strava_connection/refresh_token": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/user_strava_connection/scope": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "text"
+  },
+  "column/public/user_strava_connection/strava_athlete_id": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/user_strava_connection/updated_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/user_strava_connection/user_id": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "column/public/user_training_profile/created_at": {
+    "acl": null,
+    "collation": "-",
+    "default": "now()",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "timestamp with time zone"
+  },
+  "column/public/user_training_profile/effective_from": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "date"
+  },
+  "column/public/user_training_profile/ftp_watts": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/user_training_profile/hr_max": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "integer"
+  },
+  "column/public/user_training_profile/hr_rest": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "integer"
+  },
+  "column/public/user_training_profile/hr_threshold": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "integer"
+  },
+  "column/public/user_training_profile/hr_z1_upper": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "integer"
+  },
+  "column/public/user_training_profile/hr_z2_upper": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "integer"
+  },
+  "column/public/user_training_profile/hr_z3_upper": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "integer"
+  },
+  "column/public/user_training_profile/hr_z4_upper": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "integer"
+  },
+  "column/public/user_training_profile/id": {
+    "acl": null,
+    "collation": "-",
+    "default": "nextval('user_training_profile_id_seq'::regclass)",
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "bigint"
+  },
+  "column/public/user_training_profile/power_z1_upper": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/user_training_profile/power_z2_upper": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/user_training_profile/power_z3_upper": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/user_training_profile/power_z4_upper": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/user_training_profile/power_z5_upper": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/user_training_profile/power_z6_upper": {
+    "acl": null,
+    "collation": "-",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "double precision"
+  },
+  "column/public/user_training_profile/source": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": false,
+    "type": "text"
+  },
+  "column/public/user_training_profile/user_id": {
+    "acl": null,
+    "collation": "\"default\"",
+    "default": null,
+    "generated": "",
+    "identity": "",
+    "not_null": true,
+    "type": "text"
+  },
+  "constraint/public/activity_delivery_log/activity_delivery_log_pkey": {
+    "definition": "PRIMARY KEY (id)",
+    "validated": true
+  },
+  "constraint/public/activity_delivery_log/chk_activity_delivery_log_status": {
+    "definition": "CHECK ((delivery_status = ANY (ARRAY['claimed'::text, 'sent'::text, 'failed'::text])))",
+    "validated": true
+  },
+  "constraint/public/activity_delivery_log/chk_activity_delivery_log_type": {
+    "definition": "CHECK ((delivery_type = ANY (ARRAY['training_processed'::text, 'post_ride_rpe'::text])))",
+    "validated": true
+  },
+  "constraint/public/activity_metrics/activity_metrics_pkey": {
+    "definition": "PRIMARY KEY (id)",
+    "validated": true
+  },
+  "constraint/public/activity_metrics/uq_activity_metrics": {
+    "definition": "UNIQUE (strava_activity_id, version)",
+    "validated": true
+  },
+  "constraint/public/activity_response_metrics/activity_response_metrics_pkey": {
+    "definition": "PRIMARY KEY (id)",
+    "validated": true
+  },
+  "constraint/public/activity_response_metrics/chk_activity_response_metrics_rpe": {
+    "definition": "CHECK (((rpe_score IS NULL) OR ((version = 'v1'::text) AND ((rpe_score >= 1) AND (rpe_score <= 5))) OR ((version <> 'v1'::text) AND ((rpe_score >= 1) AND (rpe_score <= 10)))))",
+    "validated": true
+  },
+  "constraint/public/activity_response_metrics/uq_activity_response_metrics": {
+    "definition": "UNIQUE (strava_activity_id, version)",
+    "validated": true
+  },
+  "constraint/public/activity_rpe_observation/activity_rpe_observation_canonical_activity_id_source_key": {
+    "definition": "UNIQUE (canonical_activity_id, source)",
+    "validated": true
+  },
+  "constraint/public/activity_rpe_observation/activity_rpe_observation_pkey": {
+    "definition": "PRIMARY KEY (id)",
+    "validated": true
+  },
+  "constraint/public/activity_rpe_observation/activity_rpe_observation_scale_version_check": {
+    "definition": "CHECK ((scale_version = 'rpe_1_10'::text))",
+    "validated": true
+  },
+  "constraint/public/activity_rpe_observation/activity_rpe_observation_schema_version_check": {
+    "definition": "CHECK ((schema_version = 'rpe_observation_v1'::text))",
+    "validated": true
+  },
+  "constraint/public/activity_rpe_observation/activity_rpe_observation_score_check": {
+    "definition": "CHECK (((score >= 1) AND (score <= 10)))",
+    "validated": true
+  },
+  "constraint/public/activity_rpe_observation/activity_rpe_observation_source_check": {
+    "definition": "CHECK ((source = ANY (ARRAY['telegram'::text, 'web'::text, 'strava'::text])))",
+    "validated": true
+  },
+  "constraint/public/activity_rpe_resolution/activity_rpe_resolution_check": {
+    "definition": "CHECK (((effective_score IS NULL) = (effective_source IS NULL)))",
+    "validated": true
+  },
+  "constraint/public/activity_rpe_resolution/activity_rpe_resolution_effective_score_check": {
+    "definition": "CHECK (((effective_score >= 1) AND (effective_score <= 10)))",
+    "validated": true
+  },
+  "constraint/public/activity_rpe_resolution/activity_rpe_resolution_effective_source_check": {
+    "definition": "CHECK ((effective_source = ANY (ARRAY['telegram'::text, 'web'::text, 'strava'::text])))",
+    "validated": true
+  },
+  "constraint/public/activity_rpe_resolution/activity_rpe_resolution_pkey": {
+    "definition": "PRIMARY KEY (canonical_activity_id)",
+    "validated": true
+  },
+  "constraint/public/activity_subjective_feedback/activity_subjective_feedback_pkey": {
+    "definition": "PRIMARY KEY (id)",
+    "validated": true
+  },
+  "constraint/public/daily_fitness_state/daily_fitness_state_pkey": {
+    "definition": "PRIMARY KEY (id)",
+    "validated": true
+  },
+  "constraint/public/daily_fitness_state/uq_daily_fitness_state": {
+    "definition": "UNIQUE (user_id, date, model_version)",
+    "validated": true
+  },
+  "constraint/public/daily_training_load/daily_training_load_pkey": {
+    "definition": "PRIMARY KEY (id)",
+    "validated": true
+  },
+  "constraint/public/daily_training_load/uq_daily_training_load": {
+    "definition": "UNIQUE (user_id, date)",
+    "validated": true
+  },
+  "constraint/public/decision_context_snapshot/chk_decision_context_snapshot_event_type": {
+    "definition": "CHECK ((event_type = ANY (ARRAY['daily_readiness_delivery'::text, 'recovery_checkin_before'::text, 'recovery_checkin_after'::text, 'post_activity_state'::text, 'post_ride_feedback'::text])))",
+    "validated": true
+  },
+  "constraint/public/decision_context_snapshot/decision_context_snapshot_pkey": {
+    "definition": "PRIMARY KEY (id)",
+    "validated": true
+  },
+  "constraint/public/document/document_pkey": {
+    "definition": "PRIMARY KEY (id)",
+    "validated": true
+  },
+  "constraint/public/document_chunk/document_chunk_document_id_fkey": {
+    "definition": "FOREIGN KEY (document_id) REFERENCES document(id) ON DELETE CASCADE",
+    "validated": true
+  },
+  "constraint/public/document_chunk/document_chunk_pkey": {
+    "definition": "PRIMARY KEY (id)",
+    "validated": true
+  },
+  "constraint/public/events/events_pkey": {
+    "definition": "PRIMARY KEY (id)",
+    "validated": true
+  },
+  "constraint/public/health_hrv_sample/health_hrv_sample_pkey": {
+    "definition": "PRIMARY KEY (id)",
+    "validated": true
+  },
+  "constraint/public/health_recovery_daily/health_recovery_daily_pkey": {
+    "definition": "PRIMARY KEY (id)",
+    "validated": true
+  },
+  "constraint/public/health_resting_hr_daily/health_resting_hr_daily_pkey": {
+    "definition": "PRIMARY KEY (id)",
+    "validated": true
+  },
+  "constraint/public/health_sleep_night/health_sleep_night_pkey": {
+    "definition": "PRIMARY KEY (id)",
+    "validated": true
+  },
+  "constraint/public/health_weight_measurement/health_weight_measurement_pkey": {
+    "definition": "PRIMARY KEY (id)",
+    "validated": true
+  },
+  "constraint/public/healthkit_ingest_raw/healthkit_ingest_raw_pkey": {
+    "definition": "PRIMARY KEY (id)",
+    "validated": true
+  },
+  "constraint/public/load_state_daily_v2/load_state_daily_v2_pkey": {
+    "definition": "PRIMARY KEY (id)",
+    "validated": true
+  },
+  "constraint/public/manual_physiology_observation/manual_physiology_observation_hrv_ms_check": {
+    "definition": "CHECK (((hrv_ms > (0)::double precision) AND (hrv_ms <= (500)::double precision)))",
+    "validated": true
+  },
+  "constraint/public/manual_physiology_observation/manual_physiology_observation_pkey": {
+    "definition": "PRIMARY KEY (id)",
+    "validated": true
+  },
+  "constraint/public/manual_physiology_observation/manual_physiology_observation_resting_hr_bpm_check": {
+    "definition": "CHECK (((resting_hr_bpm >= (20)::double precision) AND (resting_hr_bpm <= (250)::double precision)))",
+    "validated": true
+  },
+  "constraint/public/manual_physiology_observation/manual_physiology_observation_revision_check": {
+    "definition": "CHECK ((revision >= 1))",
+    "validated": true
+  },
+  "constraint/public/manual_physiology_observation/manual_physiology_observation_schema_version_check": {
+    "definition": "CHECK ((schema_version = 'manual_physiology_observation_v1'::text))",
+    "validated": true
+  },
+  "constraint/public/manual_physiology_observation/manual_physiology_observation_sleep_duration_minutes_check": {
+    "definition": "CHECK (((sleep_duration_minutes >= 0) AND (sleep_duration_minutes <= 1440)))",
+    "validated": true
+  },
+  "constraint/public/manual_physiology_observation/manual_physiology_observation_sleep_quality_check": {
+    "definition": "CHECK (((sleep_quality >= 1) AND (sleep_quality <= 5)))",
+    "validated": true
+  },
+  "constraint/public/manual_physiology_observation/manual_physiology_observation_source_check": {
+    "definition": "CHECK ((source = ANY (ARRAY['telegram'::text, 'web'::text, 'import'::text])))",
+    "validated": true
+  },
+  "constraint/public/manual_physiology_observation/manual_physiology_observation_user_id_local_date_key": {
+    "definition": "UNIQUE (user_id, local_date)",
+    "validated": true
+  },
+  "constraint/public/manual_physiology_observation_revision/manual_physiology_observation_revi_sleep_duration_minutes_check": {
+    "definition": "CHECK (((sleep_duration_minutes >= 0) AND (sleep_duration_minutes <= 1440)))",
+    "validated": true
+  },
+  "constraint/public/manual_physiology_observation_revision/manual_physiology_observation_revis_observation_id_revision_key": {
+    "definition": "UNIQUE (observation_id, revision)",
+    "validated": true
+  },
+  "constraint/public/manual_physiology_observation_revision/manual_physiology_observation_revision_hrv_ms_check": {
+    "definition": "CHECK (((hrv_ms > (0)::double precision) AND (hrv_ms <= (500)::double precision)))",
+    "validated": true
+  },
+  "constraint/public/manual_physiology_observation_revision/manual_physiology_observation_revision_observation_id_fkey": {
+    "definition": "FOREIGN KEY (observation_id) REFERENCES manual_physiology_observation(id) ON DELETE RESTRICT",
+    "validated": true
+  },
+  "constraint/public/manual_physiology_observation_revision/manual_physiology_observation_revision_pkey": {
+    "definition": "PRIMARY KEY (id)",
+    "validated": true
+  },
+  "constraint/public/manual_physiology_observation_revision/manual_physiology_observation_revision_resting_hr_bpm_check": {
+    "definition": "CHECK (((resting_hr_bpm >= (20)::double precision) AND (resting_hr_bpm <= (250)::double precision)))",
+    "validated": true
+  },
+  "constraint/public/manual_physiology_observation_revision/manual_physiology_observation_revision_revision_check": {
+    "definition": "CHECK ((revision >= 1))",
+    "validated": true
+  },
+  "constraint/public/manual_physiology_observation_revision/manual_physiology_observation_revision_schema_version_check": {
+    "definition": "CHECK ((schema_version = 'manual_physiology_observation_v1'::text))",
+    "validated": true
+  },
+  "constraint/public/manual_physiology_observation_revision/manual_physiology_observation_revision_sleep_quality_check": {
+    "definition": "CHECK (((sleep_quality >= 1) AND (sleep_quality <= 5)))",
+    "validated": true
+  },
+  "constraint/public/manual_physiology_observation_revision/manual_physiology_observation_revision_source_check": {
+    "definition": "CHECK ((source = ANY (ARRAY['telegram'::text, 'web'::text, 'import'::text])))",
+    "validated": true
+  },
+  "constraint/public/notification_log/chk_notification_log_daily_delivery_status": {
+    "definition": "CHECK (((notification_type <> 'daily_readiness'::text) OR (delivery_status = ANY (ARRAY['claimed'::text, 'sent'::text, 'updating'::text, 'updated'::text, 'superseded'::text, 'failed'::text]))))",
+    "validated": true
+  },
+  "constraint/public/notification_log/chk_notification_log_daily_freshness": {
+    "definition": "CHECK (((notification_type <> 'daily_readiness'::text) OR (freshness_status = ANY (ARRAY['fresh'::text, 'stale'::text, 'missing'::text]))))",
+    "validated": true
+  },
+  "constraint/public/notification_log/notification_log_pkey": {
+    "definition": "PRIMARY KEY (id)",
+    "validated": true
+  },
+  "constraint/public/personal_physiology_feature_daily/personal_physiology_feature__resting_hr_observation_count_check": {
+    "definition": "CHECK ((resting_hr_observation_count >= 0))",
+    "validated": true
+  },
+  "constraint/public/personal_physiology_feature_daily/personal_physiology_feature__sleep_duration_baseline_stat_check": {
+    "definition": "CHECK ((sleep_duration_baseline_state = ANY (ARRAY['unavailable'::text, 'immature'::text, 'mature'::text])))",
+    "validated": true
+  },
+  "constraint/public/personal_physiology_feature_daily/personal_physiology_feature__sleep_duration_observation_c_check": {
+    "definition": "CHECK ((sleep_duration_observation_count >= 0))",
+    "validated": true
+  },
+  "constraint/public/personal_physiology_feature_daily/personal_physiology_feature_d_sleep_duration_availability_check": {
+    "definition": "CHECK ((sleep_duration_availability = ANY (ARRAY['available'::text, 'unavailable'::text])))",
+    "validated": true
+  },
+  "constraint/public/personal_physiology_feature_daily/personal_physiology_feature_dai_baseline_min_observations_check": {
+    "definition": "CHECK ((baseline_min_observations > 0))",
+    "validated": true
+  },
+  "constraint/public/personal_physiology_feature_daily/personal_physiology_feature_dai_resting_hr_baseline_state_check": {
+    "definition": "CHECK ((resting_hr_baseline_state = ANY (ARRAY['unavailable'::text, 'immature'::text, 'mature'::text])))",
+    "validated": true
+  },
+  "constraint/public/personal_physiology_feature_daily/personal_physiology_feature_daily_baseline_window_days_check": {
+    "definition": "CHECK ((baseline_window_days > 0))",
+    "validated": true
+  },
+  "constraint/public/personal_physiology_feature_daily/personal_physiology_feature_daily_check": {
+    "definition": "CHECK (((hrv_baseline_state <> 'mature'::text) OR (hrv_baseline_ms IS NOT NULL)))",
+    "validated": true
+  },
+  "constraint/public/personal_physiology_feature_daily/personal_physiology_feature_daily_check1": {
+    "definition": "CHECK (((resting_hr_baseline_state <> 'mature'::text) OR (resting_hr_baseline_bpm IS NOT NULL)))",
+    "validated": true
+  },
+  "constraint/public/personal_physiology_feature_daily/personal_physiology_feature_daily_check2": {
+    "definition": "CHECK (((sleep_duration_baseline_state <> 'mature'::text) OR (sleep_duration_baseline_minutes IS NOT NULL)))",
+    "validated": true
+  },
+  "constraint/public/personal_physiology_feature_daily/personal_physiology_feature_daily_feature_version_check": {
+    "definition": "CHECK ((length(feature_version) > 0))",
+    "validated": true
+  },
+  "constraint/public/personal_physiology_feature_daily/personal_physiology_feature_daily_hrv_availability_check": {
+    "definition": "CHECK ((hrv_availability = ANY (ARRAY['available'::text, 'unavailable'::text])))",
+    "validated": true
+  },
+  "constraint/public/personal_physiology_feature_daily/personal_physiology_feature_daily_hrv_baseline_state_check": {
+    "definition": "CHECK ((hrv_baseline_state = ANY (ARRAY['unavailable'::text, 'immature'::text, 'mature'::text])))",
+    "validated": true
+  },
+  "constraint/public/personal_physiology_feature_daily/personal_physiology_feature_daily_hrv_observation_count_check": {
+    "definition": "CHECK ((hrv_observation_count >= 0))",
+    "validated": true
+  },
+  "constraint/public/personal_physiology_feature_daily/personal_physiology_feature_daily_pkey": {
+    "definition": "PRIMARY KEY (user_id, local_date, feature_version)",
+    "validated": true
+  },
+  "constraint/public/personal_physiology_feature_daily/personal_physiology_feature_daily_resting_hr_availability_check": {
+    "definition": "CHECK ((resting_hr_availability = ANY (ARRAY['available'::text, 'unavailable'::text])))",
+    "validated": true
+  },
+  "constraint/public/personal_physiology_feature_daily/personal_physiology_feature_daily_source_observation_id_fkey": {
+    "definition": "FOREIGN KEY (source_observation_id) REFERENCES manual_physiology_observation(id) ON DELETE RESTRICT",
+    "validated": true
+  },
+  "constraint/public/personal_physiology_feature_daily/personal_physiology_feature_daily_source_revision_check": {
+    "definition": "CHECK ((source_revision >= 1))",
+    "validated": true
+  },
+  "constraint/public/personal_physiology_feature_daily/personal_physiology_feature_daily_source_staleness_check": {
+    "definition": "CHECK ((source_staleness = ANY (ARRAY['current_local_date'::text, 'stale'::text, 'late'::text, 'unknown'::text])))",
+    "validated": true
+  },
+  "constraint/public/readiness_daily/readiness_daily_pkey": {
+    "definition": "PRIMARY KEY (id)",
+    "validated": true
+  },
+  "constraint/public/research_experiment/chk_research_execution_metadata": {
+    "definition": "CHECK (((execution_metadata IS NULL) OR ((status <> 'running'::text) AND (jsonb_typeof(execution_metadata) = 'object'::text))))",
+    "validated": true
+  },
+  "constraint/public/research_experiment/chk_research_experiment_baseline_not_self": {
+    "definition": "CHECK (((baseline_experiment_id IS NULL) OR (baseline_experiment_id <> experiment_id)))",
+    "validated": true
+  },
+  "constraint/public/research_experiment/chk_research_experiment_candidate_config_object": {
+    "definition": "CHECK ((jsonb_typeof(candidate_config) = 'object'::text))",
+    "validated": true
+  },
+  "constraint/public/research_experiment/chk_research_experiment_id_nonempty": {
+    "definition": "CHECK ((length(btrim(experiment_id)) > 0))",
+    "validated": true
+  },
+  "constraint/public/research_experiment/chk_research_experiment_metrics_object": {
+    "definition": "CHECK (((metrics_json IS NULL) OR (jsonb_typeof(metrics_json) = 'object'::text)))",
+    "validated": true
+  },
+  "constraint/public/research_experiment/chk_research_experiment_parent_not_self": {
+    "definition": "CHECK (((parent_experiment_id IS NULL) OR (parent_experiment_id <> experiment_id)))",
+    "validated": true
+  },
+  "constraint/public/research_experiment/chk_research_experiment_partition": {
+    "definition": "CHECK ((dataset_partition = ANY (ARRAY['train'::text, 'validation'::text, 'test'::text])))",
+    "validated": true
+  },
+  "constraint/public/research_experiment/chk_research_experiment_provider_metadata_object": {
+    "definition": "CHECK (((provider_metadata IS NULL) OR (jsonb_typeof(provider_metadata) = 'object'::text)))",
+    "validated": true
+  },
+  "constraint/public/research_experiment/chk_research_experiment_status": {
+    "definition": "CHECK ((status = ANY (ARRAY['running'::text, 'rejected'::text, 'candidate'::text, 'failed'::text, 'promoted'::text])))",
+    "validated": true
+  },
+  "constraint/public/research_experiment/chk_research_experiment_terminal_state": {
+    "definition": "CHECK ((((status = 'running'::text) AND (finished_at IS NULL) AND (execution_duration_ms IS NULL) AND (metrics_json IS NULL) AND (failure_reason IS NULL) AND (failure_log_reference IS NULL)) OR ((status = ANY (ARRAY['candidate'::text, 'rejected'::text, 'promoted'::text])) AND (finished_at IS NOT NULL) AND (execution_duration_ms IS NOT NULL) AND (execution_duration_ms >= 0) AND (metrics_json IS NOT NULL) AND (failure_reason IS NULL) AND (failure_log_reference IS NULL)) OR ((status = 'failed'::text) AND (finished_at IS NOT NULL) AND (execution_duration_ms IS NOT NULL) AND (execution_duration_ms >= 0) AND (metrics_json IS NULL) AND (failure_reason IS NOT NULL) AND (length(btrim(failure_reason)) > 0))))",
+    "validated": true
+  },
+  "constraint/public/research_experiment/chk_research_experiment_time_order": {
+    "definition": "CHECK (((created_at <= started_at) AND ((finished_at IS NULL) OR (started_at <= finished_at))))",
+    "validated": true
+  },
+  "constraint/public/research_experiment/research_experiment_baseline_experiment_id_fkey": {
+    "definition": "FOREIGN KEY (baseline_experiment_id) REFERENCES research_experiment(experiment_id)",
+    "validated": true
+  },
+  "constraint/public/research_experiment/research_experiment_experiment_id_key": {
+    "definition": "UNIQUE (experiment_id)",
+    "validated": true
+  },
+  "constraint/public/research_experiment/research_experiment_parent_experiment_id_fkey": {
+    "definition": "FOREIGN KEY (parent_experiment_id) REFERENCES research_experiment(experiment_id)",
+    "validated": true
+  },
+  "constraint/public/research_experiment/research_experiment_pkey": {
+    "definition": "PRIMARY KEY (id)",
+    "validated": true
+  },
+  "constraint/public/research_feature_snapshot/chk_research_feature_snapshot_event_type": {
+    "definition": "CHECK ((event_type = 'daily_readiness_delivery'::text))",
+    "validated": true
+  },
+  "constraint/public/research_feature_snapshot/research_feature_snapshot_pkey": {
+    "definition": "PRIMARY KEY (id)",
+    "validated": true
+  },
+  "constraint/public/strava_activity_ingest_job/strava_activity_ingest_job_pkey": {
+    "definition": "PRIMARY KEY (id)",
+    "validated": true
+  },
+  "constraint/public/strava_activity_ingest_job/strava_activity_ingest_job_webhook_event_id_fkey": {
+    "definition": "FOREIGN KEY (webhook_event_id) REFERENCES strava_webhook_event(id) ON DELETE SET NULL",
+    "validated": true
+  },
+  "constraint/public/strava_activity_raw/chk_strava_activity_raw_duplicate_confidence": {
+    "definition": "CHECK (((duplicate_confidence IS NULL) OR ((duplicate_confidence >= (0.0)::double precision) AND (duplicate_confidence <= (1.0)::double precision))))",
+    "validated": true
+  },
+  "constraint/public/strava_activity_raw/chk_strava_activity_raw_manual_override": {
+    "definition": "CHECK (((deduplication_manual_override IS NULL) OR (deduplication_manual_override = ANY (ARRAY['exclude'::text, 'separate'::text]))))",
+    "validated": true
+  },
+  "constraint/public/strava_activity_raw/chk_strava_activity_raw_not_self_duplicate": {
+    "definition": "CHECK (((duplicate_of_activity_id IS NULL) OR (duplicate_of_activity_id <> strava_activity_id)))",
+    "validated": true
+  },
+  "constraint/public/strava_activity_raw/strava_activity_raw_pkey": {
+    "definition": "PRIMARY KEY (id)",
+    "validated": true
+  },
+  "constraint/public/strava_activity_stream_raw/strava_activity_stream_raw_pkey": {
+    "definition": "PRIMARY KEY (id)",
+    "validated": true
+  },
+  "constraint/public/strava_activity_stream_raw/uq_strava_activity_stream_raw": {
+    "definition": "UNIQUE (strava_activity_id, stream_type)",
+    "validated": true
+  },
+  "constraint/public/strava_webhook_event/strava_webhook_event_pkey": {
+    "definition": "PRIMARY KEY (id)",
+    "validated": true
+  },
+  "constraint/public/strava_webhook_event/uq_strava_webhook_event_dedupe_key": {
+    "definition": "UNIQUE (dedupe_key)",
+    "validated": true
+  },
+  "constraint/public/subjective_feedback_prompt_log/chk_subjective_feedback_prompt_log_status": {
+    "definition": "CHECK ((delivery_status = ANY (ARRAY['pending'::text, 'sent'::text, 'failed'::text])))",
+    "validated": true
+  },
+  "constraint/public/subjective_feedback_prompt_log/subjective_feedback_prompt_log_pkey": {
+    "definition": "PRIMARY KEY (id)",
+    "validated": true
+  },
+  "constraint/public/subjective_feedback_prompt_log/uq_subjective_feedback_prompt_log_user_type_date": {
+    "definition": "UNIQUE (user_id, prompt_type, target_date)",
+    "validated": true
+  },
+  "constraint/public/telegram_physiology_checkin_session/chk_telegram_physiology_checkin_session_field": {
+    "definition": "CHECK (((current_field IS NULL) OR (current_field = ANY (ARRAY['sleep_duration_minutes'::text, 'sleep_quality'::text, 'hrv_ms'::text, 'resting_hr_bpm'::text]))))",
+    "validated": true
+  },
+  "constraint/public/telegram_physiology_checkin_session/chk_telegram_physiology_checkin_session_status": {
+    "definition": "CHECK ((status = ANY (ARRAY['active'::text, 'processing'::text, 'skipped'::text, 'complete'::text])))",
+    "validated": true
+  },
+  "constraint/public/telegram_physiology_checkin_session/telegram_physiology_checkin_session_pkey": {
+    "definition": "PRIMARY KEY (id)",
+    "validated": true
+  },
+  "constraint/public/telegram_physiology_checkin_session/uq_telegram_physiology_checkin_session_token": {
+    "definition": "UNIQUE (session_token)",
+    "validated": true
+  },
+  "constraint/public/telegram_physiology_checkin_session/uq_telegram_physiology_checkin_session_user_date": {
+    "definition": "UNIQUE (user_id, local_date)",
+    "validated": true
+  },
+  "constraint/public/user_profile_value/user_profile_value_check": {
+    "definition": "CHECK ((((metric = 'ftp'::text) AND ((value >= (1)::numeric) AND (value <= (1000)::numeric))) OR ((metric = 'weight'::text) AND ((value >= (1)::numeric) AND (value <= (500)::numeric))) OR ((metric = 'hr_max'::text) AND ((value >= (1)::numeric) AND (value <= (250)::numeric)) AND (value = trunc(value)))))",
+    "validated": true
+  },
+  "constraint/public/user_profile_value/user_profile_value_metric_check": {
+    "definition": "CHECK ((metric = ANY (ARRAY['ftp'::text, 'hr_max'::text, 'weight'::text])))",
+    "validated": true
+  },
+  "constraint/public/user_profile_value/user_profile_value_pkey": {
+    "definition": "PRIMARY KEY (user_id, metric, effective_from)",
+    "validated": true
+  },
+  "constraint/public/user_strava_connection/user_strava_connection_pkey": {
+    "definition": "PRIMARY KEY (id)",
+    "validated": true
+  },
+  "constraint/public/user_training_profile/uq_user_training_profile": {
+    "definition": "UNIQUE (user_id, effective_from)",
+    "validated": true
+  },
+  "constraint/public/user_training_profile/user_training_profile_pkey": {
+    "definition": "PRIMARY KEY (id)",
+    "validated": true
+  },
+  "default_acl/human_engine/public/r": [
+    "superset_reader=r/human_engine"
+  ],
+  "extension/plpgsql": {
+    "owner": "human_engine",
+    "schema": "pg_catalog",
+    "version": "1.0"
+  },
+  "extension/vector": {
+    "owner": "human_engine",
+    "schema": "public",
+    "version": "0.8.3"
+  },
+  "function/public/protect_research_experiment_audit_log()": {
+    "acl": null,
+    "definition": "CREATE OR REPLACE FUNCTION public.protect_research_experiment_audit_log()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nbegin\n    if tg_op = 'INSERT' then\n        if new.status <> 'running' then\n            raise exception 'research experiment must be created as running';\n        end if;\n        return new;\n    end if;\n\n    if tg_op = 'DELETE' then\n        raise exception 'research experiment audit rows cannot be deleted';\n    end if;\n\n    if old.status <> 'running' then\n        raise exception 'terminal research experiment rows are immutable';\n    end if;\n\n    if new.status not in ('candidate', 'rejected', 'failed') then\n        raise exception 'research experiment must transition from running to candidate, rejected, or failed';\n    end if;\n\n    if new.experiment_id is distinct from old.experiment_id\n       or new.parent_experiment_id is distinct from old.parent_experiment_id\n       or new.baseline_experiment_id is distinct from old.baseline_experiment_id\n       or new.hypothesis is distinct from old.hypothesis\n       or new.candidate_model_version is distinct from old.candidate_model_version\n       or new.candidate_config is distinct from old.candidate_config\n       or new.candidate_config_hash is distinct from old.candidate_config_hash\n       or new.dataset_version is distinct from old.dataset_version\n       or new.dataset_hash is distinct from old.dataset_hash\n       or new.dataset_partition is distinct from old.dataset_partition\n       or new.evaluator_version is distinct from old.evaluator_version\n       or new.evaluator_specification_hash is distinct from old.evaluator_specification_hash\n       or new.provider_metadata is distinct from old.provider_metadata\n       or new.created_at is distinct from old.created_at\n       or new.started_at is distinct from old.started_at then\n        raise exception 'research experiment input metadata is immutable';\n    end if;\n\n    return new;\nend;\n$function$\n",
+    "owner": "human_engine"
+  },
+  "index/public/activity_delivery_log/activity_delivery_log_pkey": {
+    "definition": "CREATE UNIQUE INDEX activity_delivery_log_pkey ON public.activity_delivery_log USING btree (id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/activity_delivery_log/ix_activity_delivery_log_user_created_at": {
+    "definition": "CREATE INDEX ix_activity_delivery_log_user_created_at ON public.activity_delivery_log USING btree (user_id, created_at DESC)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/activity_delivery_log/uq_activity_delivery_log_activity_type": {
+    "definition": "CREATE UNIQUE INDEX uq_activity_delivery_log_activity_type ON public.activity_delivery_log USING btree (activity_id, delivery_type)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/activity_metrics/activity_metrics_pkey": {
+    "definition": "CREATE UNIQUE INDEX activity_metrics_pkey ON public.activity_metrics USING btree (id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/activity_metrics/ix_activity_metrics_activity_id": {
+    "definition": "CREATE INDEX ix_activity_metrics_activity_id ON public.activity_metrics USING btree (strava_activity_id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/activity_metrics/ix_activity_metrics_user_id": {
+    "definition": "CREATE INDEX ix_activity_metrics_user_id ON public.activity_metrics USING btree (user_id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/activity_metrics/uq_activity_metrics": {
+    "definition": "CREATE UNIQUE INDEX uq_activity_metrics ON public.activity_metrics USING btree (strava_activity_id, version)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/activity_response_metrics/activity_response_metrics_pkey": {
+    "definition": "CREATE UNIQUE INDEX activity_response_metrics_pkey ON public.activity_response_metrics USING btree (id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/activity_response_metrics/ix_activity_response_metrics_comparable": {
+    "definition": "CREATE INDEX ix_activity_response_metrics_comparable ON public.activity_response_metrics USING btree (user_id, activity_type, intensity_band, version, activity_date DESC)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/activity_response_metrics/ix_activity_response_metrics_user_date": {
+    "definition": "CREATE INDEX ix_activity_response_metrics_user_date ON public.activity_response_metrics USING btree (user_id, activity_date DESC)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/activity_response_metrics/uq_activity_response_metrics": {
+    "definition": "CREATE UNIQUE INDEX uq_activity_response_metrics ON public.activity_response_metrics USING btree (strava_activity_id, version)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/activity_rpe_observation/activity_rpe_observation_canonical_activity_id_source_key": {
+    "definition": "CREATE UNIQUE INDEX activity_rpe_observation_canonical_activity_id_source_key ON public.activity_rpe_observation USING btree (canonical_activity_id, source)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/activity_rpe_observation/activity_rpe_observation_pkey": {
+    "definition": "CREATE UNIQUE INDEX activity_rpe_observation_pkey ON public.activity_rpe_observation USING btree (id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/activity_rpe_observation/ix_activity_rpe_observation_user_activity": {
+    "definition": "CREATE INDEX ix_activity_rpe_observation_user_activity ON public.activity_rpe_observation USING btree (user_id, canonical_activity_id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/activity_rpe_resolution/activity_rpe_resolution_pkey": {
+    "definition": "CREATE UNIQUE INDEX activity_rpe_resolution_pkey ON public.activity_rpe_resolution USING btree (canonical_activity_id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/activity_subjective_feedback/activity_subjective_feedback_pkey": {
+    "definition": "CREATE UNIQUE INDEX activity_subjective_feedback_pkey ON public.activity_subjective_feedback USING btree (id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/activity_subjective_feedback/ix_activity_subjective_feedback_activity_id": {
+    "definition": "CREATE INDEX ix_activity_subjective_feedback_activity_id ON public.activity_subjective_feedback USING btree (strava_activity_id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/activity_subjective_feedback/ix_activity_subjective_feedback_canonical_activity_id": {
+    "definition": "CREATE INDEX ix_activity_subjective_feedback_canonical_activity_id ON public.activity_subjective_feedback USING btree (canonical_activity_id) WHERE (canonical_activity_id IS NOT NULL)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/activity_subjective_feedback/ix_activity_subjective_feedback_user_created_at": {
+    "definition": "CREATE INDEX ix_activity_subjective_feedback_user_created_at ON public.activity_subjective_feedback USING btree (user_id, created_at DESC)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/activity_subjective_feedback/uq_activity_subjective_feedback_activity_type": {
+    "definition": "CREATE UNIQUE INDEX uq_activity_subjective_feedback_activity_type ON public.activity_subjective_feedback USING btree (strava_activity_id, feedback_type) WHERE (strava_activity_id IS NOT NULL)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/activity_subjective_feedback/uq_activity_subjective_feedback_canonical_type": {
+    "definition": "CREATE UNIQUE INDEX uq_activity_subjective_feedback_canonical_type ON public.activity_subjective_feedback USING btree (canonical_activity_id, feedback_type) WHERE (canonical_activity_id IS NOT NULL)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/activity_subjective_feedback/uq_activity_subjective_feedback_user_date_type_null_activity": {
+    "definition": "CREATE UNIQUE INDEX uq_activity_subjective_feedback_user_date_type_null_activity ON public.activity_subjective_feedback USING btree (user_id, activity_date, feedback_type) WHERE (strava_activity_id IS NULL)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/daily_fitness_state/daily_fitness_state_pkey": {
+    "definition": "CREATE UNIQUE INDEX daily_fitness_state_pkey ON public.daily_fitness_state USING btree (id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/daily_fitness_state/ix_daily_fitness_state_user_date": {
+    "definition": "CREATE INDEX ix_daily_fitness_state_user_date ON public.daily_fitness_state USING btree (user_id, date DESC)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/daily_fitness_state/uq_daily_fitness_state": {
+    "definition": "CREATE UNIQUE INDEX uq_daily_fitness_state ON public.daily_fitness_state USING btree (user_id, date, model_version)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/daily_training_load/daily_training_load_pkey": {
+    "definition": "CREATE UNIQUE INDEX daily_training_load_pkey ON public.daily_training_load USING btree (id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/daily_training_load/ix_daily_training_load_user_date": {
+    "definition": "CREATE INDEX ix_daily_training_load_user_date ON public.daily_training_load USING btree (user_id, date DESC)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/daily_training_load/uq_daily_training_load": {
+    "definition": "CREATE UNIQUE INDEX uq_daily_training_load ON public.daily_training_load USING btree (user_id, date)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/decision_context_snapshot/decision_context_snapshot_pkey": {
+    "definition": "CREATE UNIQUE INDEX decision_context_snapshot_pkey ON public.decision_context_snapshot USING btree (id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/decision_context_snapshot/ix_decision_context_snapshot_user_date": {
+    "definition": "CREATE INDEX ix_decision_context_snapshot_user_date ON public.decision_context_snapshot USING btree (user_id, snapshot_date, captured_at)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/decision_context_snapshot/uq_decision_context_snapshot_event_state": {
+    "definition": "CREATE UNIQUE INDEX uq_decision_context_snapshot_event_state ON public.decision_context_snapshot USING btree (user_id, snapshot_date, event_type, reference_key, content_fingerprint)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/document/document_pkey": {
+    "definition": "CREATE UNIQUE INDEX document_pkey ON public.document USING btree (id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/document_chunk/document_chunk_pkey": {
+    "definition": "CREATE UNIQUE INDEX document_chunk_pkey ON public.document_chunk USING btree (id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/document_chunk/idx_document_chunk_document_id": {
+    "definition": "CREATE INDEX idx_document_chunk_document_id ON public.document_chunk USING btree (document_id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/events/events_pkey": {
+    "definition": "CREATE UNIQUE INDEX events_pkey ON public.events USING btree (id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/health_hrv_sample/health_hrv_sample_pkey": {
+    "definition": "CREATE UNIQUE INDEX health_hrv_sample_pkey ON public.health_hrv_sample USING btree (id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/health_hrv_sample/idx_health_hrv_sample_user_start_at": {
+    "definition": "CREATE INDEX idx_health_hrv_sample_user_start_at ON public.health_hrv_sample USING btree (user_id, sample_start_at DESC)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/health_hrv_sample/uq_health_hrv_sample_user_start_at": {
+    "definition": "CREATE UNIQUE INDEX uq_health_hrv_sample_user_start_at ON public.health_hrv_sample USING btree (user_id, sample_start_at)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/health_recovery_daily/health_recovery_daily_pkey": {
+    "definition": "CREATE UNIQUE INDEX health_recovery_daily_pkey ON public.health_recovery_daily USING btree (id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/health_recovery_daily/idx_health_recovery_daily_user_date": {
+    "definition": "CREATE INDEX idx_health_recovery_daily_user_date ON public.health_recovery_daily USING btree (user_id, date DESC)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/health_recovery_daily/uq_health_recovery_daily_user_date": {
+    "definition": "CREATE UNIQUE INDEX uq_health_recovery_daily_user_date ON public.health_recovery_daily USING btree (user_id, date)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/health_resting_hr_daily/health_resting_hr_daily_pkey": {
+    "definition": "CREATE UNIQUE INDEX health_resting_hr_daily_pkey ON public.health_resting_hr_daily USING btree (id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/health_resting_hr_daily/idx_health_resting_hr_daily_user_date": {
+    "definition": "CREATE INDEX idx_health_resting_hr_daily_user_date ON public.health_resting_hr_daily USING btree (user_id, date DESC)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/health_resting_hr_daily/uq_health_resting_hr_daily_user_date": {
+    "definition": "CREATE UNIQUE INDEX uq_health_resting_hr_daily_user_date ON public.health_resting_hr_daily USING btree (user_id, date)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/health_sleep_night/health_sleep_night_pkey": {
+    "definition": "CREATE UNIQUE INDEX health_sleep_night_pkey ON public.health_sleep_night USING btree (id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/health_sleep_night/idx_health_sleep_night_user_wake_date": {
+    "definition": "CREATE INDEX idx_health_sleep_night_user_wake_date ON public.health_sleep_night USING btree (user_id, wake_date DESC)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/health_sleep_night/uq_health_sleep_night_user_wake_date": {
+    "definition": "CREATE UNIQUE INDEX uq_health_sleep_night_user_wake_date ON public.health_sleep_night USING btree (user_id, wake_date)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/health_weight_measurement/health_weight_measurement_pkey": {
+    "definition": "CREATE UNIQUE INDEX health_weight_measurement_pkey ON public.health_weight_measurement USING btree (id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/health_weight_measurement/idx_health_weight_measurement_user_measured_at": {
+    "definition": "CREATE INDEX idx_health_weight_measurement_user_measured_at ON public.health_weight_measurement USING btree (user_id, measured_at DESC)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/health_weight_measurement/uq_health_weight_measurement_user_measured_at": {
+    "definition": "CREATE UNIQUE INDEX uq_health_weight_measurement_user_measured_at ON public.health_weight_measurement USING btree (user_id, measured_at)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/healthkit_ingest_raw/healthkit_ingest_raw_pkey": {
+    "definition": "CREATE UNIQUE INDEX healthkit_ingest_raw_pkey ON public.healthkit_ingest_raw USING btree (id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/healthkit_ingest_raw/idx_healthkit_ingest_raw_received_at": {
+    "definition": "CREATE INDEX idx_healthkit_ingest_raw_received_at ON public.healthkit_ingest_raw USING btree (received_at DESC)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/healthkit_ingest_raw/idx_healthkit_ingest_raw_user_id": {
+    "definition": "CREATE INDEX idx_healthkit_ingest_raw_user_id ON public.healthkit_ingest_raw USING btree (user_id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/load_state_daily_v2/idx_load_state_daily_v2_user_date": {
+    "definition": "CREATE INDEX idx_load_state_daily_v2_user_date ON public.load_state_daily_v2 USING btree (user_id, date DESC)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/load_state_daily_v2/load_state_daily_v2_pkey": {
+    "definition": "CREATE UNIQUE INDEX load_state_daily_v2_pkey ON public.load_state_daily_v2 USING btree (id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/load_state_daily_v2/uq_load_state_daily_v2_user_date_version": {
+    "definition": "CREATE UNIQUE INDEX uq_load_state_daily_v2_user_date_version ON public.load_state_daily_v2 USING btree (user_id, date, version)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/manual_physiology_observation/ix_manual_physiology_observation_user_date": {
+    "definition": "CREATE INDEX ix_manual_physiology_observation_user_date ON public.manual_physiology_observation USING btree (user_id, local_date DESC)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/manual_physiology_observation/manual_physiology_observation_pkey": {
+    "definition": "CREATE UNIQUE INDEX manual_physiology_observation_pkey ON public.manual_physiology_observation USING btree (id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/manual_physiology_observation/manual_physiology_observation_user_id_local_date_key": {
+    "definition": "CREATE UNIQUE INDEX manual_physiology_observation_user_id_local_date_key ON public.manual_physiology_observation USING btree (user_id, local_date)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/manual_physiology_observation_revision/ix_manual_physiology_revision_user_date": {
+    "definition": "CREATE INDEX ix_manual_physiology_revision_user_date ON public.manual_physiology_observation_revision USING btree (user_id, local_date DESC, revision DESC)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/manual_physiology_observation_revision/manual_physiology_observation_revis_observation_id_revision_key": {
+    "definition": "CREATE UNIQUE INDEX manual_physiology_observation_revis_observation_id_revision_key ON public.manual_physiology_observation_revision USING btree (observation_id, revision)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/manual_physiology_observation_revision/manual_physiology_observation_revision_pkey": {
+    "definition": "CREATE UNIQUE INDEX manual_physiology_observation_revision_pkey ON public.manual_physiology_observation_revision USING btree (id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/notification_log/notification_log_pkey": {
+    "definition": "CREATE UNIQUE INDEX notification_log_pkey ON public.notification_log USING btree (id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/notification_log/uq_notification_log_activity": {
+    "definition": "CREATE UNIQUE INDEX uq_notification_log_activity ON public.notification_log USING btree (user_id, notification_type, related_activity_id) WHERE (related_activity_id IS NOT NULL)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/notification_log/uq_notification_log_daily": {
+    "definition": "CREATE UNIQUE INDEX uq_notification_log_daily ON public.notification_log USING btree (user_id, notification_type, notification_date)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/notification_log/uq_notification_log_user_type_date": {
+    "definition": "CREATE UNIQUE INDEX uq_notification_log_user_type_date ON public.notification_log USING btree (user_id, notification_type, notification_date)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/personal_physiology_feature_daily/ix_personal_physiology_feature_user_date": {
+    "definition": "CREATE INDEX ix_personal_physiology_feature_user_date ON public.personal_physiology_feature_daily USING btree (user_id, local_date DESC, feature_version)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/personal_physiology_feature_daily/personal_physiology_feature_daily_pkey": {
+    "definition": "CREATE UNIQUE INDEX personal_physiology_feature_daily_pkey ON public.personal_physiology_feature_daily USING btree (user_id, local_date, feature_version)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/readiness_daily/idx_readiness_daily_user_date": {
+    "definition": "CREATE INDEX idx_readiness_daily_user_date ON public.readiness_daily USING btree (user_id, date DESC)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/readiness_daily/readiness_daily_pkey": {
+    "definition": "CREATE UNIQUE INDEX readiness_daily_pkey ON public.readiness_daily USING btree (id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/readiness_daily/uq_readiness_daily_user_date_version": {
+    "definition": "CREATE UNIQUE INDEX uq_readiness_daily_user_date_version ON public.readiness_daily USING btree (user_id, date, version)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/research_experiment/ix_research_experiment_parent": {
+    "definition": "CREATE INDEX ix_research_experiment_parent ON public.research_experiment USING btree (parent_experiment_id) WHERE (parent_experiment_id IS NOT NULL)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/research_experiment/ix_research_experiment_status_created": {
+    "definition": "CREATE INDEX ix_research_experiment_status_created ON public.research_experiment USING btree (status, created_at, id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/research_experiment/research_experiment_experiment_id_key": {
+    "definition": "CREATE UNIQUE INDEX research_experiment_experiment_id_key ON public.research_experiment USING btree (experiment_id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/research_experiment/research_experiment_pkey": {
+    "definition": "CREATE UNIQUE INDEX research_experiment_pkey ON public.research_experiment USING btree (id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/research_feature_snapshot/ix_research_feature_snapshot_user_date": {
+    "definition": "CREATE INDEX ix_research_feature_snapshot_user_date ON public.research_feature_snapshot USING btree (user_id, local_date, captured_at, id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/research_feature_snapshot/research_feature_snapshot_pkey": {
+    "definition": "CREATE UNIQUE INDEX research_feature_snapshot_pkey ON public.research_feature_snapshot USING btree (id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/research_feature_snapshot/uq_research_feature_snapshot_state": {
+    "definition": "CREATE UNIQUE INDEX uq_research_feature_snapshot_state ON public.research_feature_snapshot USING btree (user_id, local_date, event_type, reference_key, content_fingerprint)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/strava_activity_ingest_job/ix_strava_activity_ingest_job_activity_id": {
+    "definition": "CREATE INDEX ix_strava_activity_ingest_job_activity_id ON public.strava_activity_ingest_job USING btree (strava_activity_id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/strava_activity_ingest_job/ix_strava_activity_ingest_job_status_scheduled_at": {
+    "definition": "CREATE INDEX ix_strava_activity_ingest_job_status_scheduled_at ON public.strava_activity_ingest_job USING btree (status, scheduled_at)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/strava_activity_ingest_job/strava_activity_ingest_job_pkey": {
+    "definition": "CREATE UNIQUE INDEX strava_activity_ingest_job_pkey ON public.strava_activity_ingest_job USING btree (id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/strava_activity_ingest_job/uq_strava_activity_ingest_job_active": {
+    "definition": "CREATE UNIQUE INDEX uq_strava_activity_ingest_job_active ON public.strava_activity_ingest_job USING btree (strava_activity_id) WHERE (status = ANY (ARRAY['pending'::text, 'running'::text]))",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/strava_activity_raw/ix_strava_activity_raw_athlete_id_start_date": {
+    "definition": "CREATE INDEX ix_strava_activity_raw_athlete_id_start_date ON public.strava_activity_raw USING btree (strava_athlete_id, start_date DESC)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/strava_activity_raw/ix_strava_activity_raw_duplicate_of": {
+    "definition": "CREATE INDEX ix_strava_activity_raw_duplicate_of ON public.strava_activity_raw USING btree (duplicate_of_activity_id) WHERE (duplicate_of_activity_id IS NOT NULL)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/strava_activity_raw/ix_strava_activity_raw_excluded": {
+    "definition": "CREATE INDEX ix_strava_activity_raw_excluded ON public.strava_activity_raw USING btree (user_id, is_excluded, start_date)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/strava_activity_raw/ix_strava_activity_raw_user_dedup_candidates": {
+    "definition": "CREATE INDEX ix_strava_activity_raw_user_dedup_candidates ON public.strava_activity_raw USING btree (user_id, start_date) WHERE (is_deleted = false)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/strava_activity_raw/ix_strava_activity_raw_user_id_start_date": {
+    "definition": "CREATE INDEX ix_strava_activity_raw_user_id_start_date ON public.strava_activity_raw USING btree (user_id, start_date DESC)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/strava_activity_raw/strava_activity_raw_pkey": {
+    "definition": "CREATE UNIQUE INDEX strava_activity_raw_pkey ON public.strava_activity_raw USING btree (id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/strava_activity_raw/uq_strava_activity_raw_activity_id": {
+    "definition": "CREATE UNIQUE INDEX uq_strava_activity_raw_activity_id ON public.strava_activity_raw USING btree (strava_activity_id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/strava_activity_stream_raw/ix_strava_activity_stream_raw_activity_id": {
+    "definition": "CREATE INDEX ix_strava_activity_stream_raw_activity_id ON public.strava_activity_stream_raw USING btree (strava_activity_id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/strava_activity_stream_raw/strava_activity_stream_raw_pkey": {
+    "definition": "CREATE UNIQUE INDEX strava_activity_stream_raw_pkey ON public.strava_activity_stream_raw USING btree (id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/strava_activity_stream_raw/uq_strava_activity_stream_raw": {
+    "definition": "CREATE UNIQUE INDEX uq_strava_activity_stream_raw ON public.strava_activity_stream_raw USING btree (strava_activity_id, stream_type)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/strava_webhook_event/ix_strava_webhook_event_object_id": {
+    "definition": "CREATE INDEX ix_strava_webhook_event_object_id ON public.strava_webhook_event USING btree (object_id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/strava_webhook_event/ix_strava_webhook_event_owner_id": {
+    "definition": "CREATE INDEX ix_strava_webhook_event_owner_id ON public.strava_webhook_event USING btree (owner_id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/strava_webhook_event/ix_strava_webhook_event_received_at": {
+    "definition": "CREATE INDEX ix_strava_webhook_event_received_at ON public.strava_webhook_event USING btree (received_at DESC)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/strava_webhook_event/strava_webhook_event_pkey": {
+    "definition": "CREATE UNIQUE INDEX strava_webhook_event_pkey ON public.strava_webhook_event USING btree (id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/strava_webhook_event/uq_strava_webhook_event_dedupe_key": {
+    "definition": "CREATE UNIQUE INDEX uq_strava_webhook_event_dedupe_key ON public.strava_webhook_event USING btree (dedupe_key)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/subjective_feedback_prompt_log/ix_subjective_feedback_prompt_log_target_date": {
+    "definition": "CREATE INDEX ix_subjective_feedback_prompt_log_target_date ON public.subjective_feedback_prompt_log USING btree (target_date DESC, prompt_type)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/subjective_feedback_prompt_log/ix_subjective_feedback_prompt_log_user_created_at": {
+    "definition": "CREATE INDEX ix_subjective_feedback_prompt_log_user_created_at ON public.subjective_feedback_prompt_log USING btree (user_id, created_at DESC)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/subjective_feedback_prompt_log/subjective_feedback_prompt_log_pkey": {
+    "definition": "CREATE UNIQUE INDEX subjective_feedback_prompt_log_pkey ON public.subjective_feedback_prompt_log USING btree (id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/subjective_feedback_prompt_log/uq_subjective_feedback_prompt_log_user_type_date": {
+    "definition": "CREATE UNIQUE INDEX uq_subjective_feedback_prompt_log_user_type_date ON public.subjective_feedback_prompt_log USING btree (user_id, prompt_type, target_date)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/telegram_physiology_checkin_session/ix_telegram_physiology_checkin_session_active": {
+    "definition": "CREATE INDEX ix_telegram_physiology_checkin_session_active ON public.telegram_physiology_checkin_session USING btree (telegram_chat_id, local_date DESC) WHERE (status = 'active'::text)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/telegram_physiology_checkin_session/telegram_physiology_checkin_session_pkey": {
+    "definition": "CREATE UNIQUE INDEX telegram_physiology_checkin_session_pkey ON public.telegram_physiology_checkin_session USING btree (id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/telegram_physiology_checkin_session/uq_telegram_physiology_checkin_session_token": {
+    "definition": "CREATE UNIQUE INDEX uq_telegram_physiology_checkin_session_token ON public.telegram_physiology_checkin_session USING btree (session_token)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/telegram_physiology_checkin_session/uq_telegram_physiology_checkin_session_user_date": {
+    "definition": "CREATE UNIQUE INDEX uq_telegram_physiology_checkin_session_user_date ON public.telegram_physiology_checkin_session USING btree (user_id, local_date)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/user_profile_value/user_profile_value_pkey": {
+    "definition": "CREATE UNIQUE INDEX user_profile_value_pkey ON public.user_profile_value USING btree (user_id, metric, effective_from)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/user_strava_connection/uq_user_strava_connection_strava_athlete_id": {
+    "definition": "CREATE UNIQUE INDEX uq_user_strava_connection_strava_athlete_id ON public.user_strava_connection USING btree (strava_athlete_id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/user_strava_connection/uq_user_strava_connection_user_id": {
+    "definition": "CREATE UNIQUE INDEX uq_user_strava_connection_user_id ON public.user_strava_connection USING btree (user_id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/user_strava_connection/user_strava_connection_pkey": {
+    "definition": "CREATE UNIQUE INDEX user_strava_connection_pkey ON public.user_strava_connection USING btree (id)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/user_training_profile/ix_user_training_profile_user_id_effective_from": {
+    "definition": "CREATE INDEX ix_user_training_profile_user_id_effective_from ON public.user_training_profile USING btree (user_id, effective_from DESC)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/user_training_profile/uq_user_training_profile": {
+    "definition": "CREATE UNIQUE INDEX uq_user_training_profile ON public.user_training_profile USING btree (user_id, effective_from)",
+    "ready": true,
+    "valid": true
+  },
+  "index/public/user_training_profile/user_training_profile_pkey": {
+    "definition": "CREATE UNIQUE INDEX user_training_profile_pkey ON public.user_training_profile USING btree (id)",
+    "ready": true,
+    "valid": true
+  },
+  "relation/analytics/daily_state": {
+    "acl": [
+      "human_engine=arwdDxt/human_engine",
+      "superset_reader=r/human_engine"
+    ],
+    "force_rls": false,
+    "kind": "v",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/activity_delivery_log": {
+    "acl": [
+      "human_engine=arwdDxt/human_engine",
+      "superset_reader=r/human_engine"
+    ],
+    "force_rls": false,
+    "kind": "r",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/activity_delivery_log_id_seq": {
+    "acl": null,
+    "force_rls": false,
+    "kind": "S",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/activity_metrics": {
+    "acl": [
+      "human_engine=arwdDxt/human_engine",
+      "superset_reader=r/human_engine"
+    ],
+    "force_rls": false,
+    "kind": "r",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/activity_metrics_id_seq": {
+    "acl": null,
+    "force_rls": false,
+    "kind": "S",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/activity_response_metrics": {
+    "acl": [
+      "human_engine=arwdDxt/human_engine",
+      "superset_reader=r/human_engine"
+    ],
+    "force_rls": false,
+    "kind": "r",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/activity_response_metrics_id_seq": {
+    "acl": null,
+    "force_rls": false,
+    "kind": "S",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/activity_rpe_observation": {
+    "acl": [
+      "human_engine=arwdDxt/human_engine",
+      "superset_reader=r/human_engine"
+    ],
+    "force_rls": false,
+    "kind": "r",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/activity_rpe_observation_id_seq": {
+    "acl": null,
+    "force_rls": false,
+    "kind": "S",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/activity_rpe_resolution": {
+    "acl": [
+      "human_engine=arwdDxt/human_engine",
+      "superset_reader=r/human_engine"
+    ],
+    "force_rls": false,
+    "kind": "r",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/activity_subjective_feedback": {
+    "acl": [
+      "human_engine=arwdDxt/human_engine",
+      "superset_reader=r/human_engine"
+    ],
+    "force_rls": false,
+    "kind": "r",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/activity_subjective_feedback_id_seq": {
+    "acl": null,
+    "force_rls": false,
+    "kind": "S",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/daily_fitness_state": {
+    "acl": [
+      "human_engine=arwdDxt/human_engine",
+      "superset_reader=r/human_engine"
+    ],
+    "force_rls": false,
+    "kind": "r",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/daily_fitness_state_id_seq": {
+    "acl": null,
+    "force_rls": false,
+    "kind": "S",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/daily_training_load": {
+    "acl": [
+      "human_engine=arwdDxt/human_engine",
+      "superset_reader=r/human_engine"
+    ],
+    "force_rls": false,
+    "kind": "r",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/daily_training_load_id_seq": {
+    "acl": null,
+    "force_rls": false,
+    "kind": "S",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/decision_context_snapshot": {
+    "acl": [
+      "human_engine=arwdDxt/human_engine",
+      "superset_reader=r/human_engine"
+    ],
+    "force_rls": false,
+    "kind": "r",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/decision_context_snapshot_id_seq": {
+    "acl": null,
+    "force_rls": false,
+    "kind": "S",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/document": {
+    "acl": [
+      "human_engine=arwdDxt/human_engine",
+      "superset_reader=r/human_engine"
+    ],
+    "force_rls": false,
+    "kind": "r",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/document_chunk": {
+    "acl": [
+      "human_engine=arwdDxt/human_engine",
+      "superset_reader=r/human_engine"
+    ],
+    "force_rls": false,
+    "kind": "r",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/document_chunk_id_seq": {
+    "acl": null,
+    "force_rls": false,
+    "kind": "S",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/document_id_seq": {
+    "acl": null,
+    "force_rls": false,
+    "kind": "S",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/events": {
+    "acl": [
+      "human_engine=arwdDxt/human_engine",
+      "superset_reader=r/human_engine"
+    ],
+    "force_rls": false,
+    "kind": "r",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/events_id_seq": {
+    "acl": null,
+    "force_rls": false,
+    "kind": "S",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/health_hrv_sample": {
+    "acl": [
+      "human_engine=arwdDxt/human_engine",
+      "superset_reader=r/human_engine"
+    ],
+    "force_rls": false,
+    "kind": "r",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/health_hrv_sample_id_seq": {
+    "acl": null,
+    "force_rls": false,
+    "kind": "S",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/health_recovery_daily": {
+    "acl": [
+      "human_engine=arwdDxt/human_engine",
+      "superset_reader=r/human_engine"
+    ],
+    "force_rls": false,
+    "kind": "r",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/health_recovery_daily_id_seq": {
+    "acl": null,
+    "force_rls": false,
+    "kind": "S",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/health_resting_hr_daily": {
+    "acl": [
+      "human_engine=arwdDxt/human_engine",
+      "superset_reader=r/human_engine"
+    ],
+    "force_rls": false,
+    "kind": "r",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/health_resting_hr_daily_id_seq": {
+    "acl": null,
+    "force_rls": false,
+    "kind": "S",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/health_sleep_night": {
+    "acl": [
+      "human_engine=arwdDxt/human_engine",
+      "superset_reader=r/human_engine"
+    ],
+    "force_rls": false,
+    "kind": "r",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/health_sleep_night_id_seq": {
+    "acl": null,
+    "force_rls": false,
+    "kind": "S",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/health_weight_measurement": {
+    "acl": [
+      "human_engine=arwdDxt/human_engine",
+      "superset_reader=r/human_engine"
+    ],
+    "force_rls": false,
+    "kind": "r",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/health_weight_measurement_id_seq": {
+    "acl": null,
+    "force_rls": false,
+    "kind": "S",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/healthkit_ingest_raw": {
+    "acl": [
+      "human_engine=arwdDxt/human_engine",
+      "superset_reader=r/human_engine"
+    ],
+    "force_rls": false,
+    "kind": "r",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/healthkit_ingest_raw_id_seq": {
+    "acl": null,
+    "force_rls": false,
+    "kind": "S",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/load_state_daily_v2": {
+    "acl": [
+      "human_engine=arwdDxt/human_engine",
+      "superset_reader=r/human_engine"
+    ],
+    "force_rls": false,
+    "kind": "r",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/load_state_daily_v2_id_seq": {
+    "acl": null,
+    "force_rls": false,
+    "kind": "S",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/manual_physiology_observation": {
+    "acl": [
+      "human_engine=arwdDxt/human_engine",
+      "superset_reader=r/human_engine"
+    ],
+    "force_rls": false,
+    "kind": "r",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/manual_physiology_observation_id_seq": {
+    "acl": null,
+    "force_rls": false,
+    "kind": "S",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/manual_physiology_observation_revision": {
+    "acl": [
+      "human_engine=arwdDxt/human_engine",
+      "superset_reader=r/human_engine"
+    ],
+    "force_rls": false,
+    "kind": "r",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/manual_physiology_observation_revision_id_seq": {
+    "acl": null,
+    "force_rls": false,
+    "kind": "S",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/notification_log": {
+    "acl": [
+      "human_engine=arwdDxt/human_engine",
+      "superset_reader=r/human_engine"
+    ],
+    "force_rls": false,
+    "kind": "r",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/notification_log_id_seq": {
+    "acl": null,
+    "force_rls": false,
+    "kind": "S",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/personal_physiology_feature_daily": {
+    "acl": [
+      "human_engine=arwdDxt/human_engine",
+      "superset_reader=r/human_engine"
+    ],
+    "force_rls": false,
+    "kind": "r",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/readiness_daily": {
+    "acl": [
+      "human_engine=arwdDxt/human_engine",
+      "superset_reader=r/human_engine"
+    ],
+    "force_rls": false,
+    "kind": "r",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/readiness_daily_id_seq": {
+    "acl": null,
+    "force_rls": false,
+    "kind": "S",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/research_experiment": {
+    "acl": [
+      "human_engine=arwdDxt/human_engine",
+      "superset_reader=r/human_engine",
+      "whatte_research_writer=r/human_engine"
+    ],
+    "force_rls": false,
+    "kind": "r",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/research_experiment_id_seq": {
+    "acl": [
+      "human_engine=rwU/human_engine",
+      "whatte_research_writer=U/human_engine"
+    ],
+    "force_rls": false,
+    "kind": "S",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/research_feature_snapshot": {
+    "acl": [
+      "human_engine=arwdDxt/human_engine",
+      "superset_reader=r/human_engine"
+    ],
+    "force_rls": false,
+    "kind": "r",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/research_feature_snapshot_id_seq": {
+    "acl": null,
+    "force_rls": false,
+    "kind": "S",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/strava_activity_ingest_job": {
+    "acl": [
+      "human_engine=arwdDxt/human_engine",
+      "superset_reader=r/human_engine"
+    ],
+    "force_rls": false,
+    "kind": "r",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/strava_activity_ingest_job_id_seq": {
+    "acl": null,
+    "force_rls": false,
+    "kind": "S",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/strava_activity_raw": {
+    "acl": [
+      "human_engine=arwdDxt/human_engine",
+      "superset_reader=r/human_engine"
+    ],
+    "force_rls": false,
+    "kind": "r",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/strava_activity_raw_id_seq": {
+    "acl": null,
+    "force_rls": false,
+    "kind": "S",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/strava_activity_stream_raw": {
+    "acl": [
+      "human_engine=arwdDxt/human_engine",
+      "superset_reader=r/human_engine"
+    ],
+    "force_rls": false,
+    "kind": "r",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/strava_activity_stream_raw_id_seq": {
+    "acl": null,
+    "force_rls": false,
+    "kind": "S",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/strava_webhook_event": {
+    "acl": [
+      "human_engine=arwdDxt/human_engine",
+      "superset_reader=r/human_engine"
+    ],
+    "force_rls": false,
+    "kind": "r",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/strava_webhook_event_id_seq": {
+    "acl": null,
+    "force_rls": false,
+    "kind": "S",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/subjective_feedback_prompt_log": {
+    "acl": [
+      "human_engine=arwdDxt/human_engine",
+      "superset_reader=r/human_engine"
+    ],
+    "force_rls": false,
+    "kind": "r",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/subjective_feedback_prompt_log_id_seq": {
+    "acl": null,
+    "force_rls": false,
+    "kind": "S",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/telegram_physiology_checkin_session": {
+    "acl": [
+      "human_engine=arwdDxt/human_engine",
+      "superset_reader=r/human_engine"
+    ],
+    "force_rls": false,
+    "kind": "r",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/telegram_physiology_checkin_session_id_seq": {
+    "acl": null,
+    "force_rls": false,
+    "kind": "S",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/user_profile_value": {
+    "acl": [
+      "human_engine=arwdDxt/human_engine",
+      "superset_reader=r/human_engine"
+    ],
+    "force_rls": false,
+    "kind": "r",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/user_strava_connection": {
+    "acl": [
+      "human_engine=arwdDxt/human_engine",
+      "superset_reader=r/human_engine"
+    ],
+    "force_rls": false,
+    "kind": "r",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/user_strava_connection_id_seq": {
+    "acl": null,
+    "force_rls": false,
+    "kind": "S",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/user_training_profile": {
+    "acl": [
+      "human_engine=arwdDxt/human_engine",
+      "superset_reader=r/human_engine"
+    ],
+    "force_rls": false,
+    "kind": "r",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "relation/public/user_training_profile_id_seq": {
+    "acl": null,
+    "force_rls": false,
+    "kind": "S",
+    "options": null,
+    "owner": "human_engine",
+    "rls": false
+  },
+  "schema/analytics": {
+    "acl": [
+      "human_engine=UC/human_engine",
+      "superset_reader=U/human_engine"
+    ],
+    "owner": "human_engine"
+  },
+  "schema/public": {
+    "acl": [
+      "pg_database_owner=UC/pg_database_owner",
+      "superset_reader=U/pg_database_owner",
+      "=U/pg_database_owner",
+      "whatte_research_writer=U/pg_database_owner"
+    ],
+    "owner": "pg_database_owner"
+  },
+  "sequence/public/activity_delivery_log_id_seq": {
+    "cache": 1,
+    "cycle": false,
+    "increment": 1,
+    "max": 9223372036854775807,
+    "min": 1,
+    "owned_by": "activity_delivery_log.id",
+    "start": 1,
+    "type": "bigint"
+  },
+  "sequence/public/activity_metrics_id_seq": {
+    "cache": 1,
+    "cycle": false,
+    "increment": 1,
+    "max": 9223372036854775807,
+    "min": 1,
+    "owned_by": "activity_metrics.id",
+    "start": 1,
+    "type": "bigint"
+  },
+  "sequence/public/activity_response_metrics_id_seq": {
+    "cache": 1,
+    "cycle": false,
+    "increment": 1,
+    "max": 9223372036854775807,
+    "min": 1,
+    "owned_by": "activity_response_metrics.id",
+    "start": 1,
+    "type": "bigint"
+  },
+  "sequence/public/activity_rpe_observation_id_seq": {
+    "cache": 1,
+    "cycle": false,
+    "increment": 1,
+    "max": 9223372036854775807,
+    "min": 1,
+    "owned_by": "activity_rpe_observation.id",
+    "start": 1,
+    "type": "bigint"
+  },
+  "sequence/public/activity_subjective_feedback_id_seq": {
+    "cache": 1,
+    "cycle": false,
+    "increment": 1,
+    "max": 9223372036854775807,
+    "min": 1,
+    "owned_by": "activity_subjective_feedback.id",
+    "start": 1,
+    "type": "bigint"
+  },
+  "sequence/public/daily_fitness_state_id_seq": {
+    "cache": 1,
+    "cycle": false,
+    "increment": 1,
+    "max": 9223372036854775807,
+    "min": 1,
+    "owned_by": "daily_fitness_state.id",
+    "start": 1,
+    "type": "bigint"
+  },
+  "sequence/public/daily_training_load_id_seq": {
+    "cache": 1,
+    "cycle": false,
+    "increment": 1,
+    "max": 9223372036854775807,
+    "min": 1,
+    "owned_by": "daily_training_load.id",
+    "start": 1,
+    "type": "bigint"
+  },
+  "sequence/public/decision_context_snapshot_id_seq": {
+    "cache": 1,
+    "cycle": false,
+    "increment": 1,
+    "max": 9223372036854775807,
+    "min": 1,
+    "owned_by": "decision_context_snapshot.id",
+    "start": 1,
+    "type": "bigint"
+  },
+  "sequence/public/document_chunk_id_seq": {
+    "cache": 1,
+    "cycle": false,
+    "increment": 1,
+    "max": 9223372036854775807,
+    "min": 1,
+    "owned_by": "document_chunk.id",
+    "start": 1,
+    "type": "bigint"
+  },
+  "sequence/public/document_id_seq": {
+    "cache": 1,
+    "cycle": false,
+    "increment": 1,
+    "max": 9223372036854775807,
+    "min": 1,
+    "owned_by": "document.id",
+    "start": 1,
+    "type": "bigint"
+  },
+  "sequence/public/events_id_seq": {
+    "cache": 1,
+    "cycle": false,
+    "increment": 1,
+    "max": 9223372036854775807,
+    "min": 1,
+    "owned_by": "events.id",
+    "start": 1,
+    "type": "bigint"
+  },
+  "sequence/public/health_hrv_sample_id_seq": {
+    "cache": 1,
+    "cycle": false,
+    "increment": 1,
+    "max": 9223372036854775807,
+    "min": 1,
+    "owned_by": "health_hrv_sample.id",
+    "start": 1,
+    "type": "bigint"
+  },
+  "sequence/public/health_recovery_daily_id_seq": {
+    "cache": 1,
+    "cycle": false,
+    "increment": 1,
+    "max": 9223372036854775807,
+    "min": 1,
+    "owned_by": "health_recovery_daily.id",
+    "start": 1,
+    "type": "bigint"
+  },
+  "sequence/public/health_resting_hr_daily_id_seq": {
+    "cache": 1,
+    "cycle": false,
+    "increment": 1,
+    "max": 9223372036854775807,
+    "min": 1,
+    "owned_by": "health_resting_hr_daily.id",
+    "start": 1,
+    "type": "bigint"
+  },
+  "sequence/public/health_sleep_night_id_seq": {
+    "cache": 1,
+    "cycle": false,
+    "increment": 1,
+    "max": 9223372036854775807,
+    "min": 1,
+    "owned_by": "health_sleep_night.id",
+    "start": 1,
+    "type": "bigint"
+  },
+  "sequence/public/health_weight_measurement_id_seq": {
+    "cache": 1,
+    "cycle": false,
+    "increment": 1,
+    "max": 9223372036854775807,
+    "min": 1,
+    "owned_by": "health_weight_measurement.id",
+    "start": 1,
+    "type": "bigint"
+  },
+  "sequence/public/healthkit_ingest_raw_id_seq": {
+    "cache": 1,
+    "cycle": false,
+    "increment": 1,
+    "max": 9223372036854775807,
+    "min": 1,
+    "owned_by": "healthkit_ingest_raw.id",
+    "start": 1,
+    "type": "bigint"
+  },
+  "sequence/public/load_state_daily_v2_id_seq": {
+    "cache": 1,
+    "cycle": false,
+    "increment": 1,
+    "max": 9223372036854775807,
+    "min": 1,
+    "owned_by": "load_state_daily_v2.id",
+    "start": 1,
+    "type": "bigint"
+  },
+  "sequence/public/manual_physiology_observation_id_seq": {
+    "cache": 1,
+    "cycle": false,
+    "increment": 1,
+    "max": 9223372036854775807,
+    "min": 1,
+    "owned_by": "manual_physiology_observation.id",
+    "start": 1,
+    "type": "bigint"
+  },
+  "sequence/public/manual_physiology_observation_revision_id_seq": {
+    "cache": 1,
+    "cycle": false,
+    "increment": 1,
+    "max": 9223372036854775807,
+    "min": 1,
+    "owned_by": "manual_physiology_observation_revision.id",
+    "start": 1,
+    "type": "bigint"
+  },
+  "sequence/public/notification_log_id_seq": {
+    "cache": 1,
+    "cycle": false,
+    "increment": 1,
+    "max": 9223372036854775807,
+    "min": 1,
+    "owned_by": "notification_log.id",
+    "start": 1,
+    "type": "bigint"
+  },
+  "sequence/public/readiness_daily_id_seq": {
+    "cache": 1,
+    "cycle": false,
+    "increment": 1,
+    "max": 9223372036854775807,
+    "min": 1,
+    "owned_by": "readiness_daily.id",
+    "start": 1,
+    "type": "bigint"
+  },
+  "sequence/public/research_experiment_id_seq": {
+    "cache": 1,
+    "cycle": false,
+    "increment": 1,
+    "max": 9223372036854775807,
+    "min": 1,
+    "owned_by": "research_experiment.id",
+    "start": 1,
+    "type": "bigint"
+  },
+  "sequence/public/research_feature_snapshot_id_seq": {
+    "cache": 1,
+    "cycle": false,
+    "increment": 1,
+    "max": 9223372036854775807,
+    "min": 1,
+    "owned_by": "research_feature_snapshot.id",
+    "start": 1,
+    "type": "bigint"
+  },
+  "sequence/public/strava_activity_ingest_job_id_seq": {
+    "cache": 1,
+    "cycle": false,
+    "increment": 1,
+    "max": 9223372036854775807,
+    "min": 1,
+    "owned_by": "strava_activity_ingest_job.id",
+    "start": 1,
+    "type": "bigint"
+  },
+  "sequence/public/strava_activity_raw_id_seq": {
+    "cache": 1,
+    "cycle": false,
+    "increment": 1,
+    "max": 9223372036854775807,
+    "min": 1,
+    "owned_by": "strava_activity_raw.id",
+    "start": 1,
+    "type": "bigint"
+  },
+  "sequence/public/strava_activity_stream_raw_id_seq": {
+    "cache": 1,
+    "cycle": false,
+    "increment": 1,
+    "max": 9223372036854775807,
+    "min": 1,
+    "owned_by": "strava_activity_stream_raw.id",
+    "start": 1,
+    "type": "bigint"
+  },
+  "sequence/public/strava_webhook_event_id_seq": {
+    "cache": 1,
+    "cycle": false,
+    "increment": 1,
+    "max": 9223372036854775807,
+    "min": 1,
+    "owned_by": "strava_webhook_event.id",
+    "start": 1,
+    "type": "bigint"
+  },
+  "sequence/public/subjective_feedback_prompt_log_id_seq": {
+    "cache": 1,
+    "cycle": false,
+    "increment": 1,
+    "max": 9223372036854775807,
+    "min": 1,
+    "owned_by": "subjective_feedback_prompt_log.id",
+    "start": 1,
+    "type": "bigint"
+  },
+  "sequence/public/telegram_physiology_checkin_session_id_seq": {
+    "cache": 1,
+    "cycle": false,
+    "increment": 1,
+    "max": 9223372036854775807,
+    "min": 1,
+    "owned_by": "telegram_physiology_checkin_session.id",
+    "start": 1,
+    "type": "bigint"
+  },
+  "sequence/public/user_strava_connection_id_seq": {
+    "cache": 1,
+    "cycle": false,
+    "increment": 1,
+    "max": 9223372036854775807,
+    "min": 1,
+    "owned_by": "user_strava_connection.id",
+    "start": 1,
+    "type": "bigint"
+  },
+  "sequence/public/user_training_profile_id_seq": {
+    "cache": 1,
+    "cycle": false,
+    "increment": 1,
+    "max": 9223372036854775807,
+    "min": 1,
+    "owned_by": "user_training_profile.id",
+    "start": 1,
+    "type": "bigint"
+  },
+  "trigger/public/research_experiment/trg_protect_research_experiment_audit_log": {
+    "definition": "CREATE TRIGGER trg_protect_research_experiment_audit_log BEFORE INSERT OR DELETE OR UPDATE ON public.research_experiment FOR EACH ROW EXECUTE FUNCTION protect_research_experiment_audit_log()",
+    "enabled": "O"
+  },
+  "view/analytics/daily_state": " WITH days AS (\n         SELECT readiness_daily.user_id,\n            readiness_daily.date\n           FROM readiness_daily\n        UNION\n         SELECT health_recovery_daily.user_id,\n            health_recovery_daily.date\n           FROM health_recovery_daily\n        UNION\n         SELECT load_state_daily_v2.user_id,\n            load_state_daily_v2.date\n           FROM load_state_daily_v2\n        )\n SELECT d.user_id,\n    d.date,\n    r.readiness_score,\n    r.good_day_probability,\n    r.status_text AS readiness_status,\n    r.freshness AS readiness_freshness,\n    r.recovery_score_simple AS readiness_recovery_score,\n    r.version AS readiness_version,\n    rec.sleep_minutes,\n    rec.awake_minutes,\n    rec.rem_minutes,\n    rec.deep_minutes,\n    rec.resting_hr_bpm,\n    rec.hrv_daily_median_ms,\n    rec.weight_kg,\n    rec.recovery_score_simple,\n    COALESCE(t.activities_count, 0) AS activities_count,\n    COALESCE(t.duration_s, 0) AS training_duration_s,\n    COALESCE(t.distance_m, (0)::double precision) AS distance_m,\n    COALESCE(t.elevation_gain_m, (0)::double precision) AS elevation_gain_m,\n    COALESCE(t.work_kj, (0)::double precision) AS work_kj,\n    COALESCE(t.tss, (0)::double precision) AS daily_tss,\n    l.load_input_nonlinear,\n    l.fitness,\n    l.fatigue_fast,\n    l.fatigue_slow,\n    l.fatigue_total,\n    l.freshness,\n    l.version AS load_model_version,\n        CASE\n            WHEN ((rec.sleep_minutes + rec.awake_minutes) > (0)::double precision) THEN (((100.0)::double precision * rec.sleep_minutes) / (rec.sleep_minutes + rec.awake_minutes))\n            ELSE NULL::double precision\n        END AS sleep_efficiency_pct,\n        CASE\n            WHEN (rec.sleep_minutes > (0)::double precision) THEN (((100.0)::double precision * rec.deep_minutes) / rec.sleep_minutes)\n            ELSE NULL::double precision\n        END AS deep_sleep_pct,\n        CASE\n            WHEN (rec.sleep_minutes > (0)::double precision) THEN (((100.0)::double precision * rec.rem_minutes) / rec.sleep_minutes)\n            ELSE NULL::double precision\n        END AS rem_sleep_pct\n   FROM ((((days d\n     LEFT JOIN readiness_daily r ON (((r.user_id = d.user_id) AND (r.date = d.date))))\n     LEFT JOIN health_recovery_daily rec ON (((rec.user_id = d.user_id) AND (rec.date = d.date))))\n     LEFT JOIN daily_training_load t ON (((t.user_id = d.user_id) AND (t.date = d.date))))\n     LEFT JOIN load_state_daily_v2 l ON (((l.user_id = d.user_id) AND (l.date = d.date))));"
+}

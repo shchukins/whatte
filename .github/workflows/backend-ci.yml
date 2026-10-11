@@ -56,7 +56,7 @@ jobs:
 
     services:
       postgres:
-        image: mirror.gcr.io/pgvector/pgvector:pg16-trixie
+        image: mirror.gcr.io/pgvector/pgvector@sha256:41599f76505f3a9450355e34c83a4fd215a8099ea66fcb8b38049b15da155ee7
         env:
           POSTGRES_USER: human_engine
           POSTGRES_PASSWORD: human_engine
@@ -71,6 +71,11 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://human_engine:human_engine@127.0.0.1:5432/human_engine
+      MIGRATION_ENVIRONMENT: ci
+      MIGRATION_TEST_DISPOSABLE: "yes"
+      FLYWAY_URL: jdbc:postgresql://127.0.0.1:5432/human_engine
+      FLYWAY_USER: human_engine
+      FLYWAY_PASSWORD: human_engine
       RUN_DB_TESTS: "1"
       RUN_DOCKER_TESTS: "1"
       PYTHONPATH: ${{ github.workspace }}/backend
@@ -104,11 +109,14 @@ jobs:
             sleep 2
           done
 
-      - name: Apply DB schema
-        run: bash tests/integration/bootstrap_schema.sh
+      - name: Apply versioned DB schema
+        run: python3 ../scripts/migrate.py migrate
 
-      - name: Verify DB schema bootstrap is idempotent
-        run: bash tests/integration/bootstrap_schema.sh
+      - name: Verify baseline catalog and historical backfill postconditions
+        run: python3 ../scripts/migrate.py verify-baseline
+
+      - name: Verify migration failure, checksum, concurrency and interruption safety
+        run: python3 ../scripts/test_migrations.py
 
       - name: Run DB integration tests
         run: |

@@ -158,7 +158,12 @@ mechanism; pin and test the selected Community distribution/image in #187.
 Do not depend on paid schema-diff/undo capabilities. SQL checksums detect edits,
 not all manual database drift; independent catalog assertions remain required.
 
-### Baseline adoption in #187 (planned)
+### Baseline adoption in #187
+
+The versioned runner, audited V1 and rehearsal suite are implemented in
+[Migration rules](../data/MIGRATIONS.md). Production adoption remains gated by
+verified backup/restore and separate reviewed baseline-write authorization. The
+steps below remain the activation contract.
 
 1. Build a reviewed `V1__baseline.sql` from the full ordered schema for an empty
    database, preserving existing SQL semantics. Inventory each original file,

@@ -1,0 +1,158 @@
+[
+  {
+    "path": "sql/ingestion/sql_user_strava_connection.sql",
+    "sha256": "92ad114da1dba83e41618ebaa0eb37122d99e5253936fdb5e5d383141b38e526"
+  },
+  {
+    "path": "sql/ingestion/sql_strava_webhook_event.sql",
+    "sha256": "734fc083500a0d5cb9d421bc46d6bdc760d2cf7c58056b4cbd428b65979d776e"
+  },
+  {
+    "path": "sql/ingestion/sql_strava_activity_raw.sql",
+    "sha256": "3a3325a8185a1df7e09d3431dd35c2662384b958c9592536efc47b6ff14b0eb3"
+  },
+  {
+    "path": "sql/ingestion/sql_healthkit_ingest_raw.sql",
+    "sha256": "ad35627b37b65ab5088ad2f19135314411b60453eafd325cd47286176a0a5b21"
+  },
+  {
+    "path": "sql/ingestion/sql_strava_activity_ingest_job.sql",
+    "sha256": "ec8f437e89786eac61545a3209aa49cd85425a9a7f526cd3b445543c935f89ee"
+  },
+  {
+    "path": "sql/ingestion/sql_strava_activity_stream_raw.sql",
+    "sha256": "a0b8c909fdba72a262528a624d16a195b18c30294f80cb49db7b807ebe56c1c8"
+  },
+  {
+    "path": "sql/scratch/sql_user_training_profile.sql",
+    "sha256": "571df1f85be4f7d3fa0b765cbc1558b0e4310e3c55bafe7bcde8f12c775ff650"
+  },
+  {
+    "path": "sql/health/sql_health_sleep_night.sql",
+    "sha256": "4574637019eb0415d06e37595030d7dfc5b2d82b5a2598e9986ca6c66417bf53"
+  },
+  {
+    "path": "sql/health/sql_health_resting_hr_daily.sql",
+    "sha256": "66b4892bf1c114eeca5032d8e24593ac8a921cf186fc80d57db3a80929b06aba"
+  },
+  {
+    "path": "sql/health/sql_health_hrv_sample.sql",
+    "sha256": "28bfb7aadaf89354e979db123fbbe018f9ae85a834017e11fa08187adffa76e9"
+  },
+  {
+    "path": "sql/health/sql_health_weight_measurement.sql",
+    "sha256": "65ebc3070ae2445d3b39b83f11b991ba441d8efa3ba971e0e2aedcd38e36394a"
+  },
+  {
+    "path": "sql/analytics/sql_activity_metrics.sql",
+    "sha256": "6fd17951e55d4b467670568c3e47c6da92a59b1ad9d418ea8665cf39836c7df0"
+  },
+  {
+    "path": "sql/analytics/sql_activity_response_metrics.sql",
+    "sha256": "bdaf662ff137540c7b6969cd15353ae4e7bc77300a15e774fe4d1aba7a6d0073"
+  },
+  {
+    "path": "sql/analytics/sql_daily_training_load.sql",
+    "sha256": "5cc90dc356e8c0648b73e2d311029705a3a7ac03acb952d41467c5c560e90e34"
+  },
+  {
+    "path": "sql/analytics/sql_daily_fitness_state.sql",
+    "sha256": "c486e35a4963a36226495583887e1e755e4773539787db1adfb65cdf5885223d"
+  },
+  {
+    "path": "sql/health/sql_health_recovery_daily.sql",
+    "sha256": "0da50e75a4ca98be736af7ade855ffb1feeac3e355440d48f2a1efd3220085a1"
+  },
+  {
+    "path": "sql/analytics/sql_load_state_daily_v2.sql",
+    "sha256": "15a056792933677489ebd98771bb9323570b98b527cf53548935f9b91557ef8b"
+  },
+  {
+    "path": "sql/analytics/sql_readiness_daily.sql",
+    "sha256": "0077d725e02d779dd86e5c8008486473b6e19e310536aae70a9dbcdf1e16a1f0"
+  },
+  {
+    "path": "db-init/001_init.sql",
+    "sha256": "00fda79abf220940be2c8b9dec75112829daa966fc6c5172e7e30b3a79bef1d8"
+  },
+  {
+    "path": "db-init/002_activity_subjective_feedback.sql",
+    "sha256": "d8cd8998e40218e9b529b46105ac07ae2936f7d9ba8a439aa40b1087b5be9339"
+  },
+  {
+    "path": "sql/health/sql_health_recovery_daily_add_explanation_json.sql",
+    "sha256": "b3e7f9ecd586578a33dbffe5310b009e0eb4a0adf7fcc05e4f8fff7a5939fd6d"
+  },
+  {
+    "path": "db-init/003_subjective_feedback_extensible.sql",
+    "sha256": "1ee8dff01539518f0448b686e123fd240bcc5ab6dc03f5355385549c0cbc6778"
+  },
+  {
+    "path": "db-init/004_next_day_recovery_feedback.sql",
+    "sha256": "db83d6e4a00748b8331310a815930cff4872b49359b6da92c6628f0412a424e3"
+  },
+  {
+    "path": "db-init/005_subjective_feedback_prompt_log.sql",
+    "sha256": "2bd82fd2f168692e661754b81e604d3d0e7f4251678ef42818403d4c992d471f"
+  },
+  {
+    "path": "db-init/006_notification_log.sql",
+    "sha256": "ea0a2ab2cd71813c59a01eb26e45305c569519dc81cc18ce28343628a09da906"
+  },
+  {
+    "path": "db-init/007_indoor_activity_deduplication.sql",
+    "sha256": "e0363b43d103ce56fc5fc790c72844b0e9d4e48ac0ba2a8d0bda603ec87648cd"
+  },
+  {
+    "path": "db-init/008_daily_readiness_delivery_lifecycle.sql",
+    "sha256": "27333f4268b370ea001ec16657b80881d4c1939fadac0e63a24321ab0d0c88d9"
+  },
+  {
+    "path": "db-init/009_activity_response_metrics.sql",
+    "sha256": "7229ccf1b7f3f05d6a539c9b058222a9d6fe28eed68ef6837d8e23e23ef59b85"
+  },
+  {
+    "path": "db-init/010_decision_context_snapshot.sql",
+    "sha256": "7c2bb459a7273c04fab85d6ead02c0e5ad9f254d0da63c51c2bba773c57b4271"
+  },
+  {
+    "path": "db-init/011_user_profile.sql",
+    "sha256": "d48b3cb5c807b1b8e89008924e9ac65c8924f5983fde8cf3dc6339f4977bf98a"
+  },
+  {
+    "path": "db-init/012_rpe_observations.sql",
+    "sha256": "9cdae746c73158e7c0ed9dc83a7331facc429d62f2613f689f117c574df9b4fa"
+  },
+  {
+    "path": "db-init/013_manual_physiology_observations.sql",
+    "sha256": "befd44d19776532a107d24429436c0e3ba084d09d29d39e973fc63d2b360e446"
+  },
+  {
+    "path": "db-init/014_telegram_physiology_checkin.sql",
+    "sha256": "1de70062056a04cdc57b5f38b2b87c9531dd6d948c3facb9dd1b5f321d160657"
+  },
+  {
+    "path": "db-init/015_personal_physiology_features.sql",
+    "sha256": "2eec136e5010e1f054feda78b453fd83eafdbfb8385a9cdba3df40e329603bf6"
+  },
+  {
+    "path": "db-init/016_research_feature_snapshot.sql",
+    "sha256": "1d42b0a239c6507c82fc35593edab4c86f6578c24b08986df98d2eb9ffaee986"
+  },
+  {
+    "path": "db-init/017_decision_context_snapshot_events.sql",
+    "sha256": "8d8b6f8042f7717a808676f2165ede7465860b28a0733f8d842da0de0510e6c9"
+  },
+  {
+    "path": "db-init/018_research_experiment.sql",
+    "sha256": "eb16c50c4857f4f3f8c7290182f2ef58bff6a34f69c388733c84cd9e5d06a9e6"
+  },
+  {
+    "path": "db-init/019_research_execution_metadata.sql",
+    "sha256": "a16cc739e1bb8ec107910243ccb473f8dbd60fd54798d6be69cac2cfde9de210"
+  },
+  {
+    "path": "db-init/020_user_profile_hr_max.sql",
+    "sha256": "ec1dcafde6971c4ed09d6afb5f7f1c91bf48c16b28ffafaf99bca309eab2600b"
+  }
+]

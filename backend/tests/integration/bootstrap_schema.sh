@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# Historical bootstrap oracle only. CI and production use scripts/migrate.py.
+# Do not replay these scripts against an existing production database.
 set -euo pipefail
 
 readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"

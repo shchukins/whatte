@@ -1,0 +1,19 @@
+{
+  "format_version": 1,
+  "baseline_catalog_sha256": "e0f4baea713e2c3434f7fa616fea7597e23cf22304e1087e3c8ee1543edad2f4",
+  "migrations": [
+    {
+      "file": "V1__baseline.sql",
+      "sha256": "1bd6bb42e5d6d7bd2e66045e5e119d5c9b5e92bf9c72d8394d13b5258ba29ae3",
+      "risk": "baseline",
+      "transactional": true,
+      "old_app_compatible": true,
+      "review": "#187: full ordered bootstrap with explicitly audited production variants and preserved legacy objects"
+    }
+  ],
+  "verification_sha256": {
+    "verification/backfill_checks.sql": "f40961e4e15458462364ff0b9b7f06dcc86c5bbee1167b49c110a9897e611f80",
+    "verification/catalog.sql": "50479d5bc3c75ebc32ebdbd5cbcc852490452b6a6279506b858134cf1788bba3",
+    "verification/legacy_objects.sql": "34a632927e986a1b6b1a0c58b83b3f88bd5787d47156a614ee96628404397e5c"
+  }
+}

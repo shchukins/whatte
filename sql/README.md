@@ -22,4 +22,6 @@ These SQL files are used for:
 
 These files are not the primary migration mechanism unless explicitly stated.
 
-Production schema evolution should be managed separately from this directory.
+Production schema evolution uses versioned SQL under `migrations/sql/` through
+[`scripts/migrate.py`](../scripts/migrate.py). Historical SQL remains unchanged
+and is not replayed on production. See [migration rules](../docs/data/MIGRATIONS.md).
