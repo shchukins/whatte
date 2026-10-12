@@ -49,8 +49,9 @@ def test_unrestricted_shell_is_rejected(monkeypatch):
 
 def receipt(tmp_path):
     path = tmp_path / 'proof.json'
+    timestamp = datetime.now(timezone.utc).isoformat()
     path.write_text(json.dumps({'sha256': 'a' * 64, 'remote_archive': MOUNT + '/postgres/whatte-test.dump.age',
-        'restore_verified': True, 'verified_at': datetime.now(timezone.utc).isoformat(),
+        'restore_verified': True, 'verified_at': timestamp, 'created_at': timestamp,
         'receiver_guard_active': True, 'off_host_encrypted': True}))
     return path
 
@@ -97,3 +98,11 @@ def test_restore_rejects_unexpected_members_before_docker(tmp_path):
     with pytest.raises(ValueError, match='Unexpected backup bundle members'):
         restore.restore(archive, ROOT, tmp_path / 'proof.json')
     assert not (tmp_path / 'proof.json').exists()
+
+
+def test_recent_restore_does_not_make_old_archive_fresh(tmp_path):
+    path = receipt(tmp_path)
+    value = json.loads(path.read_text()); value['created_at'] = '2000-01-01T00:00:00+00:00'
+    path.write_text(json.dumps(value))
+    with pytest.raises(ValueError, match='archive is stale'):
+        backup.verify({'remote_directory': MOUNT + '/postgres'}, path)

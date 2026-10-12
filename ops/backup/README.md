@@ -32,7 +32,10 @@ sudo bash /home/shch/whatte-187-backup-setup/install-nas-gate.sh \
   /home/shch/whatte-187-backup-setup/nas-gate.json
 ```
 
-Those staging files are prepared; no root installation has occurred. Review the
+The receiving gate was installed with operator approval on 2026-10-12.
+The fixed probe, explicit SFTP transfer and arbitrary-command rejection were
+verified from VPS. The installer remains an explicit operator procedure for
+future recovery/reinstallation. Review the
 actual site export in the staging JSON before approval. After installation verify
 from the VPS with the dedicated key: the fixed probe returns the correct guard,
 export and protocol; SFTP works; an arbitrary command fails. Keep operator SSH
@@ -89,19 +92,21 @@ production PostgreSQL and existing backup files remain untouched.
 The first actual NAS backup completed this full cycle on 2026-10-12. Snapshot
 counts/catalog and application reads passed; restore took 7.48 seconds. NAS
 ciphertext was fetched back and age-decrypted on the Mac. Private data/counts and
-key material are absent from Git and issue logs. The receiver gate and timer
-still require explicit infrastructure approval and installation.
+key material are absent from Git and issue logs. A second fresh archive was created through the installed receiving gate,
+retrieved/decrypted on Mac and restored with the same checks (7.28 seconds).
+The receiver gate and daily timer were installed after explicit approval;
+the first systemd backup service run completed successfully.
 
 `migrate.py` now binds approval to the backup config/proof SHA and archive hash,
 then calls `postgres_backup.py verify` to recheck **live NFS availability and the
 actual NAS archive checksum immediately before SQL writes**. Cached boolean
-attestations cannot bypass an unavailable NAS or corrupt archive. A restore proof
-must identify this archive and be at most 24h old. All pending production schema
+attestations cannot bypass an unavailable NAS or corrupt archive. Both the archive creation and restore verification must be at most 24h old;
+a newly checked old archive cannot satisfy the freshness requirement. All pending production schema
 writes, including baseline, require these checks. Approval remains a distinct gate.
 
-## Daily backup service (not yet enabled)
+## Daily backup service
 
-The proposed [timer](whatte-postgres-backup.timer) runs daily at 02:00 UTC
+The installed [timer](whatte-postgres-backup.timer) runs daily at 02:00 UTC
 (05:00 Europe/Moscow), including catch-up after downtime. It runs as the VPS
 operator and transfers only through `whatte-backup`; no recurring operator SSH.
 The [service](whatte-postgres-backup.service) fails nonzero and a failure unit emits

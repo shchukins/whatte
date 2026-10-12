@@ -165,7 +165,15 @@ def verify(config, receipt):
     value = json.loads(Path(receipt).read_text())
     if value.get('restore_verified') is not True:
         raise ValueError('An explicit restore proof for this archive is required')
-    age = (datetime.now(timezone.utc) - datetime.fromisoformat(value['verified_at'])).total_seconds()
+    now = datetime.now(timezone.utc)
+    verified_at = datetime.fromisoformat(value['verified_at'])
+    created_at = datetime.fromisoformat(value['created_at'])
+    if verified_at.tzinfo is None or created_at.tzinfo is None:
+        raise ValueError('Backup timestamps require explicit timezones')
+    archive_age = (now - created_at).total_seconds()
+    if not 0 <= archive_age <= 86400 or verified_at < created_at:
+        raise ValueError('Backup archive is stale or has invalid chronology')
+    age = (now - verified_at).total_seconds()
     if not re.fullmatch(r'[0-9a-f]{64}', value.get('sha256', '')):
         raise ValueError('Invalid backup archive checksum')
     if not 0 <= age <= 86400:

@@ -313,11 +313,14 @@ restore staging and disposable volumes were removed.
 [Backup tooling and installation](../../ops/backup/README.md) provides a restricted
 receiver NFS gate and daily timer proposal. Production migration preflight now
 requires live receiving-side NFS and NAS archive integrity checks, bound to the
-exact restore proof/config hashes. The receiving SSH/account changes and VPS timer
-are **not yet installed/activated** and require the operator's explicit approval.
+exact restore proof/config hashes. The receiving SSH/account changes and VPS daily timer were installed after
+explicit operator approval. The fixed NAS probe and guarded SFTP transfer passed;
+a second fresh archive was decrypted on Mac and restored (7.28 seconds), and the
+first systemd backup job succeeded. Both archive creation and restore proof must
+be fresh; live NAS/integrity failure still blocks any production SQL write.
 The first rehearsal used operator NFS evidence; it cannot authorize automatic
-production SQL. Production baseline remains unrecorded pending infrastructure
-installation, a fresh guarded full-cycle backup, and separate baseline approval.
+production SQL. Production baseline remains unrecorded pending separate baseline approval;
+backup infrastructure and the guarded full-cycle restore have passed.
 No automatic production deployment or issue closure is activated.
 
 ## 6. Security and connectivity
