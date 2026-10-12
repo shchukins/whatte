@@ -48,9 +48,12 @@ releases; do not delete them independently.
 
 ## Authorized manual delivery during transition
 
-Centralized production delivery remains #189, with automatic verification and
-issue lifecycle in #190. This runbook is an operator procedure, not an activated
-deployment service. First validate exact-SHA CI success, manifest/file hashes,
+Centralized production delivery is implemented in
+[the #189 workflow and host engine](../deploy/README.md); unattended activation
+still requires connectivity, initial validation/rollout and approval. Issue
+lifecycle remains #190. This transitional runbook is an operator procedure.
+Once Actions connectivity is activated, dispatch that workflow for manual runs
+instead of issuing task-specific server commands. First validate exact-SHA CI success, manifest/file hashes,
 clean server checkout, GHCR pull access, backup status, schema compatibility and
 existing DB/network/port parity. No database migration is part of #188.
 

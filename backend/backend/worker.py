@@ -1,5 +1,6 @@
 import logging
-import time
+import signal
+from threading import Event
 from datetime import date, datetime, timezone
 from zoneinfo import ZoneInfo
 
@@ -24,6 +25,12 @@ WHATTE_TIMEZONE = settings.whatte_timezone
 
 _last_daily_readiness_date: date | None = None
 _last_rpe_reconciliation_date: date | None = None
+_shutdown = Event()
+
+
+def request_shutdown(signum, frame) -> None:
+    # Finish the active iteration before exiting; do not claim another job.
+    _shutdown.set()
 
 
 def _local_date(now: datetime) -> date:
@@ -94,9 +101,12 @@ def maybe_reconcile_recent_rpe() -> None:
 
 
 def main() -> None:
+    _shutdown.clear()
+    signal.signal(signal.SIGTERM, request_shutdown)
+    signal.signal(signal.SIGINT, request_shutdown)
     log_event(logger, "worker_started", **RELEASE)
 
-    while True:
+    while not _shutdown.is_set():
         try:
             maybe_send_daily_readiness()
             maybe_schedule_next_day_recovery_prompts()
@@ -110,11 +120,13 @@ def main() -> None:
                     error_type=type(error).__name__,
                     error=str(error),
                 )
+            if _shutdown.is_set():
+                break
             result = process_one_strava_ingest_job()
 
             if result.get("message") == "no pending jobs":
                 log_event(logger, "worker_idle", sleep_seconds=10)
-                time.sleep(10)
+                _shutdown.wait(10)
             else:
                 log_event(
                     logger,
@@ -124,7 +136,7 @@ def main() -> None:
                     activity_id=result.get("activity_id"),
                     result=result,
                 )
-                time.sleep(1)
+                _shutdown.wait(1)
 
         except Exception as e:
             log_event(
@@ -135,7 +147,9 @@ def main() -> None:
                 error=str(e),
                 context="worker_loop",
             )
-            time.sleep(5)
+            _shutdown.wait(5)
+
+    log_event(logger, "worker_stopped", **RELEASE)
 
 
 if __name__ == "__main__":

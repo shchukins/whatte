@@ -98,5 +98,6 @@ The dashboard shows local backend and database state for System, Connection, Ing
 - [Backend](backend/README.md)
 - [Versioned SQL migrations](docs/data/MIGRATIONS.md)
 - [Immutable application releases](ops/releases/README.md)
+- [Centralized production delivery](ops/deploy/README.md)
 - [Contributing](CONTRIBUTING.md)
 - [Git workflow and optional PRs](docs/ai/rules/PR_WORKFLOW_RULES.md)

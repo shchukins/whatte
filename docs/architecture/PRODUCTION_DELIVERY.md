@@ -1,8 +1,9 @@
 # Production delivery
 
 Status: audited current state; migration baseline (#187) and immutable release
-publication/production configuration (#188) implemented; centralized deployment
-and automatic issue closure (#189/#190) remain unactivated.
+publication/production configuration (#188) implemented. Centralized deployment
+workflow/host engine (#189) is implemented, pending runner connectivity and initial
+activation checks; unattended deployment and automatic issue closure remain inactive.
 Audit date: 2026-10-11 (Europe/Moscow). Architecture approval and production
 activation are separate steps. Sections marked planned remain unactivated.
 
@@ -93,7 +94,10 @@ it instead of manual deployment. The activation gates in section 7 still apply.
 The current repository has tests in
   [.github/workflows/backend-ci.yml](../../.github/workflows/backend-ci.yml),
 including a twice-run database bootstrap and integration tests. It has no
-automatic production deploy workflow. #188 adds a gated image-publication job
+activated automatic production deploy. #189 adds the gated
+[deployment workflow and host engine](../../ops/deploy/README.md); runner access,
+Actions dry run and first rollout must pass before automatic mode is approved.
+#188 adds a gated image-publication job
 after those tests, a shared digest-based production Compose and baked revision
 endpoint; see [immutable releases](../../ops/releases/README.md). The audited
 legacy topology above predates that transition. Operator delivery remains
@@ -245,9 +249,11 @@ Do not let an implicit host override reintroduce builds or source mounts.
 
 Single backend replacement has a brief outage and mixed-version transition;
 zero downtime is not promised. Worker/API compatibility, graceful shutdown and
-in-flight jobs need validation in #189. A process being up, HTTP 401, or checkout
-SHA alone does not establish release identity or product correctness. #190 must
-add/define the revision and worker verification contracts before activation.
+in-flight jobs are handled by #189's graceful worker shutdown and bounded stop.
+A process being up, HTTP 401, or checkout SHA alone does not establish release
+identity or product correctness. #189 checks baked revision, shared digest,
+worker startup/progress and DB/route boundaries; #190 adds issue linkage and
+closure eligibility on top of that durable outcome.
 
 ### Failure and rollback
 
@@ -372,7 +378,7 @@ rather than assuming protection. Migration approval is additional to deploy appr
 | #186 | Main-based development and explicit commit/push/check rules | Documented workflow; no deployment or closure activated |
 | #187 | Approved SQL mechanism, complete baseline, CI failure/lock/checksum tests | Fresh schema + repeat no-op + integration tests; verified production diff and restorable backup; baseline writes separately approved |
 | #188 | Immutable GHCR publication and production Compose implemented | Same digest/revision for backend and worker, no code mounts/builds; approved registry access tested; DB override/config parity reviewed; operator runbook in `ops/releases` |
-| #189 | Depends on #187/#188; restricted transport, lock, rollout/recovery | Read-only preflight; stale/cancel/concurrent/failure rehearsals; backup drill; explicitly approved initial production rollout |
+| #189 | Workflow and forced-command host engine; exact-SHA CI, lock, ordering, backup/migrations, rollout/recovery | Unit failure/ordering/drain/lock tests; pending Actions connectivity, dry run, approved initial rollout and explicit unattended activation |
 | #190 | Depends on #186/#189; release verification and issue linkage | Tested revision/worker/route checks, durable deployment result; closure only for eligible issues after their verification |
 
 Backup readiness, role/secret hardening, GHCR read access and tailnet policy must
@@ -390,8 +396,10 @@ Caddy config equality, access boundaries, health, backup prerequisites and exist
 CI/schema ordering. Only this document changes in #185; application tests are not
 needed for a documentation-only audit. Check Markdown links and `git diff --check`.
 
-Remaining before implementation/activation: agree architecture; complete full
-schema/backfill comparison in #187; verify off-host backup/restore; pin/test Flyway;
-verify GHCR and restricted runner access; establish release identity/worker checks;
-test compatible rollback and deployment ordering. None is represented as already
-implemented, and no production service/schema/secret/workflow was modified.
+The paragraphs above are historical #185 audit evidence. #187 subsequently
+verified/adopted the baseline and backup framework; #188 published immutable
+releases and transitioned both production services to the same digest. #189
+implements centralized delivery and tests failure, ordering, lock inheritance
+and graceful drain. Remaining activation gates are restricted Actions access,
+end-to-end Actions validation/initial rollout and explicit automatic-mode approval.
+Automatic issue closure remains #190.

@@ -1,0 +1,78 @@
+name: Production deployment
+on:
+  workflow_run:
+    workflows: [Backend CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: Exact main SHA (empty selects current main)
+        type: string
+      mode:
+        description: Validation or explicitly authorized deployment
+        type: choice
+        options: [dry-run, deploy]
+        default: dry-run
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: whatte-production
+  cancel-in-progress: false
+jobs:
+  deploy:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       vars.PRODUCTION_AUTO_DEPLOY == 'true')
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      # Execute trusted default-branch selector only; never checkout PR code.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: main
+      - name: Select successful immutable release
+        id: select
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SELECTED_SHA: ${{ github.event.workflow_run.head_sha || inputs.sha }}
+          SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
+          DEPLOY_MODE: ${{ github.event_name == 'workflow_run' && 'deploy' || inputs.mode }}
+        run: python3 scripts/select_deployment.py
+      - name: Connect restricted runner to tailnet
+        uses: tailscale/github-action@d1b6cd204f8dceda5b3eaad7f1f767be390056cd # v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: ${{ vars.TS_DEPLOY_TAG }}
+      - name: Run fixed host deployment command
+        env:
+          SSH_KEY: ${{ secrets.PRODUCTION_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.PRODUCTION_KNOWN_HOSTS }}
+          TARGET: ${{ vars.PRODUCTION_SSH_TARGET }}
+        run: |
+          install -m 700 -d "$HOME/.ssh"
+          printf '%s\n' "$SSH_KEY" > "$HOME/.ssh/whatte-deploy"
+          chmod 600 "$HOME/.ssh/whatte-deploy"
+          printf '%s\n' "$KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          ssh -T -o BatchMode=yes -o StrictHostKeyChecking=yes -o IdentitiesOnly=yes \
+            -o ServerAliveInterval=10 -o ServerAliveCountMax=3 \
+            -i "$HOME/.ssh/whatte-deploy" "$TARGET" whatte-deploy-v1 \
+            < deployment-request.json > deployment-result.json
+      - name: Preserve outcome
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: deployment-${{ steps.select.outputs.sha || github.run_id }}
+          path: deployment-result.json
+          if-no-files-found: ignore
+          retention-days: 90
+      - name: Record outcome
+        if: always()
+        run: |
+          if test -f deployment-result.json; then
+            cat deployment-result.json >> "$GITHUB_STEP_SUMMARY"
+          fi
