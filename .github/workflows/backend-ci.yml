@@ -24,7 +24,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements.txt -c requirements.lock
 
       - name: Compile Python files
         run: python -m compileall backend ../scripts
@@ -101,7 +101,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements.txt -c requirements.lock
 
       - name: Install PostgreSQL client
         run: sudo apt-get update && sudo apt-get install -y postgresql-client
@@ -130,3 +130,79 @@ jobs:
           pytest tests/test_user_profile_integration.py -v
           pytest tests/test_today_history_integration.py -v
           pytest tests/test_research_writer_integration.py -v
+
+  publish-release:
+    # PR code never receives registry write credentials; tests gate publication.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [unit-tests, db-integration-tests]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    concurrency:
+      group: release-${{ github.sha }}
+      cancel-in-progress: false
+    env:
+      IMAGE: ghcr.io/shchukins/whatte-backend
+      RELEASE_SHA: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Refuse to replace an existing SHA tag
+        run: |
+          if docker buildx imagetools inspect "$IMAGE:$RELEASE_SHA" >/dev/null 2>&1; then
+            echo "SHA tag already exists; use its recorded digest, do not rebuild it."
+            exit 1
+          fi
+      - name: Build and publish release
+        id: image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: backend
+          file: backend/Dockerfile.release
+          platforms: linux/amd64
+          push: true
+          tags: ghcr.io/shchukins/whatte-backend:${{ github.sha }}
+          build-args: GIT_SHA=${{ github.sha }}
+          provenance: mode=max
+          sbom: true
+      - name: Smoke test published digest and production configuration
+        env:
+          DIGEST: ${{ steps.image.outputs.digest }}
+        run: |
+          export WHATTE_IMAGE="$IMAGE@$DIGEST"
+          docker pull "$WHATTE_IMAGE"
+          test "$(docker inspect "$WHATTE_IMAGE" --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}')" = "$RELEASE_SHA"
+          docker run --rm --network none \
+            -e DATABASE_URL=postgresql://test:test@localhost/test \
+            -e STRAVA_VERIFY_TOKEN=test -e STRAVA_CLIENT_ID=12345 \
+            -e STRAVA_CLIENT_SECRET=test -e STRAVA_REDIRECT_URI=https://example.com/callback \
+            -e EXPECTED_SHA="$RELEASE_SHA" "$WHATTE_IMAGE" python -c \
+            'import os; from fastapi.testclient import TestClient; from backend.app import app; import backend.worker; from backend.release import RELEASE; c=TestClient(app); assert c.get("/healthz").json()=={"ok":True}; assert c.get("/version").json()=={"git_sha":os.environ["EXPECTED_SHA"]}; assert backend.worker.RELEASE==RELEASE'
+          touch .env
+          POSTGRES_BIND_ADDRESS=100.64.0.1 docker compose -p human-engine -f compose.production.yaml config --format json > /tmp/whatte-compose.json
+          python3 scripts/release_manifest.py --image "$WHATTE_IMAGE" --sha "$RELEASE_SHA" \
+            --ci-run "https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            --compose /tmp/whatte-compose.json --output release-manifest.json
+      - name: Preserve release identity and compatibility inputs
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-${{ github.sha }}
+          path: |
+            release-manifest.json
+            compose.production.yaml
+            backend/requirements.lock
+            migrations/manifest.json
+          retention-days: 90
+      - name: Record release
+        env:
+          DIGEST: ${{ steps.image.outputs.digest }}
+        run: |
+          echo "Release: $RELEASE_SHA" >> "$GITHUB_STEP_SUMMARY"
+          echo "Image: $IMAGE@$DIGEST" >> "$GITHUB_STEP_SUMMARY"
+          echo "Publication only; no production deploy or issue closure." >> "$GITHUB_STEP_SUMMARY"

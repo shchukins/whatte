@@ -1,0 +1,48 @@
+# Always pass this file explicitly with -p human-engine. No implicit override.
+services:
+  postgres:
+    image: pgvector/pgvector:pg16-trixie
+    container_name: human-engine-postgres
+    restart: unless-stopped
+    env_file: [.env]
+    ports:
+      - "${POSTGRES_BIND_ADDRESS:?Set the existing Tailscale address}:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Preserve the existing mount; entrypoint does not run on an existing DB.
+      - ./db-init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    image: ${WHATTE_IMAGE:?Set the verified GHCR digest reference}
+    container_name: human-engine-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file: [.env]
+    ports: ["127.0.0.1:8000:8000"]
+
+  worker:
+    image: ${WHATTE_IMAGE:?Set the verified GHCR digest reference}
+    container_name: human-engine-worker
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file: [.env]
+    command: ["python", "-m", "backend.worker"]
+
+volumes:
+  postgres_data:
+    external: true
+    name: human-engine_postgres_data
+
+networks:
+  default:
+    external: true
+    name: human-engine_default

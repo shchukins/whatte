@@ -14,6 +14,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import BaseModel, Field
 
 from backend.config import settings
+from backend.release import RELEASE
 from backend.core.logging import configure_logging, log_event
 from backend.dashboard import router as dashboard_router
 from backend.physiology import router as manual_physiology_router
@@ -217,6 +218,11 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 @app.get("/healthz")
 def healthz():
     return {"ok": True}
+
+
+@app.get("/version")
+def version():
+    return RELEASE
 
 
 @app.get("/dbz")

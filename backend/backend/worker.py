@@ -4,6 +4,7 @@ from datetime import date, datetime, timezone
 from zoneinfo import ZoneInfo
 
 from backend.config import settings
+from backend.release import RELEASE
 from backend.core.logging import configure_logging, log_event
 from backend.services.ingest_service import process_one_strava_ingest_job
 from backend.services.daily_readiness_pipeline import recompute_daily_readiness
@@ -93,7 +94,7 @@ def maybe_reconcile_recent_rpe() -> None:
 
 
 def main() -> None:
-    log_event(logger, "worker_started")
+    log_event(logger, "worker_started", **RELEASE)
 
     while True:
         try:

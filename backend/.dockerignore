@@ -10,3 +10,6 @@ venv/
 *.webp
 *.log
 .git
+.env
+.env.*
+release.json

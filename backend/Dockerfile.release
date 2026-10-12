@@ -1,0 +1,17 @@
+FROM mirror.gcr.io/library/python@sha256:e529028263dbe6910a2d96f7d2b8f5266385e917fd45d286ef166977c094a51e
+
+WORKDIR /app
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+
+COPY requirements.txt requirements.lock ./
+RUN pip install --no-cache-dir -r requirements.txt -c requirements.lock && pip check
+
+# Only runtime code enters the image; no .env, tests, local data or Git metadata.
+COPY backend ./backend
+ARG GIT_SHA
+RUN python -c 'import json,re,sys; s=sys.argv[1]; assert re.fullmatch("[0-9a-f]{40}",s); open("release.json","w").write(json.dumps({"git_sha":s}))' "$GIT_SHA"
+LABEL org.opencontainers.image.source="https://github.com/shchukins/whatte" \
+      org.opencontainers.image.revision="$GIT_SHA"
+
+EXPOSE 8000
+CMD ["uvicorn", "backend.app:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -1,8 +1,10 @@
 # Production delivery
 
-Status: audited current state; proposed target architecture for #185 / epic #184.
+Status: audited current state; migration baseline (#187) and immutable release
+publication/production configuration (#188) implemented; centralized deployment
+and automatic issue closure (#189/#190) remain unactivated.
 Audit date: 2026-10-11 (Europe/Moscow). Architecture approval and production
-activation are separate steps. Nothing described as planned below is enabled.
+activation are separate steps. Sections marked planned remain unactivated.
 
 ## Decision
 
@@ -91,8 +93,11 @@ it instead of manual deployment. The activation gates in section 7 still apply.
 The current repository has tests in
   [.github/workflows/backend-ci.yml](../../.github/workflows/backend-ci.yml),
 including a twice-run database bootstrap and integration tests. It has no
-production image publication or deploy workflow. Deployment is operator-driven:
-the server builds from checkout rather than pulling a verified release.
+automatic production deploy workflow. #188 adds a gated image-publication job
+after those tests, a shared digest-based production Compose and baked revision
+endpoint; see [immutable releases](../../ops/releases/README.md). The audited
+legacy topology above predates that transition. Operator delivery remains
+explicitly authorized; publication alone does not change production.
 
 The following describes the existing code-only command path, **not commands
 executed during this audit**. Preconditions are successful CI for the selected
@@ -366,7 +371,7 @@ rather than assuming protection. Migration approval is additional to deploy appr
 | #185 | This audit and architecture proposal | Read-only topology evidence, selected migration mechanism, explicit unknowns; architecture review still required |
 | #186 | Main-based development and explicit commit/push/check rules | Documented workflow; no deployment or closure activated |
 | #187 | Approved SQL mechanism, complete baseline, CI failure/lock/checksum tests | Fresh schema + repeat no-op + integration tests; verified production diff and restorable backup; baseline writes separately approved |
-| #188 | Approved immutable GHCR release and production Compose | Same digest/revision for backend and worker, no code mounts/builds; private pull tested; DB override/config parity reviewed |
+| #188 | Immutable GHCR publication and production Compose implemented | Same digest/revision for backend and worker, no code mounts/builds; approved registry access tested; DB override/config parity reviewed; operator runbook in `ops/releases` |
 | #189 | Depends on #187/#188; restricted transport, lock, rollout/recovery | Read-only preflight; stale/cancel/concurrent/failure rehearsals; backup drill; explicitly approved initial production rollout |
 | #190 | Depends on #186/#189; release verification and issue linkage | Tested revision/worker/route checks, durable deployment result; closure only for eligible issues after their verification |
 
