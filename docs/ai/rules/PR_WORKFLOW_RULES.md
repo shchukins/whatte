@@ -61,10 +61,13 @@ workflow does not authorize weakening that requirement.
 
 ## Transitional production delivery and activation guard
 
-Current state: CI tests exist; centralized production delivery and automatic issue
-closure are not activated. The audit and prerequisite work are described in
-[production delivery](../../architecture/PRODUCTION_DELIVERY.md), epic #184 and
-issues #187–#190. These instructions do not implement or activate those components.
+Current state: CI, immutable releases, versioned migrations and centralized manual
+Actions delivery are implemented. #189 validated restricted connectivity, dry run
+and the authorized initial production rollout. Unattended push deployment remains
+disabled pending separate operator approval; automatic issue closure remains #190.
+Use [the delivery runbook](../../../ops/deploy/README.md). The audit and activation
+boundaries are described in [production delivery](../../architecture/PRODUCTION_DELIVERY.md)
+and epic #184. These rules do not activate unattended deployment or issue closure.
 
 Until centralized CI/CD is available, an explicitly authorized operator may use
 the audited manual path after successful CI for the exact selected SHA, schema

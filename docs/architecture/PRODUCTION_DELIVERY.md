@@ -2,9 +2,10 @@
 
 Status: audited current state; migration baseline (#187) and immutable release
 publication/production configuration (#188) implemented. Centralized deployment
-workflow/host engine (#189) is implemented; Actions/Tailscale connectivity and dry
-run have been validated. Unattended deployment and automatic issue closure remain
-inactive; initial rollout evidence is recorded in #189.
+workflow/host engine (#189) is operational through manual Actions dispatch; its
+initial production rollout and health checks passed. Unattended push deployment
+and automatic issue closure remain inactive; activation evidence is recorded in
+#189 and [the delivery runbook](../../ops/deploy/README.md).
 Audit date: 2026-10-11 (Europe/Moscow). Architecture approval and production
 activation are separate steps. Sections marked planned remain unactivated.
 
@@ -401,6 +402,7 @@ The paragraphs above are historical #185 audit evidence. #187 subsequently
 verified/adopted the baseline and backup framework; #188 published immutable
 releases and transitioned both production services to the same digest. #189
 implements centralized delivery and tests failure, ordering, lock inheritance
-and graceful drain. Remaining activation gates are restricted Actions access,
-end-to-end Actions validation/initial rollout and explicit automatic-mode approval.
+and graceful drain. Restricted Actions access, dry run and initial production
+rollout passed on 2026-10-12. Unattended push deployment still requires separate
+operator approval; it was explicitly left disabled after the initial rollout.
 Automatic issue closure remains #190.

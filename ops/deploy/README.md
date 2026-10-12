@@ -136,3 +136,34 @@ when the previous release was recovered. #190 can later consume success evidence
 Do not enable automatic mode or close #189 until Actions connectivity, dry run,
 initial rollout and production behavior are verified. Deployment authorization
 alone does not imply approval to activate unattended mode.
+
+## Initial activation evidence
+
+On 2026-10-12, the operator authorized the first deployment and explicitly kept
+push-triggered deployment disabled until separate confirmation after health checks.
+`PRODUCTION_AUTO_DEPLOY=false` remains set; manual dispatch is operational.
+
+- [Exact-SHA CI](https://github.com/shchukins/whatte/actions/runs/38286350068)
+  passed for `26458179ff829d95c62d3e91d951d90cd656063a`; 756 local unit tests
+  passed and migration/database/release checks passed in CI.
+- [Actions dry run](https://github.com/shchukins/whatte/actions/runs/38286888365)
+  verified Tailscale/OpenSSH access, current runtime, release inputs, Flyway
+  validation and zero pending migrations without changing application services.
+- [Initial successful rollout](https://github.com/shchukins/whatte/actions/runs/38287033900)
+  created a fresh encrypted off-host backup with round-trip integrity verification,
+  executed no SQL migrations, and deployed both services to
+  `ghcr.io/shchukins/whatte-backend@sha256:a641a16078208a86dbfbf536bfd2a595801e0a263855b60476a6fc84df01c38f`.
+  Health/database/public version, worker startup/progress, shared image/no mounts
+  and route boundaries passed; PostgreSQL ID/start time/mounts were unchanged.
+- [Failed-CI eligibility rehearsal](https://github.com/shchukins/whatte/actions/runs/38254090684)
+  failed at selection before Tailscale or SSH, as expected.
+- [First drain refusal and recovery](https://github.com/shchukins/whatte/actions/runs/38254929822)
+  exposed legacy PID 1 SIGTERM behavior, preserved the existing backend and
+  restored the previous worker. The final engine uses a verified legacy idle
+  window plus SIGINT; the new worker's SIGINT/SIGTERM handlers were verified.
+
+The deployment tag's saved policy allows only production VPS TCP/22; accept/deny
+tests cover the application/database ports and another address. User-owned device
+access and the existing Tailscale SSH policy were preserved. The dedicated SSH key
+rejects ordinary commands and forwarding. No unattended deployment or automatic
+issue closure was enabled by these validations.
