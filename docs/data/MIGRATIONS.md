@@ -196,6 +196,13 @@ and private backups. Never delete volumes, recreate production DB or replay V1.
 
 ## Activation evidence
 
-Implementation and rehearsal evidence is recorded in #187. Production baseline
-is **not recorded until separate authorization and successful adoption**. The
-migration tool does not activate scheduled backup, deployment or issue closure.
+Implementation, rehearsal and production adoption evidence is recorded in #187.
+After separate operator authorization and successful CI for `e3cb268`, production
+Flyway baseline V1 was recorded on 2026-10-12 at 09:02:34 UTC. The single successful
+`BASELINE` history row binds the skipped V1 to SHA-256
+`1bd6bb42e5d6d7bd2e66045e5e119d5c9b5e92bf9c72d8394d13b5258ba29ae3`.
+V1 SQL was not executed. Validation passed, repeated migrate executed zero
+migrations, all 822 catalog elements still matched and backfill violations remained
+zero. Backend, worker and PostgreSQL container identities/start times were unchanged;
+local health and DB checks passed. Automatic production deployment, migration
+execution and issue closure remain inactive.

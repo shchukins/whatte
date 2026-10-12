@@ -319,8 +319,13 @@ a second fresh archive was decrypted on Mac and restored (7.28 seconds), and the
 first systemd backup job succeeded. Both archive creation and restore proof must
 be fresh; live NAS/integrity failure still blocks any production SQL write.
 The first rehearsal used operator NFS evidence; it cannot authorize automatic
-production SQL. Production baseline remains unrecorded pending separate baseline approval;
-backup infrastructure and the guarded full-cycle restore have passed.
+production SQL. After separate operator authorization and exact-commit CI success
+for `e3cb268`, production baseline V1 was recorded on 2026-10-12 at 09:02:34 UTC.
+The history contains one successful `BASELINE` marker bound to the reviewed V1
+SHA-256; V1 SQL was skipped. Validation passed, migrate executed zero migrations,
+and the 822-element catalog/backfill checks stayed equal with no violations.
+Application and database containers were not restarted; health and DB checks passed.
+Backup infrastructure and the guarded full-cycle restore have passed.
 No automatic production deployment or issue closure is activated.
 
 ## 6. Security and connectivity

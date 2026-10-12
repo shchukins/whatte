@@ -6,8 +6,8 @@ separate authorization. Never overwrite existing backup files or directories.
 
 ## Prepared receiving-side change
 
-The `whatte-backup` account currently has `/usr/sbin/nologin`. External forced
-commands cannot execute through that shell. The reviewed installer:
+Before installation, the `whatte-backup` account had `/usr/sbin/nologin`; external
+forced commands could not execute through that shell. The reviewed installer:
 
 1. Records the existing effective SSH rules and rejects existing destination files.
 2. Installs the root-owned [NAS gate](../../scripts/nas_backup_gate.py) and site
