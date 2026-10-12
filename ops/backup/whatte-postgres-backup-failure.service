@@ -1,0 +1,6 @@
+[Unit]
+Description=Record an actionable WHATTE backup failure
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/logger --priority daemon.err --tag whatte-postgres-backup Backup failed; production schema writes must remain blocked. Inspect whatte-postgres-backup.service.

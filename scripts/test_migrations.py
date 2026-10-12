@@ -28,6 +28,10 @@ class MigrationLifecycle(unittest.TestCase):
         shutil.copytree(ROOT / 'migrations', self.root / 'migrations')
         (self.root / 'scripts').mkdir()
         shutil.copy(ROOT / 'scripts/migrate.py', self.root / 'scripts/migrate.py')
+        # Synthetic NAS adapter exists only in the disposable test checkout.
+        (self.root / 'scripts/postgres_backup.py').write_text(
+            "import json,sys; from pathlib import Path; p=Path(sys.argv[sys.argv.index('--receipt')+1]); "
+            "print(json.dumps({'event':'backup_succeeded','result':{'sha256':json.loads(p.read_text())['sha256']}}))")
         self.db = 'migration_test_' + uuid.uuid4().hex[:12]
         psql(self.admin, f'CREATE DATABASE {self.db};')
         self.env = os.environ.copy()
@@ -67,6 +71,11 @@ class MigrationLifecycle(unittest.TestCase):
                    'catalog_hash': canonical_hash(catalog), 'backup': {'restore_verified': True,
                        'off_host_encrypted': True, 'sha256': 'a' * 64, 'reference': 'synthetic-test-only',
                        'regular_backup_process': 'synthetic-test-only', 'verified_at': datetime.now(timezone.utc).isoformat()}}
+        config = self.root / 'backup-config.json'; config.write_text('{}')
+        restore_proof = self.root / 'restore-proof.json'
+        restore_proof.write_text(json.dumps({'sha256': receipt['backup']['sha256'], 'verified_at': receipt['backup']['verified_at']}))
+        receipt['backup'].update(config_path=str(config), config_sha256=digest(config),
+                                 receipt_path=str(restore_proof), receipt_sha256=digest(restore_proof))
         path = self.root / 'approval.json'
         path.write_text(json.dumps(receipt))
         return path, receipt

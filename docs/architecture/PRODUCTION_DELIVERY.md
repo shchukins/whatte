@@ -270,8 +270,9 @@ gzip`, `gzip -t`, NAS copy, rclone upload and local/NAS retention (3/30 days).
 On the audited VPS neither backup directory exists, the NAS path is not mounted,
 and rclone is absent. No relevant PostgreSQL backup timer/user cron was found;
 root crontab query exited 1. This does not exclude an external backup system.
-There is **no verified app backup/restore capability** on this host. Dpkg's backup
-timer does not cover PostgreSQL. This is a blocker for production migration activation.
+At the #185 audit there was **no verified app backup/restore capability** on this
+host. Dpkg's backup timer does not cover PostgreSQL. The #187 update below records
+subsequent backup work; activation still requires its remaining gates.
 
 Before #187 writes or #189 activation, establish an owned and monitored backup
 process: encrypted off-host copies, failure alerts, retention, manifest with time,
@@ -296,6 +297,28 @@ and outcome without exposing private rows. Production recovery requires approval
 API/worker write suspension, preservation of the damaged database for diagnosis,
 restore into a separate database/volume where possible, verification and deliberate
 switch-over. Never test restore against the live volume.
+
+### #187 backup update, 2026-10-12
+
+The operator supplied a dedicated SFTP identity and TerraMaster NAS NFSv4.2
+storage. A new consistent PostgreSQL custom dump, password-free role definitions
+and private snapshot manifest were age-encrypted and transferred as a unique new
+`.dump.age` bundle. The NAS copy was downloaded, checksum-verified and decrypted
+on the operator's Mac; the private age key never left that Mac and is outside Git.
+An isolated PostgreSQL 16/pgvector restore matched every snapshot table count and
+all 822 reviewed catalog elements; a real Diary app read passed. Restore measured
+7.48 seconds. Existing backup files/directories were preserved; new plaintext
+restore staging and disposable volumes were removed.
+
+[Backup tooling and installation](../../ops/backup/README.md) provides a restricted
+receiver NFS gate and daily timer proposal. Production migration preflight now
+requires live receiving-side NFS and NAS archive integrity checks, bound to the
+exact restore proof/config hashes. The receiving SSH/account changes and VPS timer
+are **not yet installed/activated** and require the operator's explicit approval.
+The first rehearsal used operator NFS evidence; it cannot authorize automatic
+production SQL. Production baseline remains unrecorded pending infrastructure
+installation, a fresh guarded full-cycle backup, and separate baseline approval.
+No automatic production deployment or issue closure is activated.
 
 ## 6. Security and connectivity
 

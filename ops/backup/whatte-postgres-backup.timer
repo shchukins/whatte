@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily WHATTE encrypted PostgreSQL backup
+
+[Timer]
+OnCalendar=*-*-* 02:00:00 UTC
+Persistent=true
+RandomizedDelaySec=5min
+Unit=whatte-postgres-backup.service
+
+[Install]
+WantedBy=timers.target

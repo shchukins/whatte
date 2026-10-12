@@ -155,13 +155,22 @@ Receipt fields (values below describe the schema, not an approval):
     "verified_at": "UTC ISO timestamp, at most 24 hours old",
     "restore_verified": true,
     "off_host_encrypted": true,
-    "regular_backup_process": "owner, schedule, retention and alert reference"
+    "regular_backup_process": "owner, schedule, retention and monitoring reference",
+    "config_path": "/protected/backup.json",
+    "config_sha256": "sha256 of the reviewed private backup configuration",
+    "receipt_path": "/protected/restored-receipt.json",
+    "receipt_sha256": "sha256 of the exact archive restore proof"
   }
 }
 ```
 
-The operator attests backup and authorization facts; the runner validates receipt
-binding/freshness and the live catalog, not remote storage availability or identity.
+The operator attests authorization and the full restore drill. The runner validates
+receipt binding/freshness, the live catalog, the private backup configuration/proof
+hashes and then invokes the restricted receiving-side NAS probe and downloads the
+actual archive to recheck its checksum immediately before production SQL writes.
+NAS failure, wrong NFS export/protocol, missing/corrupt archive or failed/stale restore
+proof blocks migration even if an older approval exists. See
+[backup installation and recovery](../../ops/backup/README.md).
 Future production `migrate` with pending changes needs a similarly bound receipt
 (`action=migrate`); risky files additionally require `approved_migrations` mapping
 filename to SHA-256. Preflight must verify the referenced backup still exists.

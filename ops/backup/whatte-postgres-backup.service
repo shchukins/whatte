@@ -1,0 +1,14 @@
+[Unit]
+Description=WHATTE encrypted PostgreSQL backup to verified NFS storage
+Wants=network-online.target
+After=network-online.target docker.service
+OnFailure=whatte-postgres-backup-failure.service
+
+[Service]
+Type=oneshot
+User=sergey
+Group=sergey
+UMask=0077
+ExecStart=/usr/bin/python3 /srv/human-engine/scripts/postgres_backup.py create --config /home/sergey/.config/whatte-backup/backup.json
+TimeoutStartSec=15min
+NoNewPrivileges=yes

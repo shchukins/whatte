@@ -1,0 +1,14 @@
+{
+  "local_directory": "/srv/backups/whatte/postgres",
+  "repo_directory": "/srv/human-engine",
+  "postgres_container": "human-engine-postgres",
+  "postgres_user": "human_engine",
+  "postgres_database": "human_engine",
+  "age_binary": "/home/sergey/.local/share/whatte/tools/age-v1.3.2/age/age",
+  "recipient_file": "/home/sergey/.config/whatte-backup/recipient.txt",
+  "ssh_key": "/home/sergey/.ssh/whatte_backup_ed25519",
+  "sftp_target": "whatte-backup@TAILSCALE_IP",
+  "remote_directory": "/mnt/whatte-backups/postgres",
+  "nas_source": "NAS_IP:/Volume1/whatte-backups",
+  "nas_mountpoint": "/mnt/whatte-backups"
+}

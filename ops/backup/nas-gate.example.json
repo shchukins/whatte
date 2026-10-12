@@ -1,0 +1,5 @@
+{
+  "mountpoint": "/mnt/whatte-backups",
+  "backup_directory": "/mnt/whatte-backups/postgres",
+  "source": "NAS_IP:/Volume1/whatte-backups"
+}

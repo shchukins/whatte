@@ -158,6 +158,24 @@ def approval(root, filename, action, catalog_hash):
     age = (datetime.now(timezone.utc) - verified_at).total_seconds()
     if not 0 <= age <= 86400:
         raise ValueError('Backup restore verification must be at most 24h old')
+    # Recheck receiving-side NFS and the actual NAS archive before any SQL write;
+    # an operator's cached boolean cannot authorize writes while NAS is offline.
+    config = Path(backup['config_path'])
+    proof = Path(backup['receipt_path'])
+    if digest(config) != backup['config_sha256'] or digest(proof) != backup['receipt_sha256']:
+        raise ValueError('Backup configuration or restore proof changed after review')
+    restored = json.loads(proof.read_text())
+    if restored.get('sha256') != backup['sha256'] or restored.get('verified_at') != backup['verified_at']:
+        raise ValueError('Approval does not identify the verified backup archive')
+    result = subprocess.run([sys.executable, str(root / 'scripts/postgres_backup.py'), 'verify',
+                             '--config', str(config), '--receipt', str(proof)],
+                            text=True, capture_output=True, timeout=240)
+    if result.returncode:
+        raise ValueError('Live NAS/backup verification failed; production write blocked')
+    outcome = json.loads(result.stdout)
+    if (outcome.get('event') != 'backup_succeeded'
+            or outcome.get('result', {}).get('sha256') != backup['sha256']):
+        raise ValueError('Invalid live backup verification outcome')
     return receipt
 
 

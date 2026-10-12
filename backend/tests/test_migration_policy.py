@@ -96,3 +96,22 @@ def test_changed_verification_query_is_rejected(root):
     path.write_text('select 1;')
     with pytest.raises(ValueError, match='Verification artifact hash mismatch'):
         migrate.artifacts(root)
+
+
+def test_valid_cached_approval_cannot_bypass_live_nas_failure(root, monkeypatch):
+    import subprocess
+    monkeypatch.setenv('FLYWAY_URL', 'jdbc:postgresql://127.0.0.1:5432/test')
+    timestamp = datetime.now(timezone.utc).isoformat()
+    config = root / 'backup.json'; config.write_text('{}')
+    proof = root / 'restored.json'; proof.write_text(json.dumps({'sha256': 'a' * 64, 'verified_at': timestamp}))
+    value = {'action': 'baseline', 'authorized_by': 'test', 'authorization_reference': 'test',
+             'target': 'jdbc:postgresql://127.0.0.1:5432/test',
+             'manifest_sha256': migrate.digest(root / 'migrations/manifest.json'), 'catalog_hash': 'catalog',
+             'backup': {'restore_verified': True, 'off_host_encrypted': True, 'sha256': 'a' * 64,
+                 'reference': 'synthetic', 'regular_backup_process': 'synthetic', 'verified_at': timestamp,
+                 'config_path': str(config), 'config_sha256': migrate.digest(config),
+                 'receipt_path': str(proof), 'receipt_sha256': migrate.digest(proof)}}
+    path = root / 'approval.json'; path.write_text(json.dumps(value))
+    monkeypatch.setattr(migrate.subprocess, 'run', lambda *args, **kwargs: subprocess.CompletedProcess(args[0], 1, '', 'offline'))
+    with pytest.raises(ValueError, match='production write blocked'):
+        migrate.approval(root, path, 'baseline', 'catalog')
