@@ -46,6 +46,17 @@ def inspect(name):
     return json.loads(run('docker', 'inspect', name))[0]
 
 
+def migration_outcome(output, action):
+    # The existing CLI emits a started event and a succeeded event as JSONL,
+    # rather than a single raw Flyway result. Fail closed on partial output.
+    events = [json.loads(line) for line in output.splitlines() if line.strip()]
+    if (len(events) != 2 or events[0] != {'event': 'migration_started', 'action': action}
+            or events[1].get('event') != 'migration_succeeded'
+            or events[1].get('action') != action or not isinstance(events[1].get('result'), dict)):
+        raise ValueError('Incomplete migration CLI outcome')
+    return events[1]['result']
+
+
 def http(url):
     with urllib.request.urlopen(url, timeout=10) as response:
         return json.load(response)
@@ -146,7 +157,7 @@ def execute(request, source):
         migration_env.update(credentials, MIGRATION_ENVIRONMENT='production')
         migration_script = str(source / 'scripts/migrate.py')
         run('python3', migration_script, 'validate', env=migration_env)
-        info = json.loads(run('python3', migration_script, 'info', env=migration_env))
+        info = migration_outcome(run('python3', migration_script, 'info', env=migration_env), 'info')
         pending = [row for row in info.get('migrations', []) if row.get('state') == 'Pending']
         _, declared = migrate.artifacts(source)
         schema_safe = all(declared[Path(row['filepath']).name].get('old_app_compatible') is True for row in pending)

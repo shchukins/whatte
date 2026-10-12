@@ -18,6 +18,28 @@ OLD = 'b' * 40
 IMAGE = 'ghcr.io/shchukins/whatte-backend@sha256:' + 'c' * 64
 
 
+def migration_output(rows):
+    return json.dumps({'event': 'migration_started', 'action': 'info'}) + '\n' + json.dumps({
+        'event': 'migration_succeeded', 'action': 'info', 'result': {'migrations': rows}})
+
+
+def test_migration_cli_jsonl_contract_and_partial_failure():
+    assert deploy.migration_outcome(migration_output([]), 'info') == {'migrations': []}
+    for output in ('{"event":"migration_started","action":"info"}',
+                   '{"event":"migration_failed","action":"info"}',
+                   '{"migrations":[]}'):
+        with pytest.raises(ValueError):
+            deploy.migration_outcome(output, 'info')
+
+
+def test_adapter_reads_actual_migration_cli_output(monkeypatch, capsys):
+    result = {'migrations': [{'state': 'Pending', 'filepath': 'V2__change.sql'}]}
+    monkeypatch.setattr(sys, 'argv', ['migrate.py', 'info'])
+    monkeypatch.setattr(deploy.migrate, 'execute', lambda _args: result)
+    assert deploy.migrate.main() == 0
+    assert deploy.migration_outcome(capsys.readouterr().out, 'info') == result
+
+
 def ci():
     return {'head_sha': SHA, 'head_branch': 'main', 'event': 'push',
             'path': '.github/workflows/backend-ci.yml', 'status': 'completed', 'conclusion': 'success'}
@@ -93,7 +115,7 @@ def host(tmp_path, monkeypatch):
         if args[:3] == ('git', 'diff', '--name-only'):
             return 'backend/backend/app.py'
         if 'info' in args:
-            return '{"migrations": []}'
+            return migration_output([])
         if 'create' in args:
             return '{"event":"backup_succeeded","result":{"sha256":"backup"}}'
         if args[-3:] == ('config', '--format', 'json'):
@@ -152,7 +174,7 @@ def test_incompatible_pending_migration_cannot_stop_worker(host, monkeypatch):
     monkeypatch.setattr(deploy.migrate, 'artifacts', lambda _: ({}, {'V2__change.sql': {'old_app_compatible': False}}))
     def pending(*args, **kwargs):
         if 'info' in args:
-            return '{"migrations":[{"state":"Pending","filepath":"V2__change.sql"}]}'
+            return migration_output([{'state': 'Pending', 'filepath': 'V2__change.sql'}])
         return original(*args, **kwargs)
     monkeypatch.setattr(deploy, 'run', pending)
     with pytest.raises(RuntimeError):
