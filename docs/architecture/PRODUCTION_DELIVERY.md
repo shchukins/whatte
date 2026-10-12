@@ -2,8 +2,9 @@
 
 Status: audited current state; migration baseline (#187) and immutable release
 publication/production configuration (#188) implemented. Centralized deployment
-workflow/host engine (#189) is implemented, pending runner connectivity and initial
-activation checks; unattended deployment and automatic issue closure remain inactive.
+workflow/host engine (#189) is implemented; Actions/Tailscale connectivity and dry
+run have been validated. Unattended deployment and automatic issue closure remain
+inactive; initial rollout evidence is recorded in #189.
 Audit date: 2026-10-11 (Europe/Moscow). Architecture approval and production
 activation are separate steps. Sections marked planned remain unactivated.
 
@@ -378,7 +379,7 @@ rather than assuming protection. Migration approval is additional to deploy appr
 | #186 | Main-based development and explicit commit/push/check rules | Documented workflow; no deployment or closure activated |
 | #187 | Approved SQL mechanism, complete baseline, CI failure/lock/checksum tests | Fresh schema + repeat no-op + integration tests; verified production diff and restorable backup; baseline writes separately approved |
 | #188 | Immutable GHCR publication and production Compose implemented | Same digest/revision for backend and worker, no code mounts/builds; approved registry access tested; DB override/config parity reviewed; operator runbook in `ops/releases` |
-| #189 | Workflow and forced-command host engine; exact-SHA CI, lock, ordering, backup/migrations, rollout/recovery | Unit failure/ordering/drain/lock tests; pending Actions connectivity, dry run, approved initial rollout and explicit unattended activation |
+| #189 | Workflow and forced-command host engine; exact-SHA CI, lock, ordering, backup/migrations, rollout/recovery | Unit failure/ordering/drain/lock tests; Actions connectivity/dry run verified; rollout/recovery evidence in issue; unattended activation separately approved |
 | #190 | Depends on #186/#189; release verification and issue linkage | Tested revision/worker/route checks, durable deployment result; closure only for eligible issues after their verification |
 
 Backup readiness, role/secret hardening, GHCR read access and tailnet policy must

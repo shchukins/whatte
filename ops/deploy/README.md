@@ -96,8 +96,13 @@ restore proof required by the migration framework.
 
 The engine pulls and verifies the OCI revision/digest, checks Compose parity and
 a disposable API DB-read/version test, then migrates and drains worker before
-backend replacement. Worker SIGTERM completes its active iteration and avoids
-claiming another job. A 60-second stop timeout causes failure; it does not silently
+backend replacement. New workers handle SIGTERM/SIGINT, complete their active
+iteration and avoid claiming another job. Delivery explicitly uses SIGINT:
+legacy Python PID 1 workers have a Python SIGINT handler but no SIGTERM handler,
+so the kernel ignores default SIGTERM. The first transition waits for a recent
+legacy idle event within its 10-second sleep before sending SIGINT; if no safe
+window appears, it aborts without interrupting legacy in-flight work. Subsequent
+releases drain through the new signal handler. A 60-second stop timeout causes failure; it does not silently
 accept a killed job. Uvicorn handles API graceful shutdown; one backend replica
 still has brief downtime. Then worker starts on the same digest. Checks cover
 health/database/version, worker startup plus idle or ordinary processed job,
@@ -112,7 +117,7 @@ enabled. Retain current/previous releases according to the #188 retention policy
 ## Failure, disconnect and recovery
 
 `active.json` and `delivery-<SHA>-<mode>.json` are atomic, fsynced, private phase
-records. The engine survives runner HUP/TERM/disconnection and inherits the host
+records, including sanitized failure reason and failed phase. The engine survives runner HUP/TERM/disconnection and inherits the host
 lock. A runner cancellation is not a rollback. Observe host state before retry.
 An interrupted nonterminal record blocks further deployments until an operator
 reconciles actual app digests, database history and the last successful reference.

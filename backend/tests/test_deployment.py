@@ -125,6 +125,7 @@ def host(tmp_path, monkeypatch):
     monkeypatch.setattr(deploy, 'inspect', lambda _: database)
     monkeypatch.setattr(deploy, 'health', lambda *_args, **_kwargs: None)
     monkeypatch.setattr(deploy, 'verify_worker', lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(deploy, 'worker_term_handler', lambda: True)
     monkeypatch.setattr(deploy, 'validate_compose', lambda *_args: None)
     monkeypatch.setattr(deploy, 'check_db', lambda _: None)
     monkeypatch.setattr(deploy.migrate, 'artifacts', lambda _: ({}, {}))
@@ -186,7 +187,7 @@ def prepared_rollout(host, monkeypatch):
     state, calls, manifest, original = host
     db = deploy.inspect('human-engine-postgres')
     pulled = {'Id': 'new-image', 'RepoDigests': [IMAGE], 'Config': {'Labels': {'org.opencontainers.image.revision': SHA}}}
-    worker = {'State': {'ExitCode': 0}}
+    worker = {'State': {'ExitCode': 0, 'Running': True}}
     monkeypatch.setattr(deploy, 'inspect', lambda name: db if name == 'human-engine-postgres' else pulled if name == IMAGE else worker)
     monkeypatch.setattr(deploy, 'validate_compose', lambda *_: None)
     def run(*args, **kwargs):
@@ -337,3 +338,47 @@ def test_docs_only_release_preserves_current_app_and_skips_backup(host, monkeypa
     assert deploy.execute({'mode': 'deploy', 'manifest': manifest}, ROOT)['phase'] == 'docs_skipped'
     assert json.loads((state / 'current.json').read_text())['git_sha'] == OLD
     assert not any('create' in c or 'migrate' in c or 'up' in c or 'stop' in c for c in calls)
+
+
+def test_worker_stop_uses_signal_handled_by_legacy_python_pid1(monkeypatch):
+    calls = []
+    monkeypatch.setattr(deploy, 'inspect', lambda _: {'State': {'Running': True, 'ExitCode': 130}})
+    monkeypatch.setattr(deploy, 'run', lambda *args, **_kwargs: calls.append(args))
+    monkeypatch.setattr(deploy, 'worker_term_handler', lambda: False)
+    monkeypatch.setattr(deploy, 'legacy_worker_idle', lambda: True)
+    deploy.stop_worker()
+    assert calls == [('docker', 'stop', '--signal', 'SIGINT', '--timeout', '60', 'human-engine-worker')]
+
+
+def test_forced_worker_kill_remains_a_failure(monkeypatch):
+    monkeypatch.setattr(deploy, 'inspect', lambda _: {'State': {'Running': True, 'ExitCode': 137}})
+    monkeypatch.setattr(deploy, 'run', lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(deploy, 'worker_term_handler', lambda: True)
+    with pytest.raises(ValueError, match='graceful drain timeout'):
+        deploy.stop_worker()
+
+
+def test_already_stopped_worker_does_not_repeat_drain(monkeypatch):
+    monkeypatch.setattr(deploy, 'inspect', lambda _: {'State': {'Running': False, 'ExitCode': 137}})
+    monkeypatch.setattr(deploy, 'run', lambda *_args: pytest.fail('Stopped worker should not receive another signal'))
+    deploy.stop_worker()
+
+
+def test_legacy_busy_worker_is_not_interrupted(monkeypatch):
+    monkeypatch.setattr(deploy, 'inspect', lambda _: {'State': {'Running': True}})
+    monkeypatch.setattr(deploy, 'worker_term_handler', lambda: False)
+    monkeypatch.setattr(deploy, 'legacy_worker_idle', lambda: False)
+    monkeypatch.setattr(deploy.time, 'sleep', lambda _: None)
+    monkeypatch.setattr(deploy, 'run', lambda *_args: pytest.fail('Busy legacy worker must not receive a signal'))
+    with pytest.raises(ValueError, match='idle window'):
+        deploy.stop_worker()
+
+
+def test_legacy_idle_proof_must_be_recent_and_in_idle_sleep(monkeypatch):
+    from datetime import datetime, timezone, timedelta
+    now = datetime.now(timezone.utc)
+    for event, seconds, age, expected in [('worker_idle', 10, 0, True), ('worker_idle', 10, 10, False),
+                                          ('strava_ingest_job_processed', 10, 0, False), ('worker_idle', 1, 0, False)]:
+        monkeypatch.setattr(deploy, 'run', lambda *_args: json.dumps({'event': event, 'sleep_seconds': seconds,
+                            'timestamp': (now - timedelta(seconds=age)).isoformat()}))
+        assert deploy.legacy_worker_idle() is expected
