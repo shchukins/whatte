@@ -3,6 +3,7 @@ import re
 
 REQUIRED_JOBS = {'unit-tests', 'db-integration-tests', 'publish-release'}
 RUNTIME_PATHS = ('backend/', 'migrations/', 'sql/', 'db-init/', 'scripts/', 'ops/deploy/')
+DOCUMENTATION_FILES = {'backend/README.md', 'ops/deploy/README.md'}
 
 
 def eligible_run(run, jobs, sha):
@@ -17,7 +18,10 @@ def eligible_run(run, jobs, sha):
 
 
 def requires_rollout(paths):
-    return any(p.startswith(RUNTIME_PATHS) or p == 'compose.production.yaml' for p in paths)
+    # README files inside runtime directories remain documentation. Do not
+    # exclude arbitrary Markdown: application prompt/content assets may use it.
+    return any(p not in DOCUMENTATION_FILES and
+               (p.startswith(RUNTIME_PATHS) or p == 'compose.production.yaml') for p in paths)
 
 
 def ordering(selected, main, previous, is_ancestor):

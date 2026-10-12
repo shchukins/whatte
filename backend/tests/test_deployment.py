@@ -77,6 +77,8 @@ def test_reordered_queue_cannot_deploy_old_or_divergent_release():
 
 
 @pytest.mark.parametrize('paths,expected', [(['README.md', 'docs/data/MIGRATIONS.md'], False),
+                                          (['backend/README.md', 'ops/deploy/README.md'], False),
+                                          (['backend/backend/prompt.md'], True),
                                           (['backend/templates/today.html'], True),
                                           (['migrations/sql/V2__change.sql'], True),
                                           (['compose.production.yaml'], True),
