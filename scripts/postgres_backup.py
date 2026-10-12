@@ -48,7 +48,8 @@ def nas_probe(config):
 
 def sftp(config, commands):
     # Batch mode stops on any failed command; never prefix a command with '-'.
-    return run(['sftp', *ssh_options(config), '-b', '-', config['sftp_target']], input=commands, timeout=180)
+    return run(['sftp', '-s', '/usr/lib/openssh/sftp-server', *ssh_options(config),
+                '-b', '-', config['sftp_target']], input=commands, timeout=180)
 
 
 def quote(path):

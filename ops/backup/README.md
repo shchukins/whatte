@@ -21,7 +21,10 @@ commands cannot execute through that shell. The reviewed installer:
    general shell, then reloads SSH. Other SSH accounts are outside this change.
 
 Run from an already-open operator session, keeping it open while verifying the
-new connection. The installer requires sudo on the home server:
+new connection. Backup clients explicitly select the permitted fixed external
+SFTP server (`sftp -s /usr/lib/openssh/sftp-server`), which works through this
+restricted shell; subsystem-mode SFTP is not used. The installer requires sudo
+on the home server:
 
 ```sh
 sudo bash /home/shch/whatte-187-backup-setup/install-nas-gate.sh \
