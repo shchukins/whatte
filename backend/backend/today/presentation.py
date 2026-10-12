@@ -1,5 +1,44 @@
 """Russian labels for Web Today only; codes and domain results stay intact."""
 
+from datetime import date, timedelta
+
+
+WEEKDAYS = ("Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс")
+MONTHS = (
+    "января", "февраля", "марта", "апреля", "мая", "июня",
+    "июля", "августа", "сентября", "октября", "ноября", "декабря",
+)
+
+
+def _calendar_label(day: date, *, show_year: bool) -> str:
+    label = f"{day.day} {MONTHS[day.month - 1]}"
+    return f"{label} {day.year}" if show_year else label
+
+
+def diary_date_label(value: str, target_date: str) -> str:
+    """Use the backend local target day, never browser time or host locale."""
+    day, target = date.fromisoformat(value), date.fromisoformat(target_date)
+    if day == target:
+        return "Сегодня"
+    if day == target - timedelta(days=1):
+        return "Вчера"
+    return f"{WEEKDAYS[day.weekday()]}, {_calendar_label(day, show_year=day.year != target.year)}"
+
+
+def diary_week_start(value: str) -> str:
+    day = date.fromisoformat(value)
+    return (day - timedelta(days=day.weekday())).isoformat()
+
+
+def diary_week_label(value: str, target_date: str) -> str:
+    """Label the full Monday–Sunday week, including partial visible weeks."""
+    start = date.fromisoformat(diary_week_start(value))
+    end = start + timedelta(days=6)
+    target = date.fromisoformat(target_date)
+    show_year = start.year != end.year or start.year != target.year
+    return f"Пн–Вс · {_calendar_label(start, show_year=show_year)} — {_calendar_label(end, show_year=show_year)}"
+
+
 LABELS = {
     "recommendation": {
         "recovery": "Восстановление", "endurance": "Спокойная аэробная тренировка",

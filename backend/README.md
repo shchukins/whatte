@@ -355,6 +355,13 @@ RPE links select the activity on `/today?activity_id=…&return_day=YYYY-MM-DD#r
 Today shows a compact 7-day readiness overview from the same history contract.
 All three pages share Today / Diary / Profile navigation and work without JS.
 The history is current stored state, not immutable morning decisions/messages.
+Diary headings use «Сегодня», «Вчера», then Russian weekday/month labels relative
+to the backend `target_date` in `WHATTE_TIMEZONE`; older-year dates include the
+year. ISO dates remain in `time[datetime]`, accessible labels and day anchors.
+Monday–Sunday separators label full calendar weeks, including partial weeks in
+the 14-day window and explicit years across New Year. A shared model legend
+replaces repeated current-version labels; historical rows retain their version
+and unavailable recommendation, and are excluded from the supported graph.
 
 Diary GET filter `rpe=all` (default) / `rpe=missing` filters only the workout
 list using persisted effective `rpe_score is None`, with a count from the same

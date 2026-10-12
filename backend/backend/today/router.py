@@ -29,7 +29,9 @@ from backend.services.subjective_feedback_service import (
 
 from . import service as today_service
 from .history_service import get_diary_data
-from .presentation import physiology_error, today_label
+from .presentation import (
+    diary_date_label, diary_week_label, diary_week_start, physiology_error, today_label,
+)
 from backend.services import user_profile_service as profile_service
 
 router = APIRouter(prefix="/today", tags=["today"])
@@ -37,6 +39,9 @@ templates = Jinja2Templates(
     directory=str(Path(__file__).resolve().parents[1] / "templates")
 )
 templates.env.filters["today_label"] = today_label
+templates.env.filters["diary_date"] = diary_date_label
+templates.env.filters["diary_week_start"] = diary_week_start
+templates.env.filters["diary_week"] = diary_week_label
 templates.env.filters["today_timestamp"] = today_service.format_readiness_timestamp
 FeedbackScore = Annotated[int, FastAPIPath(ge=1, le=5)]
 RpeScore = Annotated[int, FastAPIPath(ge=1, le=10)]

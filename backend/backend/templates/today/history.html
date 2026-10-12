@@ -16,11 +16,17 @@
     <section class="card diary-intro" aria-labelledby="diary-title">
         <p class="eyebrow">Готовность / тренировки / оценки</p>
         <h1 id="diary-title">Последние 14 дней</h1>
-        <p class="hint">Текущие сохранённые значения могут измениться после пересчёта; это не неизменяемая история утренних решений или отправленных сообщений.</p>
+        <p class="diary-history-note">Текущие сохранённые значения могут измениться после пересчёта; это не неизменяемая история утренних решений или отправленных сообщений.</p>
         {% if diary.history_section.status == 'error' %}<p class="error">Готовность и утреннее самочувствие временно недоступны. Обновите дневник, чтобы повторить попытку.</p>{% endif %}
         {% if diary.activity_section.status == 'error' %}<p class="error">Тренировки временно недоступны. Обновите дневник, чтобы повторить попытку.</p>{% endif %}
+        {% if diary.history_groups %}
+        <ul class="diary-model-legend" aria-label="Версии модели">
+            {% for group in diary.history_groups %}
+            <li>{{ 'Текущая модель' if group.supported else 'Историческая версия' }} · {{ group.version }}{% if not group.supported %} · без рекомендаций и графика{% endif %}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
         {% for group in diary.history_groups if group.supported %}
-        <p class="history-version">Модель {{ group.version }}</p>
         {{ readiness_figure(group.rows) }}
         {% endfor %}
     </section>
@@ -31,15 +37,18 @@
     </nav>
     <section aria-label="Дни дневника">
         {% for day in diary.days %}
+        {% if loop.first or day.date | diary_week_start != loop.previtem.date | diary_week_start %}
+        <h2 class="diary-week">{{ day.date | diary_week(diary.target_date) }}</h2>
+        {% endif %}
         <article class="diary-day" id="day-{{ day.date }}" aria-labelledby="day-title-{{ day.date }}" tabindex="-1">
-            <h2 id="day-title-{{ day.date }}"><time datetime="{{ day.date }}">{{ day.date }}</time></h2>
+            <h3 id="day-title-{{ day.date }}" class="diary-date"><time datetime="{{ day.date }}" aria-label="{{ day.date }}">{{ day.date | diary_date(diary.target_date) }}</time></h3>
             <div class="diary-reading">
                 {% if diary.history_section.status == 'error' %}<p class="history-missing">Не удалось загрузить готовность и самочувствие</p>{% endif %}
                 {% for group in diary.history_groups %}
                 {% set row = group.rows | selectattr('date', 'equalto', day.date) | first %}
                 {% if row is defined %}
                 <div class="diary-version">
-                    <p class="history-version">{{ 'Текущая модель' if group.supported else 'Историческая версия' }} · {{ group.version }}</p>
+                    {% if not group.supported %}<p class="history-version">Историческая версия · {{ group.version }}</p>{% endif %}
                     <p>Готовность: {% if row.readiness_score is not none %}<strong>{{ row.readiness_score }}/100</strong>{% else %}<span class="history-missing">Нет готовности</span>{% endif %}</p>
                     <p>Рекомендация: {% if group.supported and row.recommendation %}{{ row.recommendation | today_label('recommendation') }}{% elif not group.supported %}<span class="history-missing">Не определяется для этой версии</span>{% else %}<span class="history-missing">Нет рекомендации</span>{% endif %}</p>
                     {% if group.supported %}<p>Утреннее самочувствие: {% if row.recovery_score is not none %}{{ row.recovery_score }}/5 · {{ row.recovery_value | today_label('recovery') }}{% else %}<span class="history-missing">Нет оценки</span>{% endif %}</p>{% endif %}
@@ -52,7 +61,7 @@
                 {% elif not visible_activities[day.date] %}<p class="history-missing">{{ 'Нет тренировок без RPE' if rpe_filter == 'missing' else day.activity_message }}</p>{% endif %}
                 {% for activity in visible_activities[day.date] %}
                 <div class="diary-workout">
-                    <h3>{{ activity.name }}</h3>
+                    <h4>{{ activity.name }}</h4>
                     <p class="activity-meta">{{ activity.sport_type }} · {{ activity.start_time.strftime('%H:%M %Z') }} · {% if activity.duration_s is not none %}{{ activity.duration_s // 3600 }} ч {{ (activity.duration_s % 3600) // 60 }} мин {{ activity.duration_s % 60 }} с{% else %}Нет длительности{% endif %}</p>
                     <p>Итоговый RPE: {% if activity.rpe_score is not none %}{{ activity.rpe_score }}/10 · {{ activity.rpe_source | today_label('source') }}{% else %}<span class="history-missing">Нет оценки</span>{% endif %}</p>
                     {% if activity.rpe_disagreement %}<p class="hint">Оценки источников различаются.</p>{% endif %}

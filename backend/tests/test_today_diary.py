@@ -12,6 +12,73 @@ import importlib
 router = importlib.import_module('backend.today.router')
 
 
+@pytest.mark.parametrize('value,target,label', [
+    ('2026-10-08', '2026-10-08', 'Сегодня'),
+    ('2026-10-08', '2026-10-09', 'Вчера'),
+    ('2026-10-08', '2026-10-10', 'Чт, 8 октября'),
+    ('2026-09-30', '2026-10-02', 'Ср, 30 сентября'),
+    ('2025-12-31', '2026-01-01', 'Вчера'),
+    ('2025-12-31', '2026-01-02', 'Ср, 31 декабря 2025'),
+    ('2024-02-29', '2024-03-02', 'Чт, 29 февраля'),
+])
+def test_diary_date_labels_use_backend_target(value, target, label):
+    from backend.today.presentation import diary_date_label
+    assert diary_date_label(value, target) == label
+
+
+@pytest.mark.parametrize('instant,target', [
+    ('2026-09-30T20:59:59+00:00', date(2026, 9, 30)),
+    ('2026-09-30T21:00:00+00:00', date(2026, 10, 1)),
+])
+def test_diary_local_midnight(monkeypatch, instant, target):
+    from zoneinfo import ZoneInfo
+    class Clock:
+        @staticmethod
+        def now(tz):
+            return datetime.fromisoformat(instant).astimezone(tz)
+    monkeypatch.setattr(today, 'datetime', Clock)
+    monkeypatch.setattr(today, 'WHATTE_TZ', ZoneInfo('Europe/Moscow'))
+    assert today.get_local_today() == target
+
+
+@pytest.mark.parametrize('target,weeks', [
+    (date(2026, 10, 11), ['Пн–Вс · 5 октября — 11 октября', 'Пн–Вс · 28 сентября — 4 октября']),
+    (date(2026, 10, 12), ['Пн–Вс · 12 октября — 18 октября', 'Пн–Вс · 5 октября — 11 октября', 'Пн–Вс · 28 сентября — 4 октября']),
+    (date(2026, 1, 5), ['Пн–Вс · 5 января — 11 января', 'Пн–Вс · 29 декабря 2025 — 4 января 2026', 'Пн–Вс · 22 декабря 2025 — 28 декабря 2025']),
+])
+def test_diary_week_boundaries_and_version_legend(monkeypatch, target, weeks):
+    from dataclasses import replace
+    import re
+    from backend.today.presentation import diary_date_label
+    monkeypatch.setattr(diary, 'get_diary_activities', lambda *a: [])
+    monkeypatch.setattr(diary, 'get_profile_pending', lambda *a: (None, today.TodaySection('ok', None)))
+    rows = [today.TodayHistoryRow(str(target - diary.timedelta(days=i)),
+                                  0 if i == 0 else None, None, None, None) for i in range(14)]
+    monkeypatch.setattr(diary, 'get_today_history', lambda *a: [
+        today.TodayHistoryGroup(today.READINESS_MODEL_VERSION, True, rows),
+        today.TodayHistoryGroup('legacy', False, [replace(rows[0], readiness_score=61)]),
+        today.TodayHistoryGroup('older', False, [replace(rows[1], readiness_score=55)]),
+    ])
+    data = diary.get_diary_data('test', target)
+    monkeypatch.setattr(router, 'get_diary_data', lambda *a: data)
+    # A different wall-clock day must not override the view model's target_date.
+    monkeypatch.setattr(today, 'get_local_today', lambda: date(2030, 1, 1))
+    page = TestClient(app_module.app).get('/today/history').text
+    assert re.findall(r'<h2 class="diary-week">(.*?)</h2>', page) == weeks
+    assert page.count('Текущая модель ·') == 1
+    assert page.count(today.READINESS_MODEL_VERSION) == 1
+    assert page.count('Историческая версия · legacy') == 2
+    assert page.count('Историческая версия · older') == 2
+    assert page.count('Не определяется для этой версии') == 2
+    assert page.count('class="diary-plot"') == 1
+    assert page.count('class="diary-gap"') == 13
+    assert '0/100' in page and 'Нет рекомендации' in page
+    for day in data.days:
+        assert f'id="day-{day.date}"' in page
+        assert f'<time datetime="{day.date}" aria-label="{day.date}">{diary_date_label(day.date, data.target_date)}</time>' in page
+        assert f'href="/today/history#day-{day.date}"' in page
+
+
 @pytest.mark.parametrize('rpe', ['all', 'missing'])
 @pytest.mark.parametrize('failure', [False, True])
 def test_diary_rpe_filter_uses_effective_score_and_preserves_calendar(monkeypatch, rpe, failure):
