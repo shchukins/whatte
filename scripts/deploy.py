@@ -46,6 +46,12 @@ def inspect(name):
     return json.loads(run('docker', 'inspect', name))[0]
 
 
+def changed_paths(previous, selected):
+    # Treat a rename as deletion + addition so moving a runtime file into docs
+    # cannot conceal its removal from the application release.
+    return run('git', 'diff', '--name-only', '--no-renames', previous, selected, cwd=REPO).splitlines()
+
+
 def migration_outcome(output, action):
     # The existing CLI emits a started event and a succeeded event as JSONL,
     # rather than a single raw Flyway result. Fail closed on partial output.
@@ -176,7 +182,7 @@ def execute(request, source):
         for name, expected in manifest['files_sha256'].items():
             if hashlib.sha256((source / name).read_bytes()).hexdigest() != expected:
                 raise ValueError('Release artifact hash mismatch')
-        paths = run('git', 'diff', '--name-only', previous['git_sha'], sha).splitlines()
+        paths = changed_paths(previous['git_sha'], sha)
         if not requires_rollout(paths) and sha != previous['git_sha']:
             phase('docs_skipped')
             return record

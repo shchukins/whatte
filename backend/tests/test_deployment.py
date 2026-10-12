@@ -384,3 +384,26 @@ def test_legacy_idle_proof_must_be_recent_and_in_idle_sleep(monkeypatch):
         monkeypatch.setattr(deploy, 'run', lambda *_args: json.dumps({'event': event, 'sleep_seconds': seconds,
                             'timestamp': (now - timedelta(seconds=age)).isoformat()}))
         assert deploy.legacy_worker_idle() is expected
+
+
+def test_runtime_rename_into_docs_still_requires_rollout(tmp_path, monkeypatch):
+    def git(*args):
+        return subprocess.check_output(['git', '-c', 'user.name=CI', '-c', 'user.email=ci@example.com', *args],
+                                       cwd=tmp_path, text=True, stderr=subprocess.DEVNULL).strip()
+    git('init')
+    runtime = tmp_path / 'backend' / 'asset.py'
+    runtime.parent.mkdir()
+    runtime.write_text('runtime_asset = True\n')
+    git('add', '.')
+    git('commit', '-m', 'runtime fixture')
+    previous = git('rev-parse', 'HEAD')
+    documentation = tmp_path / 'docs' / 'asset.md'
+    documentation.parent.mkdir()
+    runtime.rename(documentation)
+    git('add', '-A')
+    git('commit', '-m', 'rename fixture')
+    selected = git('rev-parse', 'HEAD')
+    monkeypatch.setattr(deploy, 'REPO', tmp_path)
+    paths = deploy.changed_paths(previous, selected)
+    assert 'backend/asset.py' in paths
+    assert requires_rollout(paths)
