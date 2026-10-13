@@ -18,7 +18,7 @@ def image(tmp_path_factory):
     directory = tmp_path_factory.mktemp("synthetic-worker")
     (directory / "Dockerfile").write_text("FROM python:3.11-slim\nWORKDIR /app\nCOPY worker.py scripts/research_worker.py\n")
     (directory / "worker.py").write_text(textwrap.dedent('''
-        import json, os, socket, sys, time
+        import json, mmap, os, socket, sys, time
         from pathlib import Path
         request = json.loads(Path('/input/request.json').read_text())
         operation = request['operation']
@@ -27,7 +27,15 @@ def image(tmp_path_factory):
         if operation == 'exception':
             raise RuntimeError('synthetic_exception')
         if operation == 'oom':
-            value = bytearray(256 * 1024 * 1024)
+            # A single oversized malloc can fail before pages are charged to
+            # the cgroup. Retain small mappings and touch every page so this
+            # scenario exercises the kernel OOM killer, not Python MemoryError.
+            chunk = b'x' * (1024 * 1024)
+            allocations = []
+            for _ in range(256):
+                allocation = mmap.mmap(-1, len(chunk))
+                allocation.write(chunk)
+                allocations.append(allocation)
         if operation == 'output':
             print('x' * 100000)
         if operation == 'success':
@@ -74,7 +82,10 @@ def test_real_container_limits_cleanup_and_isolation(image, tmp_path, operation,
     executor = DockerExecutor(image, ResourceLimits(timeout_seconds=timeout, memory_mb=64, pids=16, output_bytes=1024))
     result = executor.execute({"operation": operation}, tmp_path / "stage")
     metadata = result["metadata"]
-    assert metadata["failure_reason"] == failure
+    assert metadata["failure_reason"] == failure, {
+        "metadata": metadata,
+        "stderr": Path(metadata["stderr_reference"]).read_text(),
+    }
     assert metadata["cleanup_succeeded"]
     assert Path(metadata["stdout_reference"]).stat().st_size <= 1024
     assert Path(metadata["stderr_reference"]).stat().st_size <= 1024
