@@ -14,6 +14,18 @@ from backend.today.service import (
     get_profile_pending,
 )
 
+DIARY_SUMMARY_DAYS = 7
+
+
+@dataclass(frozen=True)
+class DiarySummary:
+    start_date: str
+    end_date: str
+    activity_count: int
+    known_duration_s: int
+    missing_duration_count: int
+    rpe_count: int
+
 
 @dataclass(frozen=True)
 class DiaryActivity:
@@ -55,6 +67,33 @@ class DiaryData:
     history_section: TodaySection
     profile_pending: dict[str, date] | None = None
     profile_pending_section: TodaySection = TodaySection(status="ok", error=None)
+
+    @property
+    def summary_start_date(self) -> str:
+        return (date.fromisoformat(self.target_date) - timedelta(days=DIARY_SUMMARY_DAYS - 1)).isoformat()
+
+    @property
+    def summary(self) -> DiarySummary | None:
+        """Aggregate the unfiltered read over seven local dates, not elapsed hours.
+
+        A failed activity read is unavailable; known zero durations and effective
+        RPE zero remain recorded values. No observations resolve RPE here.
+        """
+        if self.activity_section.status != "ok":
+            return None
+        activities = [
+            activity for day in self.days
+            if self.summary_start_date <= day.date <= self.target_date
+            for activity in day.activities or []
+        ]
+        return DiarySummary(
+            start_date=self.summary_start_date,
+            end_date=self.target_date,
+            activity_count=len(activities),
+            known_duration_s=sum(a.duration_s for a in activities if a.duration_s is not None),
+            missing_duration_count=sum(a.duration_s is None for a in activities),
+            rpe_count=sum(a.rpe_score is not None for a in activities),
+        )
 
 
 def get_diary_activities(user_id: str, target_date: date) -> list[DiaryActivity]:

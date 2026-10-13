@@ -132,6 +132,14 @@ Each day includes every recorded eligible canonical workout, local start time,
 nullable duration and persisted effective RPE/source. Source conflicts show
 the separate observations. No recorded workouts means only absence of records.
 Activity and readiness/recovery failures have independent states.
+The compact workout summary (#177) covers the target local date and previous
+six dates, with explicit ISO endpoints. It aggregates the existing unfiltered
+canonical activity read: recorded workout count, known duration (including zero),
+missing-duration count and persisted effective RPE coverage. Missing durations
+are explicitly disclosed beside the known sum; failed activity reads make the
+summary unavailable, never zero. Readiness failures do not hide workout totals.
+The summary is unchanged by the visual RPE filter and links to it with the
+distinct label «Без RPE за 14 дней». It adds no database reads or writes.
 At narrow widths the list becomes a vertical feed; desktop uses compact
 columns. Exact data never depends on hover or JavaScript.
 

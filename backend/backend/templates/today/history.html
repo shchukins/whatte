@@ -30,6 +30,21 @@
         {{ readiness_figure(group.rows) }}
         {% endfor %}
     </section>
+    {% set summary = diary.summary %}
+    <section class="diary-summary" aria-labelledby="diary-summary-title">
+        <h2 id="diary-summary-title">Тренировки за последние 7 дней</h2>
+        <p class="activity-meta"><time datetime="{{ diary.summary_start_date }}">{{ diary.summary_start_date }}</time> — <time datetime="{{ diary.target_date }}">{{ diary.target_date }}</time></p>
+        {% if summary is not none %}
+        <ul class="overview-values">
+            <li>Записанных тренировок: {{ summary.activity_count }}</li>
+            <li>Известная длительность {{ summary.known_duration_s // 3600 }} ч {{ (summary.known_duration_s % 3600) // 60 }} мин {{ summary.known_duration_s % 60 }} с{% if summary.missing_duration_count %}; длительность отсутствует у {{ summary.missing_duration_count }} тренировок{% endif %}</li>
+            <li>С итоговым RPE: {{ summary.rpe_count }} из {{ summary.activity_count }}</li>
+        </ul>
+        {% else %}
+        <p class="error">Сводка тренировок недоступна. Не удалось загрузить тренировки.</p>
+        {% endif %}
+        {% if missing_rpe_count is not none %}<a href="/today/history?rpe=missing">Без RPE за 14 дней: {{ missing_rpe_count }}</a>{% endif %}
+    </section>
     <nav class="diary-filters" aria-label="Фильтр тренировок">
         <a href="/today/history?rpe=all"{% if rpe_filter == 'all' %} aria-current="true"{% endif %}>Все</a>
         <a href="/today/history?rpe=missing"{% if rpe_filter == 'missing' %} aria-current="true"{% endif %}>Без RPE</a>

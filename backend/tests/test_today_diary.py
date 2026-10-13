@@ -12,6 +12,94 @@ import importlib
 router = importlib.import_module('backend.today.router')
 
 
+@pytest.mark.parametrize('case,expected', [
+    ('empty', (0, 0, 0, 0)),
+    ('zero', (1, 0, 0, 1)),
+    ('unknown', (1, 0, 1, 0)),
+    ('mixed', (6, 3661, 2, 4)),
+    ('activities_failed', None),
+    ('history_failed', (6, 3661, 2, 4)),
+])
+def test_seven_day_summary_reuses_unfiltered_local_diary_read(monkeypatch, case, expected):
+    import re
+    from zoneinfo import ZoneInfo
+
+    target = date(2026, 10, 26)  # Seven local dates span Berlin's DST change.
+    local_tz = ZoneInfo('Europe/Berlin')
+    calls = []
+
+    def activities(user, day):
+        calls.append(('activities', user, day))
+        if case == 'activities_failed':
+            raise RuntimeError('private activity error')
+        fixtures = {
+            'empty': [],
+            'zero': [(0, 0, 0, 'strava', None)],
+            'unknown': [(0, None, None, None, None)],
+        }.get(case, [
+            (0, 0, 0, 'strava', None),
+            (0, None, 6, 'telegram', None),
+            (1, 3600, 5, 'web', 5),
+            (6, 61, 7, 'strava', 4),
+            (6, None, None, None, 4),  # Unresolved Web is not effective RPE.
+            (6, 0, None, None, None),
+            (7, 99999, 9, 'strava', None),  # Eighth date is outside summary.
+            (13, 99999, None, None, None),  # Still inside 14-day filter.
+        ])
+        return [diary.DiaryActivity(
+            ident, f'Workout {ident}', 'Ride',
+            datetime.combine(target - diary.timedelta(days=offset),
+                             diary.time.min, tzinfo=local_tz),
+            duration, score, source, web,
+            score if source == 'strava' else None,
+            score if source == 'telegram' else None,
+            source == 'strava' and web is not None,
+        ) for ident, (offset, duration, score, source, web) in enumerate(fixtures, 1)]
+
+    def history(user, day):
+        calls.append(('history', user, day))
+        if case == 'history_failed':
+            raise RuntimeError('private history error')
+        return []
+
+    def pending(user):
+        calls.append(('pending', user))
+        return None, today.TodaySection('ok', None)
+
+    monkeypatch.setattr(today, 'get_local_today', lambda: target)
+    monkeypatch.setattr(diary, 'get_diary_activities', activities)
+    monkeypatch.setattr(diary, 'get_today_history', history)
+    monkeypatch.setattr(diary, 'get_profile_pending', pending)
+    user = router.settings.daily_readiness_user_id
+    client = TestClient(app_module.app)
+    sections = []
+    for rpe in ['all', 'missing']:
+        page = client.get('/today/history', params={'rpe': rpe}).text
+        section = re.search(r'<section class="diary-summary".*?</section>', page, re.S).group()
+        sections.append(section)
+        assert 'datetime="2026-10-20"' in section
+        assert 'datetime="2026-10-26"' in section
+        if expected is None:
+            assert 'Сводка тренировок недоступна' in section
+            assert 'Записанных тренировок: 0' not in section
+            assert 'Известная длительность' not in section
+            assert 'private activity error' not in page
+        else:
+            count, duration, missing, coverage = expected
+            assert f'Записанных тренировок: {count}' in section
+            assert f'Известная длительность {duration // 3600} ч {(duration % 3600) // 60} мин {duration % 60} с' in section
+            assert f'С итоговым RPE: {coverage} из {count}' in section
+            assert ('длительность отсутствует' in section) == bool(missing)
+            if missing:
+                assert f'длительность отсутствует у {missing} тренировок' in section
+            missing_14 = 3 if case in ('mixed', 'history_failed') else count - coverage
+            assert f'href="/today/history?rpe=missing">Без RPE за 14 дней: {missing_14}</a>' in section
+        assert 'private history error' not in page
+    assert sections[0] == sections[1]
+    assert calls == [('activities', user, target), ('history', user, target),
+                     ('pending', user)] * 2
+
+
 @pytest.mark.parametrize('value,target,label', [
     ('2026-10-08', '2026-10-08', 'Сегодня'),
     ('2026-10-08', '2026-10-09', 'Вчера'),
@@ -115,7 +203,7 @@ def test_diary_rpe_filter_uses_effective_score_and_preserves_calendar(monkeypatc
     assert '<script' not in page
     if failure:
         assert 'Без итогового RPE за 14 дней: количество недоступно' in page
-        assert page.count('Не удалось загрузить тренировки') == 14
+        assert page.count('<p class="history-missing">Не удалось загрузить тренировки</p>') == 14
         assert 'Нет тренировок без RPE' not in page
         assert 'Нет записанных тренировок' not in page
         assert 'private error' not in page
