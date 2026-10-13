@@ -9,6 +9,10 @@ from fastapi import HTTPException
 
 from backend.config import settings
 from backend.db import get_conn
+from backend.services.activity_load_service import (
+    is_supported_cycling_activity,
+    resolve_activity_load,
+)
 from backend.services.manual_physiology_service import get_manual_physiology_observation
 from backend.services.user_profile_service import get_pending_profile_recompute
 from backend.services.readiness_composition import READINESS_MODEL_VERSION
@@ -57,6 +61,7 @@ class TodayActivity:
     rpe_web_score: int | None = None
     rpe_telegram_score: int | None = None
     local_date: str | None = None
+    load_status: str = "Статус недоступен"
 
 
 @dataclass(frozen=True)
@@ -263,6 +268,28 @@ def _activity_where(preferred_activity_id: int | None) -> tuple[str, tuple[Any, 
     return " and r.strava_activity_id = %s", (preferred_activity_id,)
 
 
+def activity_load_status(
+    activity_type: Any,
+    tss: float | None,
+    normalized_power: float | None,
+    intensity_factor: float | None,
+) -> str:
+    """Describe eligibility from the shared contract, not persisted readiness.
+
+    Unsupported sport takes precedence over missing metrics. Zero values remain
+    available according to resolve_activity_load; no extra thresholds are added.
+    """
+    load = resolve_activity_load(
+        activity_type=activity_type, tss=tss,
+        normalized_power=normalized_power, intensity_factor=intensity_factor,
+    )
+    if load["load_model_included"]:
+        return "Подходит для расчёта нагрузки"
+    if not is_supported_cycling_activity(load["activity_type_normalized"]):
+        return "Вид спорта пока не поддерживается"
+    return "Нет необходимых данных мощности"
+
+
 def get_today_activity(
     user_id: str,
     *,
@@ -286,16 +313,20 @@ def get_today_activity(
                     sr.score,
                     coalesce(tr.score, wr.score),
                     wr.score,
-                    tr.score
+                    tr.score,
+                    m.tss, m.normalized_power, m.intensity_factor
                 from strava_activity_raw r
+                left join activity_metrics m
+                  on m.strava_activity_id = r.strava_activity_id
+                  and m.user_id = r.user_id and m.version = 'v1'
                 left join activity_rpe_resolution er
-                  on er.canonical_activity_id = r.strava_activity_id
+                  on er.canonical_activity_id = r.strava_activity_id and er.user_id = r.user_id
                 left join activity_rpe_observation sr
-                  on sr.canonical_activity_id = r.strava_activity_id and sr.source = 'strava'
+                  on sr.canonical_activity_id = r.strava_activity_id and sr.user_id = r.user_id and sr.source = 'strava'
                 left join activity_rpe_observation tr
-                  on tr.canonical_activity_id = r.strava_activity_id and tr.source = 'telegram'
+                  on tr.canonical_activity_id = r.strava_activity_id and tr.user_id = r.user_id and tr.source = 'telegram'
                 left join activity_rpe_observation wr
-                  on wr.canonical_activity_id = r.strava_activity_id and wr.source = 'web'
+                  on wr.canonical_activity_id = r.strava_activity_id and wr.user_id = r.user_id and wr.source = 'web'
                 where r.user_id = %s
                   and r.is_deleted = false
                   and r.is_excluded = false
@@ -313,6 +344,7 @@ def get_today_activity(
     if row is None:
         return None
     return TodayActivity(
+        load_status=activity_load_status(row[2], row[13], row[14], row[15]),
         activity_id=int(row[0]),
         name=str(row[1]),
         sport_type=str(row[2]),

@@ -355,6 +355,18 @@ RPE links select the activity on `/today?activity_id=…&return_day=YYYY-MM-DD#r
 Today shows a compact 7-day readiness overview from the same history contract.
 All three pages share Today / Diary / Profile navigation and work without JS.
 The history is current stored state, not immutable morning decisions/messages.
+
+Today and Diary display workout load eligibility (#170) from the shared backend
+`resolve_activity_load` contract. Each existing activity query left-joins only
+`activity_metrics.version = 'v1'` by activity ID and user ID; the unique
+`(strava_activity_id, version)` constraint prevents duplicate workouts. Supported
+cycling with all three stored power metrics shows «Подходит для расчёта нагрузки»;
+unsupported sport takes precedence («Вид спорта пока не поддерживается»), otherwise
+«Нет необходимых данных мощности». A failed activity read shows «Статус недоступен»
+without discarding independent readiness/history sections. Eligibility does not
+prove inclusion in persisted readiness. GET performs no writes, recomputation or
+Strava requests; pending profile recalculation remains a separate notice.
+
 Diary headings use «Сегодня», «Вчера», then Russian weekday/month labels relative
 to the backend `target_date` in `WHATTE_TIMEZONE`; older-year dates include the
 year. ISO dates remain in `time[datetime]`, accessible labels and day anchors.

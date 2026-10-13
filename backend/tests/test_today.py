@@ -282,6 +282,7 @@ def test_today_activity_query_selects_latest_and_scopes_user(monkeypatch):
             None,
             None,
             None,
+            None, None, None,
         )
     )
     monkeypatch.setattr(today_service, "get_conn", lambda: _ActivityConn(cursor))
@@ -313,7 +314,7 @@ def test_today_activity_preferred_edit_remains_user_scoped(monkeypatch):
 def test_today_activity_keeps_telegram_and_web_observations_separate(monkeypatch):
     cursor = _ActivityCursor((
         42, "Ride", "Ride", None, None, None,
-        7, "telegram", True, None, 7, 4, 7,
+        7, "telegram", True, None, 7, 4, 7, None, None, None,
     ))
     monkeypatch.setattr(today_service, "get_conn", lambda: _ActivityConn(cursor))
 
@@ -815,6 +816,63 @@ def test_saved_feedback_does_not_claim_success_when_read_fails(monkeypatch, sect
 def test_selected_activity_date_uses_local_calendar_day(monkeypatch):
     cursor = _ActivityCursor((42, "Ride", "Ride",
         datetime(2026, 8, 29, 22, tzinfo=ZoneInfo("UTC")),
-        None, None, None, None, None, None, None, None, None))
+        None, None, None, None, None, None, None, None, None, None, None, None))
     monkeypatch.setattr(today_service, "get_conn", lambda: _ActivityConn(cursor))
     assert today_service.get_today_activity("sergey", preferred_activity_id=42).local_date == "2026-08-30"
+
+
+@pytest.mark.parametrize("sport,metrics,label", [
+    ("Ride", (40, 180, 0.8), "Подходит для расчёта нагрузки"),
+    (" VirtualRide ", (0, 0, 0), "Подходит для расчёта нагрузки"),
+    ("Ride", (None, None, None), "Нет необходимых данных мощности"),
+    ("Ride", (None, 180, 0.8), "Нет необходимых данных мощности"),
+    ("Ride", (40, None, 0.8), "Нет необходимых данных мощности"),
+    ("Ride", (40, 180, None), "Нет необходимых данных мощности"),
+    ("Run", (40, 180, 0.8), "Вид спорта пока не поддерживается"),
+    ("Run", (None, None, None), "Вид спорта пока не поддерживается"),
+    (None, (40, 180, 0.8), "Вид спорта пока не поддерживается"),
+])
+def test_activity_load_eligibility_shared_contract_and_both_pages(monkeypatch, sport, metrics, label):
+    from dataclasses import replace
+    from backend.today import history_service as diary
+    cursor = _ActivityCursor((42, "Workout", sport,
+        datetime(2026, 8, 30, 10, tzinfo=today_service.WHATTE_TZ),
+        None, None, None, None, None, None, None, None, None, *metrics))
+    monkeypatch.setattr(today_service, "get_conn", lambda: _ActivityConn(cursor))
+    calls = []
+    original = today_service.resolve_activity_load
+    def resolve(**kwargs):
+        calls.append(kwargs)
+        return original(**kwargs)
+    monkeypatch.setattr(today_service, "resolve_activity_load", resolve)
+    activity = today_service.get_today_activity("athlete")
+    assert activity.load_status == label
+    assert calls == [dict(activity_type=sport, tss=metrics[0],
+                         normalized_power=metrics[1], intensity_factor=metrics[2])]
+    assert "m.user_id = r.user_id and m.version = 'v1'" in cursor.query
+    assert "m.strava_activity_id = r.strava_activity_id" in cursor.query
+    data = replace(_today_data(), activity=activity)
+    monkeypatch.setattr(today_service, "get_today_data", lambda *a, **k: data)
+    diary_activity = diary.DiaryActivity(42, "Workout", sport or "Workout",
+        datetime(2026, 8, 30, 10, tzinfo=today_service.WHATTE_TZ),
+        None, None, None, None, None, None, False, label)
+    monkeypatch.setattr(diary, "get_diary_activities", lambda *a: [diary_activity])
+    monkeypatch.setattr(diary, "get_today_history", lambda *a: [])
+    monkeypatch.setattr(diary, "get_profile_pending", lambda *a: (None, today_service.TodaySection("ok", None)))
+    monkeypatch.setattr(today_service, "get_local_today", lambda: date(2026, 8, 30))
+    client = TestClient(app_module.app)
+    for url in ["/today", "/today/history"]:
+        page = client.get(url).text
+        assert label in page
+        assert "Учтено в текущей готовности" not in page
+
+
+def test_load_status_read_failure_remains_independent_of_readiness(monkeypatch):
+    from dataclasses import replace
+    data = replace(_today_data(), activity=None,
+                   activity_section=today_service.TodaySection("error", "read failed"))
+    monkeypatch.setattr(today_service, "get_today_data", lambda *a, **k: data)
+    page = TestClient(app_module.app).get("/today").text
+    assert "Статус недоступен" in page
+    assert "Хорошая готовность" in page
+    assert "Нет необходимых данных мощности" not in page

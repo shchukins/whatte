@@ -10,6 +10,7 @@ from backend.today.service import (
     TodayHistoryGroup,
     TodaySection,
     _bounded_error,
+    activity_load_status,
     get_today_history,
     get_profile_pending,
 )
@@ -40,6 +41,7 @@ class DiaryActivity:
     rpe_strava_score: int | None
     rpe_telegram_score: int | None
     rpe_disagreement: bool
+    load_status: str = "Статус недоступен"
 
 
 @dataclass(frozen=True)
@@ -114,8 +116,12 @@ def get_diary_activities(user_id: str, target_date: date) -> list[DiaryActivity]
                     r.start_date,
                     coalesce(r.moving_time_s, r.elapsed_time_s),
                     er.effective_score, er.effective_source, er.disagreement,
-                    wr.score, sr.score, tr.score
+                    wr.score, sr.score, tr.score,
+                    m.tss, m.normalized_power, m.intensity_factor
                 from strava_activity_raw r
+                left join activity_metrics m
+                  on m.strava_activity_id = r.strava_activity_id
+                  and m.user_id = r.user_id and m.version = 'v1'
                 left join activity_rpe_resolution er
                   on er.canonical_activity_id = r.strava_activity_id
                   and er.user_id = r.user_id
@@ -142,6 +148,7 @@ def get_diary_activities(user_id: str, target_date: date) -> list[DiaryActivity]
 
     return [
         DiaryActivity(
+            load_status=activity_load_status(sport_type, tss, normalized_power, intensity_factor),
             activity_id=activity_id,
             name=name,
             sport_type=sport_type,
@@ -157,6 +164,7 @@ def get_diary_activities(user_id: str, target_date: date) -> list[DiaryActivity]
         for (
             activity_id, name, sport_type, start_at, duration, score, source,
             disagreement, web_score, strava_score, telegram_score,
+            tss, normalized_power, intensity_factor,
         ) in rows
     ]
 

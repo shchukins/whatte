@@ -207,6 +207,8 @@ def test_diary_rpe_filter_uses_effective_score_and_preserves_calendar(monkeypatc
         assert 'Нет тренировок без RPE' not in page
         assert 'Нет записанных тренировок' not in page
         assert 'private error' not in page
+        assert 'Статус недоступен' in page
+        assert 'Нет необходимых данных мощности' not in page
     else:
         assert 'Без итогового RPE за 14 дней: 2' in page
         assert 'Missing score' in page and 'Unresolved Web observation' in page

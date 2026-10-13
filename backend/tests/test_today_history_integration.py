@@ -7,6 +7,7 @@ import pytest
 
 from backend.db import get_conn
 from backend.today import history_service as diary
+from backend.today import service as today
 
 pytestmark = pytest.mark.skipif(
     not os.getenv("RUN_DB_TESTS"), reason="Requires isolated PostgreSQL test database",
@@ -27,7 +28,7 @@ def test_diary_sql_filters_boundaries_sources_and_read_only(monkeypatch, target,
     with get_conn() as conn:
         # Session-local copies use the real schema/uniqueness constraints and
         # never alter shared test rows. Explicit IDs avoid advancing sequences.
-        for table in ("strava_activity_raw", "activity_rpe_observation", "activity_rpe_resolution"):
+        for table in ("strava_activity_raw", "activity_rpe_observation", "activity_rpe_resolution", "activity_metrics"):
             conn.execute(f"create temporary table {table} (like public.{table} including all)")
         cases = [
             (1, "athlete", start_utc, False, False, None, None, None),
@@ -60,8 +61,18 @@ def test_diary_sql_filters_boundaries_sources_and_read_only(monkeypatch, target,
                values (1, 2, 'athlete', 'web', 4), (2, 2, 'athlete', 'strava', 8),
                       (3, 2, 'athlete', 'telegram', 7), (4, 3, 'other', 'web', 9)""",
         )
+        conn.execute("update strava_activity_raw set activity_type = 'Ride'")
+        conn.execute("update strava_activity_raw set activity_type = 'Run' where strava_activity_id = 3")
+        conn.execute("""insert into activity_metrics
+            (id, user_id, strava_activity_id, version, tss, normalized_power, intensity_factor)
+            values (1, 'athlete', 1, 'v1', 40, 180, 0.8),
+                   (2, 'athlete', 1, 'future', null, null, null),
+                   (3, 'other', 2, 'v1', 40, 180, 0.8),
+                   (4, 'athlete', 2, 'future', 40, 180, 0.8),
+                   (5, 'athlete', 3, 'v1', 40, 180, 0.8)""")
         conn.commit()
         monkeypatch.setattr(diary, "get_conn", lambda: nullcontext(conn))
+        monkeypatch.setattr(today, "get_conn", lambda: nullcontext(conn))
         with conn.transaction():
             conn.execute("set transaction read only")
             result = diary.get_diary_activities("athlete", target)
@@ -70,7 +81,18 @@ def test_diary_sql_filters_boundaries_sources_and_read_only(monkeypatch, target,
             assert result[-1].start_time.date() == start.date()
             assert result[0].start_time.date() == target
             assert result[0].name == "Activity"
-            assert result[0].sport_type == "Workout"
+            assert result[0].sport_type == "Run"
+            assert [a.load_status for a in result] == [
+                "Вид спорта пока не поддерживается", "Нет необходимых данных мощности",
+                "Подходит для расчёта нагрузки"]
+            for activity in result:
+                selected = today.get_today_activity("athlete", preferred_activity_id=activity.activity_id)
+                assert selected.load_status == activity.load_status
+            assert today.get_today_activity("athlete", preferred_activity_id=6) is None
+            assert today.get_today_activity("athlete", preferred_activity_id=7) is None
+            assert today.get_today_activity("athlete", preferred_activity_id=8) is None
+            assert today.get_today_activity("athlete", preferred_activity_id=9) is None
+            assert today.get_today_activity("absent") is None
             assert result[0].rpe_score is result[0].rpe_source is result[0].rpe_web_score is None
             assert (result[1].rpe_score, result[1].rpe_source, result[1].rpe_disagreement) == (4, "web", True)
             assert (result[1].rpe_web_score, result[1].rpe_strava_score, result[1].rpe_telegram_score) == (4, 8, 7)

@@ -48,6 +48,8 @@ def test_activity_query_uses_local_midnights_and_one_read(monkeypatch, target, t
     for clause in ("r.user_id = %s", "r.is_deleted = false", "r.is_excluded = false",
                    "r.duplicate_of_activity_id is null", "r.start_date >= %s", "r.start_date < %s"):
         assert clause in query
+    assert "m.user_id = r.user_id and m.version = 'v1'" in query
+    assert "m.strava_activity_id = r.strava_activity_id" in query
     assert "limit" not in query.lower()
 
 
@@ -55,11 +57,11 @@ def test_diary_keeps_multiple_workouts_null_zero_and_persisted_rpe(monkeypatch):
     target = date(2026, 8, 30)
     cursor = Cursor([
         (3, "Late", "Ride", datetime(2026, 8, 29, 22, tzinfo=timezone.utc),
-         0, 4, "web", True, 4, 8, 7),
+         0, 4, "web", True, 4, 8, 7, 0, 0, 0),
         (2, "Earlier", "Run", datetime(2026, 8, 29, 21, tzinfo=timezone.utc),
-         None, None, None, None, 5, None, None),
+         None, None, None, None, 5, None, None, None, None, None),
         (1, "Previous", "Ride", datetime(2026, 8, 29, 20, 59, tzinfo=timezone.utc),
-         3600, 7, "telegram", False, None, None, 7),
+         3600, 7, "telegram", False, None, None, 7, 40, None, 0.8),
     ])
     monkeypatch.setattr(diary, "get_conn", lambda: cursor)
     monkeypatch.setattr(diary, "WHATTE_TZ", ZoneInfo("Europe/Moscow"))
@@ -77,6 +79,9 @@ def test_diary_keeps_multiple_workouts_null_zero_and_persisted_rpe(monkeypatch):
     assert [a.activity_id for a in result.days[1].activities] == [1]
     first, second = result.days[0].activities
     assert first.start_time.isoformat() == "2026-08-30T01:00:00+03:00"
+    assert first.load_status == "Подходит для расчёта нагрузки"
+    assert second.load_status == "Вид спорта пока не поддерживается"
+    assert result.days[1].activities[0].load_status == "Нет необходимых данных мощности"
     assert first.duration_s == 0
     assert (first.rpe_score, first.rpe_source) == (4, "web")
     assert (first.rpe_web_score, first.rpe_strava_score, first.rpe_telegram_score) == (4, 8, 7)

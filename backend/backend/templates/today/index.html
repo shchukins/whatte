@@ -127,7 +127,7 @@
             <p class="hint">Оценки RPE из разных источников различаются: {% if activity.rpe_strava_score is not none %}Strava {{ activity.rpe_strava_score }}/10{% endif %}{% if activity.rpe_telegram_score is not none %}{% if activity.rpe_strava_score is not none %}, {% endif %}Telegram {{ activity.rpe_telegram_score }}/10{% endif %}{% if activity.rpe_web_score is not none %}{% if activity.rpe_strava_score is not none or activity.rpe_telegram_score is not none %}, {% endif %}Web {{ activity.rpe_web_score }}/10{% endif %}. Для итоговой оценки сначала используется Strava, затем Telegram, затем Web.</p>
             {% endif %}
             {% if activity_section.status == "error" %}
-            <p class="error">Оценка тренировки временно недоступна. </p><details class="error-details"><summary>Технические подробности</summary>{{ activity_section.error }}</details>
+            <p class="error">Оценка тренировки временно недоступна. Статус недоступен. </p><details class="error-details"><summary>Технические подробности</summary>{{ activity_section.error }}</details>
             {% elif activity %}
             <p class="activity-name">{{ activity.name }}</p>
             <ul class="activity-meta" aria-label="Данные тренировки">
@@ -136,6 +136,7 @@
                 <li>{{ activity.duration }}</li>
                 <li>{{ activity.distance }}</li>
             </ul>
+            <p class="hint">{{ activity.load_status }}</p>
             <p class="hint">Ваша оценка в Web: {% if activity.rpe_web_score is not none %}{{ activity.rpe_web_score }}/10{% else %}не выбрана{% endif %}.</p>
             {% if activity.rpe_score is not none %}<p class="hint">Дополнительный ввод не нужен.</p>{% endif %}
             <details class="feedback-editor" {% if activity.rpe_score is none %}open{% endif %}>

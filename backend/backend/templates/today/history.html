@@ -18,7 +18,7 @@
         <h1 id="diary-title">Последние 14 дней</h1>
         <p class="diary-history-note">Текущие сохранённые значения могут измениться после пересчёта; это не неизменяемая история утренних решений или отправленных сообщений.</p>
         {% if diary.history_section.status == 'error' %}<p class="error">Готовность и утреннее самочувствие временно недоступны. Обновите дневник, чтобы повторить попытку.</p>{% endif %}
-        {% if diary.activity_section.status == 'error' %}<p class="error">Тренировки временно недоступны. Обновите дневник, чтобы повторить попытку.</p>{% endif %}
+        {% if diary.activity_section.status == 'error' %}<p class="error">Тренировки временно недоступны. Статус недоступен. Обновите дневник, чтобы повторить попытку.</p>{% endif %}
         {% if diary.history_groups %}
         <ul class="diary-model-legend" aria-label="Версии модели">
             {% for group in diary.history_groups %}
@@ -77,6 +77,7 @@
                 {% for activity in visible_activities[day.date] %}
                 <div class="diary-workout">
                     <h4>{{ activity.name }}</h4>
+                    <p class="hint">{{ activity.load_status }}</p>
                     <p class="activity-meta">{{ activity.sport_type }} · {{ activity.start_time.strftime('%H:%M %Z') }} · {% if activity.duration_s is not none %}{{ activity.duration_s // 3600 }} ч {{ (activity.duration_s % 3600) // 60 }} мин {{ activity.duration_s % 60 }} с{% else %}Нет длительности{% endif %}</p>
                     <p>Итоговый RPE: {% if activity.rpe_score is not none %}{{ activity.rpe_score }}/10 · {{ activity.rpe_source | today_label('source') }}{% else %}<span class="history-missing">Нет оценки</span>{% endif %}</p>
                     {% if activity.rpe_disagreement %}<p class="hint">Оценки источников различаются.</p>{% endif %}
