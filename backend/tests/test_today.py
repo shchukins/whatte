@@ -326,6 +326,15 @@ def test_today_activity_keeps_telegram_and_web_observations_separate(monkeypatch
     assert activity.rpe_web_score == 4
 
 
+def test_lifecycle_context_uses_server_local_day_without_data_reads(monkeypatch):
+    monkeypatch.setattr(today_service, "get_local_today", lambda: date(2026, 8, 31))
+    monkeypatch.setattr(today_service, "get_today_data", lambda *a, **kw: pytest.fail("Data read"))
+    response = TestClient(app_module.app).get("/today/context")
+    assert response.status_code == 200
+    assert response.json() == {"local_date": "2026-08-31", "timezone": today_router_module.settings.whatte_timezone}
+    assert response.headers["cache-control"] == "no-store"
+
+
 def test_today_page_renders_mobile_working_surface(monkeypatch):
     monkeypatch.setattr(today_service, "get_today_data", lambda *args, **kwargs: _today_data())
     client = TestClient(app_module.app)

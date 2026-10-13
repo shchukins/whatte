@@ -9,7 +9,7 @@ from typing import Annotated
 from urllib.parse import parse_qs, urlsplit
 
 from fastapi import APIRouter, HTTPException, Path as FastAPIPath, Query, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
 from starlette.concurrency import run_in_threadpool
@@ -116,6 +116,16 @@ def history_page(request: Request, rpe: str = Query(default="all")):
         request=request, name="today/history.html",
         context={"today": data.target_date, "diary": data, "rpe_filter": rpe,
                  "missing_rpe_count": missing_count, "visible_activities": visible_activities},
+    )
+
+
+@router.get("/context")
+def local_day_context():
+    # Lifecycle checks read only the server clock, never athlete data or state.
+    return JSONResponse(
+        {"local_date": today_service.get_local_today().isoformat(),
+         "timezone": settings.whatte_timezone},
+        headers={"Cache-Control": "no-store"},
     )
 
 

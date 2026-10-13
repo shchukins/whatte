@@ -1,0 +1,70 @@
+<script>
+(() => {
+    const renderedDay = {{ today|string|tojson }};
+    const notice = document.querySelector('#lifecycle-notice');
+    const pending = new Map();
+    function showNotice(selector) {
+        notice.hidden = false;
+        notice.querySelector(selector).hidden = false;
+    }
+    window.whatteLifecycle = {
+        begin(container) {
+            const buttons = [...container.querySelectorAll('button')].map(button => ({
+                button, disabled: button.disabled, text: button.textContent,
+            }));
+            const operation = {
+                current: () => pending.get(container) === operation,
+                finish: () => {
+                    if (!operation.current()) return;
+                    buttons.forEach(({button, disabled, text}) => {
+                        button.disabled = disabled;
+                        button.textContent = text;
+                    });
+                    container.removeAttribute('aria-busy');
+                    delete container.dataset.saving;
+                    pending.delete(container);
+                },
+            };
+            pending.set(container, operation);
+            container.setAttribute('aria-busy', 'true');
+            buttons.forEach(({button}) => { button.disabled = true; });
+            return operation;
+        },
+    };
+    let checking = false;
+    async function checkDay() {
+        if (document.visibilityState !== 'visible' || checking || !window.fetch) return;
+        checking = true;
+        try {
+            const response = await fetch('/today/context', {
+                credentials: 'same-origin', cache: 'no-store',
+            });
+            if (!response.ok) return;
+            const context = await response.json();
+            if (/^\d{4}-\d{2}-\d{2}$/.test(context.local_date) && context.local_date !== renderedDay) {
+                showNotice('[data-day-notice]');
+            }
+        } catch (error) {
+            // A failed clock read says nothing about a pending POST outcome.
+        } finally {
+            checking = false;
+        }
+    }
+    window.addEventListener('pageshow', event => {
+        // Only BFCache restoration ends local busy state. Tab visibility alone
+        // must not unlock an in-flight write. Late fetch callbacks are ignored.
+        if (event.persisted) {
+            if (pending.size) showNotice('[data-save-notice]');
+            for (const [container, operation] of pending) {
+                operation.finish();
+                const status = container.querySelector('.feedback-status');
+                if (status) status.textContent = 'Проверьте сохранённое состояние перед повторной отправкой.';
+                const actions = container.querySelector('.feedback-actions');
+                if (actions) actions.hidden = true;
+            }
+        }
+        checkDay();
+    });
+    document.addEventListener('visibilitychange', checkDay);
+})();
+</script>

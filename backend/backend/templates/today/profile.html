@@ -11,6 +11,7 @@
 <body><main class="shell profile-shell">
   {% set active_page = "profile" %}
   {% include "today/navigation.html" %}
+  {% include "today/lifecycle_notice.html" %}
   <div class="edition-note"><span>Профиль / история значений</span><span>FTP + HR max + вес</span></div>
   <div class="profile-intro">
   <h1>Профиль</h1>
@@ -57,7 +58,9 @@
       {% for row in history %}<tr><td>{{ row.effective_from }}</td><td>{{ 'FTP' if row.metric == 'ftp' else 'HR max' if row.metric == 'hr_max' else 'Вес' }}</td><td>{{ '%g'|format(row.value) }} {{ 'Вт' if row.metric == 'ftp' else 'уд/мин' if row.metric == 'hr_max' else 'кг' }}</td></tr>{% endfor %}
     </tbody></table></div>{% else %}<p>Пока нет записей.</p>{% endif %}
   </section>
-</main><script>
+</main>
+{% include "today/lifecycle.html" %}
+<script>
 const metric = document.querySelector('#metric');
 const currentValues = { {% for metric, row in current.items() %}{{ metric | tojson }}: {{ row.value | tojson }}{% if not loop.last %}, {% endif %}{% endfor %} };
 function updateMetric(fillValue) {
@@ -80,7 +83,8 @@ window.addEventListener('load', () => {
 const errors = document.querySelector('#profile-errors');
 if (errors) errors.focus();
 document.querySelectorAll('form').forEach(form => form.addEventListener('submit', () => {
-  const button = form.querySelector('button'); button.disabled = true;
+  window.whatteLifecycle.begin(form);
+  const button = form.querySelector('button');
   button.textContent = form.action.endsWith('/recompute') ? 'Пересчитываем…' : 'Сохраняем…';
 }));
 </script></body></html>

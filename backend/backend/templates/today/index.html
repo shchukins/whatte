@@ -13,6 +13,7 @@
 <main class="shell">
     {% set active_page = "today" %}
     {% include "today/navigation.html" %}
+    {% include "today/lifecycle_notice.html" %}
     {{ profile_pending_notice(profile_pending, profile_pending_section) }}
     <div class="edition-note"><span>Тренировки / личный обзор</span><span>Сохранённые данные</span></div>
 
@@ -243,6 +244,7 @@
         <footer class="footer"><strong>WHATTE / СЕГОДНЯ</strong><span>Рекомендации по сохранённым сигналам и данным.</span></footer>
     </div>
 </main>
+{% include "today/lifecycle.html" %}
 <script>
     document.addEventListener("submit", async (event) => {
         const form = event.target.closest("[data-feedback-form]");
@@ -251,11 +253,9 @@
         const section = form.closest("[data-feedback-section]");
         if (section.dataset.saving === "true") return;
         section.dataset.saving = "true";
-        section.setAttribute("aria-busy", "true");
-        const buttons = section.querySelectorAll("[data-feedback-form] button");
+        const operation = window.whatteLifecycle.begin(section);
         const status = section.querySelector(".feedback-status");
         const actions = section.querySelector(".feedback-actions");
-        buttons.forEach(button => { button.disabled = true; });
         actions.hidden = true;
         status.textContent = "Сохранение…";
         const submitter = event.submitter || form.querySelector("button");
@@ -269,8 +269,10 @@
                 headers: {"X-Requested-With": "Whatte-Today"},
                 body: new URLSearchParams(new FormData(form)),
             });
+            if (!operation.current()) return;
             if (section.id === "recovery" && [409, 422].includes(response.status)) {
                 const page = new DOMParser().parseFromString(await response.text(), "text/html");
+                if (!operation.current()) return;
                 const refusal = page.querySelector("[data-recovery-error]");
                 if (refusal) {
                     status.replaceChildren(...refusal.childNodes);
@@ -279,6 +281,7 @@
             }
             if (!response.ok || !response.redirected) throw new Error("Unconfirmed save");
             const page = new DOMParser().parseFromString(await response.text(), "text/html");
+            if (!operation.current()) return;
             const selected = page.querySelector(`#${section.id} [data-score="${submitter.dataset.score}"][aria-pressed="true"]`);
             if (!selected) throw new Error("Stored score unavailable");
             const destination = new URL(response.url);
@@ -286,15 +289,12 @@
             window.location.assign(destination.href);
             navigating = true;
         } catch (error) {
+            if (!operation.current()) return;
             status.textContent = "Не удалось подтвердить сохранение. Проверьте сохранённое состояние или повторите отправку.";
             actions.hidden = false;
             section.querySelector("[data-feedback-retry]").onclick = () => form.requestSubmit(submitter);
         } finally {
-            if (!navigating) {
-                section.dataset.saving = "false";
-                section.removeAttribute("aria-busy");
-                buttons.forEach(button => { button.disabled = false; });
-            }
+            if (!navigating && operation.current()) operation.finish();
         }
     });
     // Native redirects and reloads keep keyboard focus at the edited section.

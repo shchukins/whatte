@@ -73,6 +73,32 @@ personal baselines. There are no physiology history charts or frontend scores.
 
 ## Ownership and safety
 
+Today and Profile check `GET /today/context` on `pageshow` and return to a
+visible tab. The protected, read-only endpoint returns the current server date
+in `WHATTE_TIMEZONE` with `Cache-Control: no-store`, without database reads.
+A changed day shows an explicit GET refresh link; pages never reload
+automatically, so edited Profile/observation fields remain in the DOM. The
+device date is not used. Recovery and observation POST date guards still apply.
+
+BFCache restoration resets only locally introduced button/busy states and
+Profile submit labels. It preserves input and explains that a pending send's
+result must be checked. Visibility alone does not unlock a pending POST.
+Late callbacks from a restored feedback request cannot navigate or claim a
+result. No lifecycle event retries a POST, and no personal values are stored
+outside the DOM. Native forms remain available without JavaScript; refresh
+links use GET even when the current document came from a recompute POST.
+
+Issue #176 validation: Chrome against local fixture-backed routes, with real
+BFCache enabled, passed Profile save→Back and recompute→Back (restored labels,
+enabled buttons and retained input). Tab switching retained input. Mocked server
+midnight retained edited Profile and observation fields with a refresh notice.
+A held/lost feedback response plus a simulated persisted `pageshow` restored
+controls without another POST or a late callback navigation. Lost-response
+handling and 320px layout passed. With JavaScript disabled, Profile save,
+recompute and recovery save followed native POST flows. Existing backend stale
+date tests and the read-only/no-store context test passed; no browser framework
+was added.
+
 Recovery forms carry the rendered `local_date` (ISO YYYY-MM-DD). Both native
 POST and fetch send URL-encoded fields. Before writing, the server compares
 that date with the current date in `WHATTE_TIMEZONE`; a stale date returns 409,

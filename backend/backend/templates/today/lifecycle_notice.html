@@ -1,0 +1,5 @@
+<div class="profile-pending-notice" id="lifecycle-notice" role="status" hidden>
+  <p data-day-notice hidden>Наступил новый день. Обновите страницу, чтобы увидеть актуальные данные. Введённые значения останутся здесь до обновления.</p>
+  <p data-save-notice hidden>Страница восстановлена. Результат отправки нужно проверить в сохранённых данных. Повторная отправка не выполнялась.</p>
+  <a href="{{ '/today/profile' if active_page == 'profile' else '/today' }}{% if active_page == 'today' and selected_activity and activity %}?activity_id={{ activity.activity_id }}{% if return_day %}&amp;return_day={{ return_day }}{% endif %}{% endif %}">Обновить страницу и проверить данные</a>
+</div>
