@@ -31,3 +31,9 @@
   пока необходимые компоненты не реализованы, протестированы и явно одобрены
   для активации. Текущая готовность описана в
   [production delivery](../../architecture/PRODUCTION_DELIVERY.md).
+
+- Полный lifecycle: `Issue → Codex → Tests → Commit → Push → CI/CD → Production verification → Close issue`.
+  Для runtime-задач использовать terminal Git trailers `Whatte-Issue-Ref: #190`
+  и `Whatte-Issue-Complete: #190` по правилам PR_WORKFLOW_RULES.md. Complete
+  означает готовность всей задачи к production verification, а не факт push.
+  Для docs/non-deploying setup применяется отдельная ручная completion policy.

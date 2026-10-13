@@ -22,6 +22,10 @@ concurrency:
   cancel-in-progress: false
 jobs:
   deploy:
+    outputs:
+      sha: ${{ steps.select.outputs.sha }}
+      mode: ${{ steps.select.outputs.mode }}
+      phase: ${{ steps.outcome.outputs.phase }}
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event.workflow_run.conclusion == 'success' &&
@@ -70,9 +74,39 @@ jobs:
           path: deployment-result.json
           if-no-files-found: ignore
           retention-days: 90
+          overwrite: true
       - name: Record outcome
+        id: outcome
         if: always()
         run: |
           if test -f deployment-result.json; then
             cat deployment-result.json >> "$GITHUB_STEP_SUMMARY"
+            python3 -c 'import json; from pathlib import Path; r=json.loads(Path("deployment-result.json").read_text()); print("phase=success" if r.get("phase")=="success" else "phase=unverified")' >> "$GITHUB_OUTPUT"
+          else
+            echo 'FAILED: no host outcome received; inspect host state before retry.' >> "$GITHUB_STEP_SUMMARY"
           fi
+  close-issues:
+    needs: deploy
+    if: >-
+      vars.PRODUCTION_AUTO_CLOSE == 'true' &&
+      needs.deploy.outputs.mode == 'deploy' && needs.deploy.outputs.phase == 'success'
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      actions: read
+      issues: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ needs.deploy.outputs.sha }}
+          fetch-depth: 0
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: deployment-${{ needs.deploy.outputs.sha }}
+      - name: Close verified completed issues
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SELECTED_SHA: ${{ needs.deploy.outputs.sha }}
+          PRODUCTION_AUTO_CLOSE: ${{ vars.PRODUCTION_AUTO_CLOSE }}
+        run: python3 scripts/issue_lifecycle.py

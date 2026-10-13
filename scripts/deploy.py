@@ -91,7 +91,7 @@ def verify_worker(sha, require_start=True):
         raise ValueError('Worker identity/state mismatch')
     for attempt in range(30):
         events = []
-        logs = subprocess.run(['docker', 'logs', '--tail', '100', 'human-engine-worker'], capture_output=True, text=True, check=True)
+        logs = subprocess.run(['docker', 'logs', '--since', '60s', '--tail', '100', 'human-engine-worker'], capture_output=True, text=True, check=True)
         for line in (logs.stdout + '\n' + logs.stderr).splitlines():
             try:
                 events.append(json.loads(line))
@@ -104,6 +104,36 @@ def verify_worker(sha, require_start=True):
             return
         time.sleep(1)
     raise ValueError('Worker startup/progress not verified')
+
+
+def functional_smoke():
+    # Local SSR read exercises app/schema integration without ingestion or writes.
+    # HTTP 200 alone is insufficient: Diary intentionally renders partial errors.
+    run('docker', 'exec', 'human-engine-backend', 'python', '-c',
+        'from backend.config import settings; '
+        'from backend.today.history_service import get_diary_data; '
+        'from backend.today.service import get_local_today; '
+        'from fastapi.testclient import TestClient; from backend.app import app; '
+        'd=get_diary_data(settings.daily_readiness_user_id,get_local_today()); '
+        'assert all(s.status=="ok" for s in '
+        '(d.activity_section,d.history_section,d.profile_pending_section)); '
+        'r=TestClient(app).get("/today/history"); '
+        'assert r.status_code==200 and "diary-shell" in r.text')
+
+
+def verify_runtime(sha, image, pulled):
+    for name in ('backend', 'worker'):
+        instance = inspect('human-engine-' + name)
+        if (instance['Image'] != pulled['Id'] or instance['Config']['Image'] != image
+                or instance['Mounts'] or not instance['State']['Running'] or instance['RestartCount']):
+            raise ValueError('Incoherent application release')
+        revision = json.loads(run('docker', 'exec', instance['Id'], 'python', '-c', 'import json; from backend.release import RELEASE; print(json.dumps(RELEASE))'))
+        if revision != {'git_sha': sha}:
+            raise ValueError('Container revision mismatch')
+    health(sha, public=True)
+    for url, status in [('https://shchukin.de/today', '401'), ('https://api.shchukin.de/today', '404')]:
+        if run('curl', '--max-time', '15', '-sS', '-o', '/dev/null', '-w', '%{http_code}', url) != status:
+            raise ValueError('Protected route boundary changed')
 
 
 def check_db(original):
@@ -166,13 +196,40 @@ def execute(request, source):
     active = STATE / 'active.json'
     if active.exists() and json.loads(active.read_text())['phase'] not in {'success', 'dry_run', 'docs_skipped', 'recovered', 'preflight_failed'}:
         raise ValueError('Interrupted deployment needs operator reconciliation')
-    record = {'git_sha': sha, 'image': image, 'previous_sha': previous['git_sha'],
+    record = {'contract_version': 'whatte_delivery_v1', 'migration_status': 'not_started',
+              'health_status': 'not_verified', 'git_sha': sha, 'image': image, 'previous_sha': previous['git_sha'],
               'previous_image': previous['image'], 'ci_run': manifest['ci_run'],
               'mode': request['mode'], 'started_at': datetime.now(timezone.utc).isoformat()}
     def phase(value):
         record['phase'] = value
+        record['outcome'] = {'success': 'SUCCESS', 'recovered': 'ROLLED_BACK',
+                             'preflight_failed': 'FAILED', 'migration_failed': 'REQUIRES_INTERVENTION',
+                             'recovery_failed': 'REQUIRES_INTERVENTION'}.get(value, 'PENDING')
+        if record['outcome'] != 'PENDING' or value in {'dry_run', 'docs_skipped'}:
+            record['completed_at'] = datetime.now(timezone.utc).isoformat()
         write_json(active, record)
         write_json(STATE / ('delivery-' + sha + '-' + request['mode'] + '.json'), record)
+    saved = STATE / ('delivery-' + sha + '-deploy.json')
+    if request['mode'] == 'deploy' and previous['git_sha'] == sha and saved.exists():
+        prior = json.loads(saved.read_text())
+        if prior.get('outcome') == 'SUCCESS' and prior.get('image') == image:
+            # Preserve original range for closure retries; recheck live runtime.
+            try:
+                health(sha)
+                verify_runtime(sha, image, inspect(image))
+                verify_worker(sha, require_start=False)
+                functional_smoke()
+            except Exception as error:
+                # Keep the historical SUCCESS, but never return it as the result
+                # of a failed fresh verification or hide this retry's diagnostics.
+                retry = {**prior, 'phase': 'preflight_failed', 'outcome': 'FAILED',
+                         'health_status': 'failed', 'failure_phase': 'retry_verification',
+                         'failure_type': type(error).__name__,
+                         'completed_at': datetime.now(timezone.utc).isoformat()}
+                write_json(active, retry)
+                write_json(STATE / ('delivery-' + sha + '-retry.json'), retry)
+                raise RuntimeError('Repeated deployment verification failed; inspect host outcome') from None
+            return prior
     phase('preflight')
     changed_app = False
     schema_safe = False
@@ -266,6 +323,7 @@ def execute(request, source):
         if pending:
             migrate_args += ['--approval-file', approval]
         run(*migrate_args, env=migration_env)
+        record['migration_status'] = 'succeeded'
         phase('rollout')
         changed_app = True
         phase('worker_draining')
@@ -277,20 +335,10 @@ def execute(request, source):
         run(*compose, 'up', '-d', '--no-deps', 'worker')
         verify_worker(sha)
         phase('verification')
-        for name in ('backend', 'worker'):
-            instance = inspect('human-engine-' + name)
-            if (instance['Image'] != pulled['Id'] or instance['Config']['Image'] != image
-                    or instance['Mounts'] or not instance['State']['Running'] or instance['RestartCount']):
-                raise ValueError('Incoherent application release')
-            revision = json.loads(run('docker', 'exec', instance['Id'], 'python', '-c', 'import json; from backend.release import RELEASE; print(json.dumps(RELEASE))'))
-            if revision != {'git_sha': sha}:
-                raise ValueError('Container revision mismatch')
-        health(sha, public=True)
-        for url, status in [('https://shchukin.de/today', '401'), ('https://api.shchukin.de/today', '404')]:
-            if run('curl', '--max-time', '15', '-sS', '-o', '/dev/null', '-w', '%{http_code}', url) != status:
-                raise ValueError('Protected route boundary changed')
+        verify_runtime(sha, image, pulled)
         check_db(db)
-        record.update(database_unchanged=True, shared_image_verified=True, worker_verified=True,
+        functional_smoke()
+        record.update(functional_smoke=True, health_status='verified', database_unchanged=True, shared_image_verified=True, worker_verified=True,
                       local_health=True, public_health=True, route_boundaries=True,
                       completed_at=datetime.now(timezone.utc).isoformat())
         # The running digest is authoritative; checkout is updated only after QA.
@@ -301,6 +349,10 @@ def execute(request, source):
         phase('success')
         return record
     except Exception as error:
+        if record['phase'] == 'migrations':
+            record['migration_status'] = 'failed'
+        if changed_app:
+            record['health_status'] = 'failed'
         record['failure_type'] = type(error).__name__
         record['failure_phase'] = record['phase']
         # These exception messages are generated by our guarded adapters, never
@@ -315,6 +367,8 @@ def execute(request, source):
                 health(previous['git_sha'])
                 run(*recovery, 'up', '-d', '--no-deps', 'worker')
                 verify_worker(previous['git_sha'])
+                health(previous['git_sha'], public=True)
+                functional_smoke()
                 check_db(db)
                 write_json(STATE / 'current.json', previous)
                 phase('recovered')

@@ -34,6 +34,7 @@ def main():
     Path('deployment-request.json').write_text(json.dumps(request))
     with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
         output.write(f'sha={sha}\n')
+        output.write(f'mode={request["mode"]}\n')
 
 
 if __name__ == '__main__':

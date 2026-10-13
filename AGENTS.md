@@ -95,7 +95,7 @@ Use them for:
 
 ## Development and delivery
 
-Default workflow: `Issue → Codex → Tests → Commit → Push main → CI/CD`.
+Default workflow: `Issue → Codex → Tests → Commit → Push main → CI/CD → Production verification → Close issue`.
 
 - Work directly on `main` when the execution environment permits it. Do not
   create feature branches or worktrees unless explicitly requested or required

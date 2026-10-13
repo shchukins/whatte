@@ -2,8 +2,10 @@
 
 Implemented by #189. Activation is separate from implementation. Automatic mode
 is disabled unless `PRODUCTION_AUTO_DEPLOY=true` is deliberately set after a
-successful Actions dry run and approved initial deployment. No automatic issue
-closure is implemented; that belongs to #190.
+successful Actions dry run and approved initial deployment. It was separately
+approved and activated on 2026-10-12. Issue lifecycle automation (#190) is
+implemented but disabled until separate approval sets `PRODUCTION_AUTO_CLOSE=true`.
+Deployment activation does not enable closure.
 
 `Production deployment` receives successful `Backend CI` workflow completions
 for main pushes. It independently verifies exact SHA, completed CI, all required
@@ -131,7 +133,7 @@ health/worker and unchanged DB, and records `recovered`. If recovery fails,
 `recovery_failed` requires operator action. Never restore/undo SQL automatically.
 GitHub retains outcome artifacts for 90 days; the host keeps durable phase/release
 records even if SSH/CI is interrupted. A failed dispatch remains a failed job even
-when the previous release was recovered. #190 can later consume success evidence.
+when the previous release was recovered. The separate lifecycle job consumes only fully verified SUCCESS evidence.
 
 Do not enable automatic mode or close #189 until Actions connectivity, dry run,
 initial rollout and production behavior are verified. Deployment authorization
@@ -141,7 +143,8 @@ alone does not imply approval to activate unattended mode.
 
 On 2026-10-12, the operator authorized the first deployment and explicitly kept
 push-triggered deployment disabled until separate confirmation after health checks.
-`PRODUCTION_AUTO_DEPLOY=false` remains set; manual dispatch is operational.
+`PRODUCTION_AUTO_DEPLOY=false` was retained at that initial checkpoint; manual
+dispatch was operational.
 
 - [Exact-SHA CI](https://github.com/shchukins/whatte/actions/runs/38286350068)
   passed for `26458179ff829d95c62d3e91d951d90cd656063a`; 756 local unit tests
@@ -167,3 +170,78 @@ tests cover the application/database ports and another address. User-owned devic
 access and the existing Tailscale SSH policy were preserved. The dedicated SSH key
 rejects ordinary commands and forwarding. No unattended deployment or automatic
 issue closure was enabled by these validations.
+
+### Subsequent automatic deployment activation
+
+On 2026-10-12 the operator separately approved unattended push deployment.
+`PRODUCTION_AUTO_DEPLOY=true` was verified on 2026-10-13; the first observed
+[successful automatic rollout](https://github.com/shchukins/whatte/actions/runs/38292966404)
+ran from `workflow_run` for `4b82fad32c0f58cf631f502005162591c85a8de9`.
+Automatic issue closure remains separately gated and was not activated.
+
+## Issue lifecycle and completion policy
+
+Final lifecycle: `Issue → Codex → Tests → Commit → Push → CI/CD → Production
+verification → Close issue`. Implementation and production acceptance are separate.
+
+Commit subjects may reference `(#190)` for traceability. Only terminal Git
+trailers explicitly opt runtime issues into lifecycle handling:
+
+```text
+feat(delivery): implement verified results (#190)
+
+Whatte-Issue-Ref: #190
+```
+
+Use `Whatte-Issue-Complete: #190` instead of Ref only once the entire issue is
+implemented and tested, with no outstanding work beyond delivery verification.
+One trailer per issue, exact repository-local number, no closing keywords. The
+engine's original `previous_sha..git_sha` range includes all intervening commits
+and skipped releases. Oldest-to-newest signals are folded by issue; a later Ref
+revokes Complete. Plain mentions/body prose have no effect. PR numbers and foreign
+repository identities are rejected before any issue writes. Do not put Complete
+trailers on documentation or non-deploying setup tasks.
+
+The host records `whatte_delivery_v1`: selected/previous SHA and digest, CI run,
+start/end UTC timestamps, migration/health status, individual verification checks,
+phase and outcome. Terminal deploy outcomes are SUCCESS, FAILED, ROLLED_BACK or
+REQUIRES_INTERVENTION. Dry run/docs skip/in-progress are PENDING and cannot close
+issues. SUCCESS requires local backend/DB/version, public health/version,
+shared image/no mounts/restarts, recent ordinary worker progress, route boundaries,
+unchanged PostgreSQL and a read-only Diary data/render smoke. The smoke rejects
+partial data errors even when the page returns HTTP 200. It creates no records,
+requests no ingestion and sends no notifications. No PII is emitted.
+
+`close-issues` receives only the deployment artifact of this successful Actions
+run, checks its exact selected SHA and evidence, then reads Git history. It has
+issues-write permission; deployment retains read-only permissions. It runs only
+when `PRODUCTION_AUTO_CLOSE=true` and mode is deploy. Leave this variable unset
+until prerequisites, local tests and an authorized live rehearsal have passed and
+the operator explicitly approves activation. No Telegram notification is added.
+
+Closed issues are skipped; a partial GitHub failure leaves the job red and retry
+only closes remaining open issues. Duplicate successful deployments reuse the
+original durable record after fresh runtime checks, preserving the original
+change range rather than replacing it with an empty range. Retry the lifecycle
+job from the same run after an API failure. A failed verification/deployment
+cannot reach closure, including a successfully rolled-back release. SSH failure
+without a result produces a clear Actions summary; inspect durable host records
+before retrying. Outcome artifacts remain available for 90 days; host results
+remain durable. GitHub closure failure does not roll back a healthy deployment.
+
+Documentation-only and deliberately non-deploying CI/CD setup tasks use a
+separate **manual** completion policy: local checks, exact-SHA CI, recorded
+acceptance evidence and individual requested closure. Document delivery to the
+server is verified if requested. These tasks never manufacture a production
+SUCCESS or force an app restart. Setup tasks changing delivery behavior need an
+authorized dry run/rollout before live operation can be claimed.
+
+Recovery retains the #189 compatibility gate: pending migrations must explicitly
+be old-app-compatible; unknown/incompatible schema prevents automatic application
+rollback. Compatible rollout failure restores both prior services from saved
+Compose/env and checks health, worker, functional read and preserved DB identity.
+SQL is never reversed. Reconciliation/forward repair is an operator procedure.
+Tests in `test_deployment.py` and `test_issue_lifecycle.py` rehearse host success,
+compatible rollback, failed recovery/migration, skipped intermediate releases,
+multi-commit completion, API interruption and duplicate closure without production
+or GitHub writes. Live activation is separately authorized and recorded.

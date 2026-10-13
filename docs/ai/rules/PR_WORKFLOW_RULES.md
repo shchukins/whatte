@@ -2,7 +2,7 @@
 
 ## Default workflow
 
-`Issue → Codex → Tests → Commit → Push main → CI/CD`
+`Issue → Codex → Tests → Commit → Push main → CI/CD → Production verification → Close issue`
 
 Work directly on `main` when the execution environment permits it. Feature
 branches and worktrees are exceptions: create them only when explicitly requested
@@ -63,8 +63,9 @@ workflow does not authorize weakening that requirement.
 
 Current state: CI, immutable releases, versioned migrations and centralized manual
 Actions delivery are implemented. #189 validated restricted connectivity, dry run
-and the authorized initial production rollout. Unattended push deployment remains
-disabled pending separate operator approval; automatic issue closure remains #190.
+and the authorized initial production rollout. Push deployment was subsequently
+approved and activated; automatic issue closure (#190) is implemented but
+separately gated.
 Use [the delivery runbook](../../../ops/deploy/README.md). The audit and activation
 boundaries are described in [production delivery](../../architecture/PRODUCTION_DELIVERY.md)
 and epic #184. These rules do not activate unattended deployment or issue closure.
@@ -86,3 +87,20 @@ complete. For runtime changes, wait for successful production verification;
 documentation/research issues use their own validation and any requested server
 documentation delivery. Do not treat push, green CI or checkout SHA alone as proof
 of a running release. Record the exact commit, check results and delivery evidence.
+
+## Explicit issue completion signals
+
+Use terminal Git trailers `Whatte-Issue-Ref: #190` while work continues and
+`Whatte-Issue-Complete: #190` only when the whole runtime task is ready for
+production acceptance. Plain references such as `(#190)` are traceability only.
+The final trailer for each issue in the complete deployed range determines
+eligibility; a later Ref revokes an earlier Complete. Do not use closing keywords.
+Only fully verified production SUCCESS can close runtime issues, and only after
+separate activation of `PRODUCTION_AUTO_CLOSE`. See the
+[issue lifecycle contract](../../../ops/deploy/README.md#issue-lifecycle-and-completion-policy).
+
+Documentation-only tasks and CI/CD setup intentionally requiring no deployment
+use manual completion: successful exact-SHA CI, relevant local validation and
+recorded acceptance evidence, then individual closure when requested. Never add a
+production Complete trailer to these tasks. Setup changes that alter the host
+engine still require an authorized dry run/rollout before claiming live validation.

@@ -325,9 +325,23 @@ def test_success_records_coherent_release_without_touching_postgres(host, monkey
     monkeypatch.setattr(deploy, 'run', run)
     result = deploy.execute({'mode': 'deploy', 'manifest': manifest}, ROOT)
     assert result['phase'] == 'success'
+    from issue_lifecycle import verified_range
+    assert verified_range(result, SHA) == (OLD, SHA)
     assert result['shared_image_verified'] and result['database_unchanged']
     assert json.loads((state / 'current.json').read_text())['git_sha'] == SHA
     assert not any(c[0] == 'docker' and any(action in c for action in ('down', 'restart', 'up', 'stop')) and c[-1] == 'postgres' for c in calls)
+    calls.clear()
+    retry = deploy.execute({'mode': 'deploy', 'manifest': manifest}, ROOT)
+    assert retry['previous_sha'] == OLD
+    assert verified_range(retry, SHA) == (OLD, SHA)
+    assert not any('up' in c or 'create' in c or 'migrate' in c for c in calls)
+    def fail_smoke():
+        raise ValueError('Diary section unavailable')
+    monkeypatch.setattr(deploy, 'functional_smoke', fail_smoke)
+    with pytest.raises(RuntimeError, match='Repeated'):
+        deploy.execute({'mode': 'deploy', 'manifest': manifest}, ROOT)
+    assert json.loads((state / 'active.json').read_text())['outcome'] == 'FAILED'
+    assert json.loads((state / ('delivery-' + SHA + '-deploy.json')).read_text())['outcome'] == 'SUCCESS'
 
 
 def test_docs_only_release_preserves_current_app_and_skips_backup(host, monkeypatch):
@@ -407,3 +421,46 @@ def test_runtime_rename_into_docs_still_requires_rollout(tmp_path, monkeypatch):
     paths = deploy.changed_paths(previous, selected)
     assert 'backend/asset.py' in paths
     assert requires_rollout(paths)
+
+
+@pytest.mark.parametrize('events,expected', [
+    ([{'event': 'worker_started', 'git_sha': SHA}, {'event': 'worker_idle'}], True),
+    ([{'event': 'worker_started', 'git_sha': SHA}], False),
+    ([{'event': 'worker_started', 'git_sha': OLD}, {'event': 'worker_idle'}], False),
+    ([{'event': 'worker_started', 'git_sha': SHA}, {'event': 'worker_idle'}, {'level': 'ERROR'}], False),
+])
+def test_worker_verification_requires_recent_progress_and_revision(monkeypatch, events, expected):
+    monkeypatch.setattr(deploy, 'inspect', lambda _: {'Id': 'worker', 'State': {'Running': True}})
+    monkeypatch.setattr(deploy, 'run', lambda *_args: json.dumps({'git_sha': SHA}))
+    commands = []
+    def logs(args, **kwargs):
+        commands.append(args)
+        return type('Logs', (), {'stdout': '\n'.join(json.dumps(e) for e in events), 'stderr': ''})()
+    monkeypatch.setattr(deploy.subprocess, 'run', logs)
+    monkeypatch.setattr(deploy.time, 'sleep', lambda _: None)
+    if expected:
+        deploy.verify_worker(SHA)
+    else:
+        with pytest.raises(ValueError):
+            deploy.verify_worker(SHA)
+    assert all('--since' in c and '60s' in c for c in commands)
+
+
+def test_failed_functional_smoke_rolls_back_and_cannot_close(host, monkeypatch):
+    state, calls, manifest, _ = host
+    original = prepared_rollout(host, monkeypatch)
+    monkeypatch.setattr(deploy, 'verify_runtime', lambda *_: None)
+    attempts = []
+    def smoke():
+        attempts.append(True)
+        if len(attempts) == 1:
+            raise ValueError('Diary section unavailable')
+    monkeypatch.setattr(deploy, 'functional_smoke', smoke)
+    with pytest.raises(RuntimeError):
+        deploy.execute({'mode': 'deploy', 'manifest': manifest}, ROOT)
+    result = json.loads((state / 'active.json').read_text())
+    assert result['outcome'] == 'ROLLED_BACK'
+    from issue_lifecycle import verified_range
+    with pytest.raises(ValueError):
+        verified_range(result, SHA)
+    assert json.loads((state / 'current.json').read_text())['git_sha'] == OLD
