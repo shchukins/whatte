@@ -76,7 +76,7 @@
             {% endif %}
         </section>
 
-        <section id="recovery" tabindex="-1" data-feedback-section class="card recovery" aria-labelledby="recovery-title">
+        <section id="recovery" data-feedback-section class="card recovery" aria-labelledby="recovery-title">
             <p class="section-index">02 / Утренний отчёт</p>
             <p class="eyebrow">Самочувствие / сегодня</p>
             <div class="section-head">
@@ -92,7 +92,7 @@
             {% if recovery_section.status == "error" %}
             <p class="error">Оценка самочувствия временно недоступна. </p><details class="error-details"><summary>Технические подробности</summary>{{ recovery_section.error }}</details>
             {% else %}
-            <details class="feedback-editor" {% if not recovery %}open{% endif %}>
+            <details class="feedback-editor" {% if not recovery or saved == "recovery" %}open{% endif %}>
                 <summary>{% if recovery %}Самочувствие: {{ recovery.score }}/5 · <span>Изменить</span>{% else %}Оценить самочувствие{% endif %}</summary>
             <div class="scale" aria-label="Оценка самочувствия от одного до пяти">
                 {% set recovery_options = [(1, 'Без сил'), (2, 'Уста­лость'), (3, 'Нор­мально'), (4, 'Бодро'), (5, 'Полон сил')] %}
@@ -110,7 +110,7 @@
             {% endif %}
         </section>
 
-        <section id="rpe" tabindex="-1" data-feedback-section class="card activity" aria-labelledby="rpe-title">
+        <section id="rpe" data-feedback-section class="card activity" aria-labelledby="rpe-title">
             <p class="section-index">03 / {{ "Выбранная тренировка" if selected_activity else "Последняя тренировка" }}</p>
             <p class="eyebrow">Тренировка / оценка</p>
             <div class="section-head">
@@ -140,7 +140,7 @@
             <p class="hint">{{ activity.load_status }}</p>
             <p class="hint">Ваша оценка в Web: {% if activity.rpe_web_score is not none %}{{ activity.rpe_web_score }}/10{% else %}не выбрана{% endif %}.</p>
             {% if activity.rpe_score is not none %}<p class="hint">Дополнительный ввод не нужен.</p>{% endif %}
-            <details class="feedback-editor" {% if activity.rpe_score is none %}open{% endif %}>
+            <details class="feedback-editor" {% if activity.rpe_score is none or saved == "rpe" %}open{% endif %}>
                 <summary>{% if activity.rpe_web_score is not none %}Web RPE: {{ activity.rpe_web_score }}/10 · <span>Изменить</span>{% else %}Оценить нагрузку в Web{% endif %}</summary>
                 <p class="hint">Web-оценка сохраняется отдельно и не заменяет оценку Strava или Telegram, если она доступна. Приоритет итогового RPE: Strava → Telegram → Web.</p>
             <div class="rpe-control" role="group" aria-label="Ощущаемая нагрузка от 1 до 10">
@@ -297,10 +297,16 @@
             if (!navigating && operation.current()) operation.finish();
         }
     });
-    // Native redirects and reloads keep keyboard focus at the edited section.
+    // Return focus to an interactive control rather than outlining the whole section.
     const target = ["#recovery", "#rpe"].includes(location.hash)
         ? document.querySelector(location.hash) : null;
-    if (target) target.focus({preventScroll: true});
+    window.addEventListener('load', () => {
+        if (target) {
+            const control = target.querySelector('.feedback-editor[open] [aria-pressed="true"]')
+                || target.querySelector('.feedback-editor summary');
+            if (control) control.focus({preventScroll: true});
+        }
+    }, {once: true});
 </script>
 </body>
 </html>

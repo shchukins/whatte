@@ -795,6 +795,18 @@ def test_today_recovery_buttons_keep_numeric_accessible_names(monkeypatch):
                      ("4", "Бодро"), ("5", "Полон сил")]
 
 
+@pytest.mark.parametrize("saved", ["recovery", "rpe"])
+def test_saved_feedback_keeps_its_editor_open(monkeypatch, saved):
+    data = _today_data()
+    activity = replace(data.activity, rpe_score=5, rpe_web_score=5, rpe_value="web")
+    monkeypatch.setattr(today_service, "get_today_data", lambda *a, **k: replace(data, activity=activity))
+    page = TestClient(app_module.app).get("/today", params={"saved": saved}).text
+    for section_id in ["recovery", "rpe"]:
+        section = page.split(f'<section id="{section_id}"', 1)[1].split('</section>', 1)[0]
+        editor = re.search(r'<details class="feedback-editor"([^>]*)>', section)
+        assert ("open" in editor.group(1)) is (section_id == saved)
+
+
 def test_saved_feedback_editors_preserve_selection_and_sources(monkeypatch):
     data = _today_data()
     activity = replace(data.activity, rpe_score=8, rpe_value="strava",

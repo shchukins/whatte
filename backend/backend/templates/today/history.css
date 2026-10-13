@@ -37,3 +37,5 @@
     .diary-intro h1 { font-size: 40px; }
     .diary-point time { writing-mode: vertical-rl; margin-inline: auto; }
 }
+
+#diary-filters { scroll-margin-top: 16px; }

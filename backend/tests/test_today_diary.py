@@ -93,7 +93,7 @@ def test_seven_day_summary_reuses_unfiltered_local_diary_read(monkeypatch, case,
             if missing:
                 assert f'длительность отсутствует у {missing} тренировок' in section
             missing_14 = 3 if case in ('mixed', 'history_failed') else count - coverage
-            assert f'href="/today/history?rpe=missing">Без RPE за 14 дней: {missing_14}</a>' in section
+            assert f'href="/today/history?rpe=missing#diary-filters">Без RPE за 14 дней: {missing_14}</a>' in section
         assert 'private history error' not in page
     assert sections[0] == sections[1]
     assert calls == [('activities', user, target), ('history', user, target),
@@ -199,7 +199,7 @@ def test_diary_rpe_filter_uses_effective_score_and_preserves_calendar(monkeypatc
     assert users == [(router.settings.daily_readiness_user_id, target)]
     assert page.count('class="diary-day"') == 14
     assert page.count('class="diary-gap"') == 14
-    assert f'href="/today/history?rpe={rpe}" aria-current="true"' in page
+    assert f'href="/today/history?rpe={rpe}#diary-filters" aria-current="true"' in page
     assert '<script' not in page
     if failure:
         assert 'Без итогового RPE за 14 дней: количество недоступно' in page

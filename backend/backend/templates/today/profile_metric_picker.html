@@ -1,0 +1,86 @@
+<script>
+(() => {
+  // Keep the native select as the form value and the no-JavaScript fallback.
+  const select = document.querySelector('#metric');
+  const wrapper = document.createElement('div');
+  wrapper.className = 'metric-picker';
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.id = 'metric';
+  button.className = 'metric-picker-button';
+  button.setAttribute('role', 'combobox');
+  button.setAttribute('aria-haspopup', 'listbox');
+  button.setAttribute('aria-expanded', 'false');
+  button.setAttribute('aria-controls', 'metric-options');
+  button.setAttribute('aria-label', 'Показатель');
+  for (const attribute of ['aria-invalid', 'aria-describedby']) {
+    if (select.hasAttribute(attribute)) button.setAttribute(attribute, select.getAttribute(attribute));
+  }
+  const list = document.createElement('ul');
+  list.id = 'metric-options';
+  list.className = 'metric-picker-options';
+  list.setAttribute('role', 'listbox');
+  list.setAttribute('aria-label', 'Показатель');
+  list.hidden = true;
+  const options = [...select.options].map((option, index) => {
+    const item = document.createElement('li');
+    item.id = `metric-option-${index}`;
+    item.setAttribute('role', 'option');
+    item.textContent = option.textContent;
+    item.addEventListener('mousedown', event => event.preventDefault());
+    item.addEventListener('click', () => choose(index));
+    list.append(item);
+    return item;
+  });
+  let active = select.selectedIndex;
+  function highlight(index) {
+    active = index;
+    options.forEach((item, i) => item.classList.toggle('is-active', i === active));
+    button.setAttribute('aria-activedescendant', options[active].id);
+  }
+  function close() {
+    list.hidden = true;
+    button.setAttribute('aria-expanded', 'false');
+    button.removeAttribute('aria-activedescendant');
+  }
+  function open() {
+    list.hidden = false;
+    button.setAttribute('aria-expanded', 'true');
+    highlight(select.selectedIndex);
+  }
+  function sync() {
+    button.textContent = select.options[select.selectedIndex].textContent;
+    options.forEach((item, i) => item.setAttribute('aria-selected', String(i === select.selectedIndex)));
+  }
+  function choose(index) {
+    select.selectedIndex = index;
+    select.dispatchEvent(new Event('change', {bubbles: true}));
+    close();
+    button.focus({preventScroll: true});
+  }
+  button.addEventListener('click', () => list.hidden ? open() : close());
+  button.addEventListener('keydown', event => {
+    if (event.key === 'Tab') { close(); return; }
+    if (event.key === 'Escape') { event.preventDefault(); close(); return; }
+    if (['Enter', ' '].includes(event.key)) {
+      event.preventDefault();
+      if (list.hidden) open(); else choose(active);
+      return;
+    }
+    if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+      event.preventDefault();
+      if (list.hidden) open();
+      else highlight(event.key === 'Home' ? 0 : event.key === 'End' ? options.length - 1
+        : Math.max(0, Math.min(options.length - 1, active + (event.key === 'ArrowDown' ? 1 : -1))));
+    }
+  });
+  document.addEventListener('click', event => { if (!wrapper.contains(event.target)) close(); });
+  button.addEventListener('blur', close);
+  select.addEventListener('change', sync);
+  select.id = 'metric-native';
+  select.hidden = true;
+  wrapper.append(button, list);
+  select.after(wrapper);
+  sync();
+})();
+</script>

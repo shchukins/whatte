@@ -84,7 +84,9 @@ const errors = document.querySelector('#profile-errors');
 if (errors) errors.focus();
 document.querySelectorAll('form').forEach(form => form.addEventListener('submit', () => {
   window.whatteLifecycle.begin(form);
-  const button = form.querySelector('button');
+  const button = form.querySelector('button[type="submit"]');
   button.textContent = form.action.endsWith('/recompute') ? 'Пересчитываем…' : 'Сохраняем…';
 }));
-</script></body></html>
+</script>
+{% include "today/profile_metric_picker.html" %}
+</body></html>

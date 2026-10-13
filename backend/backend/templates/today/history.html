@@ -43,11 +43,11 @@
         {% else %}
         <p class="error">Сводка тренировок недоступна. Не удалось загрузить тренировки.</p>
         {% endif %}
-        {% if missing_rpe_count is not none %}<a href="/today/history?rpe=missing">Без RPE за 14 дней: {{ missing_rpe_count }}</a>{% endif %}
+        {% if missing_rpe_count is not none %}<a href="/today/history?rpe=missing#diary-filters">Без RPE за 14 дней: {{ missing_rpe_count }}</a>{% endif %}
     </section>
-    <nav class="diary-filters" aria-label="Фильтр тренировок">
-        <a href="/today/history?rpe=all"{% if rpe_filter == 'all' %} aria-current="true"{% endif %}>Все</a>
-        <a href="/today/history?rpe=missing"{% if rpe_filter == 'missing' %} aria-current="true"{% endif %}>Без RPE</a>
+    <nav id="diary-filters" class="diary-filters" aria-label="Фильтр тренировок">
+        <a href="/today/history?rpe=all#diary-filters"{% if rpe_filter == 'all' %} aria-current="true"{% endif %}>Все</a>
+        <a href="/today/history?rpe=missing#diary-filters"{% if rpe_filter == 'missing' %} aria-current="true"{% endif %}>Без RPE</a>
         <p class="hint">Без итогового RPE за 14 дней: {% if missing_rpe_count is not none %}{{ missing_rpe_count }}{% else %}количество недоступно{% endif %}</p>
     </nav>
     <section aria-label="Дни дневника">
