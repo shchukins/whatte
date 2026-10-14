@@ -1,5 +1,8 @@
 {% from "today/profile_pending.html" import profile_pending_notice %}
 {% from "today/history_figure.html" import readiness_figure %}
+{% macro score_circle(score, kind) -%}
+<span class="diary-score diary-score-{{ kind }}" data-score="{{ score }}" role="img" aria-label="{{ 'RPE' if kind == 'rpe' else 'Самочувствие' }} {{ score }} из {{ 10 if kind == 'rpe' else 5 }}">{{ score }}</span>
+{%- endmacro %}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -66,7 +69,7 @@
                     {% if not group.supported %}<p class="history-version">Историческая версия · {{ group.version }}</p>{% endif %}
                     <p>Готовность: {% if row.readiness_score is not none %}<strong>{{ row.readiness_score }}/100</strong>{% else %}<span class="history-missing">Нет готовности</span>{% endif %}</p>
                     <p>Рекомендация: {% if group.supported and row.recommendation %}{{ row.recommendation | today_label('recommendation') }}{% elif not group.supported %}<span class="history-missing">Не определяется для этой версии</span>{% else %}<span class="history-missing">Нет рекомендации</span>{% endif %}</p>
-                    {% if group.supported %}<p>Утреннее самочувствие: {% if row.recovery_score is not none %}{{ row.recovery_score }}/5 · {{ row.recovery_value | today_label('recovery') }}{% else %}<span class="history-missing">Нет оценки</span>{% endif %}</p>{% endif %}
+                    {% if group.supported %}<p>Утреннее самочувствие: {% if row.recovery_score is not none %}{{ score_circle(row.recovery_score, 'recovery') }} · {{ row.recovery_value | today_label('recovery') }}{% else %}<span class="history-missing">Нет оценки</span>{% endif %}</p>{% endif %}
                 </div>
                 {% endif %}
                 {% endfor %}
@@ -79,10 +82,10 @@
                     <h4>{{ activity.name }}</h4>
                     <p class="hint">{{ activity.load_status }}</p>
                     <p class="activity-meta">{{ activity.sport_type }} · {{ activity.start_time.strftime('%H:%M %Z') }} · {% if activity.duration_s is not none %}{{ activity.duration_s // 3600 }} ч {{ (activity.duration_s % 3600) // 60 }} мин {{ activity.duration_s % 60 }} с{% else %}Нет длительности{% endif %}</p>
-                    <p>Итоговый RPE: {% if activity.rpe_score is not none %}{{ activity.rpe_score }}/10 · {{ activity.rpe_source | today_label('source') }}{% else %}<span class="history-missing">Нет оценки</span>{% endif %}</p>
+                    <p class="diary-rpe-value">RPE: {% if activity.rpe_score is not none %}{{ score_circle(activity.rpe_score, 'rpe') }} · {{ activity.rpe_source | today_label('source') }}{% else %}<span class="history-missing">Нет оценки</span>{% endif %}</p>
                     {% if activity.rpe_disagreement %}<p class="hint">Оценки источников различаются.</p>{% endif %}
                     {% if activity.rpe_disagreement or (activity.rpe_score is none and activity.rpe_web_score is not none) %}
-                    <p class="hint">{% for source, score in [('Strava', activity.rpe_strava_score), ('Telegram', activity.rpe_telegram_score), ('Web', activity.rpe_web_score)] %}{% if score is not none %}{{ source }} {{ score }}/10. {% endif %}{% endfor %}</p>
+                    <p class="hint">{% for source, score in [('Strava', activity.rpe_strava_score), ('Telegram', activity.rpe_telegram_score), ('Web', activity.rpe_web_score)] %}{% if score is not none %}{{ source }} {{ score_circle(score, 'rpe') }}. {% endif %}{% endfor %}</p>
                     {% endif %}
                     <a class="diary-rpe" href="/today?activity_id={{ activity.activity_id }}&amp;return_day={{ day.date }}#rpe">{{ 'Изменить RPE' if activity.rpe_web_score is not none else 'Оценить RPE' }}</a>
                 </div>

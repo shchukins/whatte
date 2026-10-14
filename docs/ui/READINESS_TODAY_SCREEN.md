@@ -158,6 +158,12 @@ Each day includes every recorded eligible canonical workout, local start time,
 nullable duration and persisted effective RPE/source. Source conflicts show
 the separate observations. No recorded workouts means only absence of records.
 Activity and readiness/recovery failures have independent states.
+Saved RPE and morning feeling appear as small colored circles with one number,
+using the exact discrete colors of their respective Today input scales. Feeling
+keeps its text label and RPE keeps its source; separate conflicting RPE observations
+use the same circles. Accessible labels include the full scale (RPE out of 10,
+feeling out of 5). The workout row uses the short label «RPE» with muted text
+and a smaller circle than morning feeling. Missing scores remain «Нет оценки» without a colored circle.
 The compact workout summary (#177) covers the target local date and previous
 six dates, with explicit ISO endpoints. It aggregates the existing unfiltered
 canonical activity read: recorded workout count, known duration (including zero),

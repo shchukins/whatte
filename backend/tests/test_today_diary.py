@@ -282,7 +282,8 @@ def test_diary_route_calendar_sections_and_access_boundary(monkeypatch, failure)
     assert '<script' not in page and '<form' not in page
     if failure not in ('history', 'both'):
         assert '0/100' in page and 'Нет готовности' in page and 'Нет оценки' in page
-        assert '4/5' in page and 'Умеренная аэробная тренировка' in page
+        assert 'aria-label="Самочувствие 4 из 5">4</span>' in page
+        assert 'Умеренная аэробная тренировка' in page
         assert page.count('class="diary-plot"') == 1
         assert 'Не определяется для этой версии' in page
         assert 'Высокоинтенсивная' not in page
@@ -291,7 +292,9 @@ def test_diary_route_calendar_sections_and_access_boundary(monkeypatch, failure)
     if failure not in ('activities', 'both'):
         assert 'Workout &lt;unsafe&gt;' in page and 'Second workout' in page
         assert '0 ч 0 мин 0 с' in page and 'Нет длительности' in page
-        assert '7/10 · Strava' in page and 'Web 4/10' in page
+        assert 'aria-label="RPE 7 из 10">7</span> · Strava' in page
+        assert 'Web <span class="diary-score diary-score-rpe" data-score="4"' in page
+        assert '7/10' not in page and '4/10' not in page
         assert '/today?activity_id=101&amp;return_day=2026-08-30#rpe' in page
         assert '/today?activity_id=102&amp;return_day=2026-08-30#rpe' in page
         assert 'Нет записанных тренировок' in page
