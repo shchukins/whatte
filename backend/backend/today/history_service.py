@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 
 from backend.db import get_conn
+from backend.services.activity_load_service import ActivityLoadAssessment, assess_stored_activity_load
 from backend.today.service import (
     HISTORY_DAYS,
     WHATTE_TZ,
@@ -16,6 +17,17 @@ from backend.today.service import (
 )
 
 DIARY_SUMMARY_DAYS = 7
+LOAD_EXCLUSION_LABELS = {
+    "unsupported_sport": "Вид спорта пока не поддерживается",
+    "missing_required_power_metrics": "Нет необходимых данных мощности",
+}
+
+
+@dataclass(frozen=True)
+class DiaryLoadExclusion:
+    reason: str
+    label: str
+    count: int
 
 
 @dataclass(frozen=True)
@@ -26,6 +38,9 @@ class DiarySummary:
     known_duration_s: int
     missing_duration_count: int
     rpe_count: int
+    load_included_count: int | None
+    load_unknown_count: int
+    load_exclusions: tuple[DiaryLoadExclusion, ...]
 
 
 @dataclass(frozen=True)
@@ -42,6 +57,7 @@ class DiaryActivity:
     rpe_telegram_score: int | None
     rpe_disagreement: bool
     load_status: str = "Статус недоступен"
+    load_assessment: ActivityLoadAssessment | None = None
 
 
 @dataclass(frozen=True)
@@ -83,11 +99,26 @@ class DiaryData:
         """
         if self.activity_section.status != "ok":
             return None
+        days = [day for day in self.days
+                if self.summary_start_date <= day.date <= self.target_date]
+        if any(day.activities is None for day in days):
+            return None
         activities = [
-            activity for day in self.days
-            if self.summary_start_date <= day.date <= self.target_date
+            activity for day in days
             for activity in day.activities or []
         ]
+        # Only typed backend assessments count; display labels are not evidence.
+        unknown = sum(a.load_assessment is None or a.load_assessment.included is None
+                      for a in activities)
+        included = sum(a.load_assessment is not None and a.load_assessment.included is True
+                       for a in activities)
+        exclusions = tuple(
+            DiaryLoadExclusion(reason, label, count)
+            for reason, label in LOAD_EXCLUSION_LABELS.items()
+            if (count := sum(a.load_assessment is not None
+                             and a.load_assessment.included is False
+                             and a.load_assessment.reason == reason for a in activities))
+        )
         return DiarySummary(
             start_date=self.summary_start_date,
             end_date=self.target_date,
@@ -95,6 +126,9 @@ class DiaryData:
             known_duration_s=sum(a.duration_s for a in activities if a.duration_s is not None),
             missing_duration_count=sum(a.duration_s is None for a in activities),
             rpe_count=sum(a.rpe_score is not None for a in activities),
+            load_included_count=None if activities and unknown == len(activities) else included,
+            load_unknown_count=unknown,
+            load_exclusions=exclusions,
         )
 
 
@@ -117,7 +151,7 @@ def get_diary_activities(user_id: str, target_date: date) -> list[DiaryActivity]
                     coalesce(r.moving_time_s, r.elapsed_time_s),
                     er.effective_score, er.effective_source, er.disagreement,
                     wr.score, sr.score, tr.score,
-                    m.tss, m.normalized_power, m.intensity_factor
+                    m.tss, m.normalized_power, m.intensity_factor, m.id is not null
                 from strava_activity_raw r
                 left join activity_metrics m
                   on m.strava_activity_id = r.strava_activity_id
@@ -148,6 +182,10 @@ def get_diary_activities(user_id: str, target_date: date) -> list[DiaryActivity]
 
     return [
         DiaryActivity(
+            load_assessment=assess_stored_activity_load(
+                has_metrics=has_metrics, activity_type=sport_type, tss=tss,
+                normalized_power=normalized_power, intensity_factor=intensity_factor,
+            ),
             load_status=activity_load_status(sport_type, tss, normalized_power, intensity_factor),
             activity_id=activity_id,
             name=name,
@@ -164,7 +202,7 @@ def get_diary_activities(user_id: str, target_date: date) -> list[DiaryActivity]
         for (
             activity_id, name, sport_type, start_at, duration, score, source,
             disagreement, web_score, strava_score, telegram_score,
-            tss, normalized_power, intensity_factor,
+            tss, normalized_power, intensity_factor, has_metrics,
         ) in rows
     ]
 

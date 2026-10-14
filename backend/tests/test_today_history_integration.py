@@ -85,6 +85,9 @@ def test_diary_sql_filters_boundaries_sources_and_read_only(monkeypatch, target,
             assert [a.load_status for a in result] == [
                 "Вид спорта пока не поддерживается", "Нет необходимых данных мощности",
                 "Подходит для расчёта нагрузки"]
+            assert [a.load_assessment.included for a in result] == [False, None, True]
+            assert [a.load_assessment.reason for a in result] == [
+                "unsupported_sport", "unavailable_metrics_record", None]
             for activity in result:
                 selected = today.get_today_activity("athlete", preferred_activity_id=activity.activity_id)
                 assert selected.load_status == activity.load_status

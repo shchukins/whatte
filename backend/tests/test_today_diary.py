@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 from backend import app as app_module
 from backend.today import history_service as diary
 from backend.today import service as today
+from backend.services.activity_load_service import assess_stored_activity_load
 import importlib
 
 router = importlib.import_module('backend.today.router')
@@ -19,6 +20,7 @@ router = importlib.import_module('backend.today.router')
     ('mixed', (6, 3661, 2, 4)),
     ('activities_failed', None),
     ('history_failed', (6, 3661, 2, 4)),
+    ('excluded', (2, 0, 2, 0)),
 ])
 def test_seven_day_summary_reuses_unfiltered_local_diary_read(monkeypatch, case, expected):
     import re
@@ -36,6 +38,7 @@ def test_seven_day_summary_reuses_unfiltered_local_diary_read(monkeypatch, case,
             'empty': [],
             'zero': [(0, 0, 0, 'strava', None)],
             'unknown': [(0, None, None, None, None)],
+            'excluded': [(0, None, None, None, None), (6, None, None, None, None)],
         }.get(case, [
             (0, 0, 0, 'strava', None),
             (0, None, 6, 'telegram', None),
@@ -54,6 +57,12 @@ def test_seven_day_summary_reuses_unfiltered_local_diary_read(monkeypatch, case,
             score if source == 'strava' else None,
             score if source == 'telegram' else None,
             source == 'strava' and web is not None,
+            load_assessment=assess_stored_activity_load(
+                has_metrics=case != 'unknown' and ident not in (4, 7, 8),
+                activity_type='Run' if ident in (2, 6) else 'VirtualRide',
+                tss=None if ident in (2, 3, 6) or case == 'excluded' else 0,
+                normalized_power=0, intensity_factor=0,
+            ),
         ) for ident, (offset, duration, score, source, web) in enumerate(fixtures, 1)]
 
     def history(user, day):
@@ -84,11 +93,27 @@ def test_seven_day_summary_reuses_unfiltered_local_diary_read(monkeypatch, case,
             assert 'Записанных тренировок: 0' not in section
             assert 'Известная длительность' not in section
             assert 'private activity error' not in page
+            assert 'Учтено в модели нагрузки:' not in section
         else:
             count, duration, missing, coverage = expected
             assert f'Записанных тренировок: {count}' in section
             assert f'Известная длительность {duration // 3600} ч {(duration % 3600) // 60} мин {duration % 60} с' in section
             assert f'С итоговым RPE: {coverage} из {count}' in section
+            load_count = {'empty': 0, 'zero': 1, 'mixed': 2, 'history_failed': 2, 'excluded': 0}.get(case)
+            if load_count is None:
+                assert 'Покрытие модели нагрузки недоступно' in section
+                assert 'Учтено в модели нагрузки: 0' not in section
+            else:
+                assert f'Учтено в модели нагрузки: {load_count} из {count} тренировок' in section
+            assert ('Статус нагрузки неизвестен у 1 тренировок' in section) == (case in ('unknown', 'mixed', 'history_failed'))
+            if case in ('mixed', 'history_failed'):
+                assert 'Вид спорта пока не поддерживается — 2' in section
+                assert 'Нет необходимых данных мощности — 1' in section
+            elif case == 'excluded':
+                assert 'Вид спорта пока не поддерживается — 1' in section
+                assert 'Нет необходимых данных мощности — 1' in section
+            else:
+                assert 'Не учтено:' not in section
             assert ('длительность отсутствует' in section) == bool(missing)
             if missing:
                 assert f'длительность отсутствует у {missing} тренировок' in section
@@ -98,6 +123,52 @@ def test_seven_day_summary_reuses_unfiltered_local_diary_read(monkeypatch, case,
     assert sections[0] == sections[1]
     assert calls == [('activities', user, target), ('history', user, target),
                      ('pending', user)] * 2
+
+
+@pytest.mark.parametrize('sport,metrics,has_metrics,included,reason', [
+    ('Ride', (0, 0, 0), True, True, None),
+    (' VirtualRide ', (40, 180, 0.8), True, True, None),
+    ('Ride', (None, 180, 0.8), True, False, 'missing_required_power_metrics'),
+    ('Ride', (40, None, 0.8), True, False, 'missing_required_power_metrics'),
+    ('Ride', (40, 180, None), True, False, 'missing_required_power_metrics'),
+    ('Run', (None, None, None), True, False, 'unsupported_sport'),
+    ('Run', (40, 180, 0.8), True, False, 'unsupported_sport'),
+    ('Ride', (None, None, None), False, None, 'unavailable_metrics_record'),
+    ('Run', (None, None, None), False, None, 'unavailable_metrics_record'),
+])
+def test_diary_load_assessment_reads_metrics_presence(
+    monkeypatch, sport, metrics, has_metrics, included, reason,
+):
+    from test_today_history import Cursor
+    cursor = Cursor([(1, 'Workout', sport,
+                      datetime(2026, 10, 14, tzinfo=today.WHATTE_TZ),
+                      None, None, None, False, None, None, None,
+                      *metrics, has_metrics)])
+    monkeypatch.setattr(diary, 'get_conn', lambda: cursor)
+    activity, = diary.get_diary_activities('test', date(2026, 10, 14))
+    assert activity.load_assessment.included is included
+    assert activity.load_assessment.reason == reason
+    assert len(cursor.calls) == 1
+    assert 'm.id is not null' in cursor.calls[0][0]
+
+
+def test_summary_does_not_treat_unavailable_day_as_empty():
+    data = diary.DiaryData('test', '2026-10-14', [diary.DiaryDay('2026-10-14', None)],
+                           today.TodaySection('ok', None), [], today.TodaySection('ok', None))
+    assert data.summary is None
+
+
+def test_unknown_assessment_is_not_inferred_from_display_status():
+    activity = diary.DiaryActivity(
+        1, 'Workout', 'Ride', datetime(2026, 10, 14, tzinfo=today.WHATTE_TZ),
+        3600, 7, 'strava', None, 7, None, False,
+        load_status='Подходит для расчёта нагрузки',
+    )
+    data = diary.DiaryData('test', '2026-10-14', [diary.DiaryDay('2026-10-14', [activity])],
+                           today.TodaySection('ok', None), [], today.TodaySection('ok', None))
+    assert data.summary.load_included_count is None
+    assert data.summary.load_unknown_count == 1
+    assert data.summary.load_exclusions == ()
 
 
 @pytest.mark.parametrize('value,target,label', [

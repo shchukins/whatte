@@ -172,6 +172,21 @@ are explicitly disclosed beside the known sum; failed activity reads make the
 summary unavailable, never zero. Readiness failures do not hide workout totals.
 The summary is unchanged by the visual RPE filter and links to it with the
 distinct label «Без RPE за 14 дней». It adds no database reads or writes.
+The same seven-date summary shows «Учтено в модели нагрузки: N из M тренировок»:
+M is the unfiltered recorded canonical workout count, N is confirmed inclusion
+under the current stored load assessment, not historical readiness inclusion or
+a percentage of physical load. Classification shares the pilot coverage contract
+and `resolve_activity_load`; it does not infer inclusion from RPE, duration or
+positive TSS. Zero power metrics retain the resolver's inclusion semantics.
+An absent `activity_metrics` v1 row (`unavailable_metrics_record`) is unknown,
+not an exclusion. Unknown counts are shown separately; an entirely unknown
+nonempty window displays unavailable coverage rather than zero. An empty window
+has 0 of 0; a failed activity read makes the whole summary unavailable.
+Known exclusions have one primary reason each, displayed with Russian labels:
+`unsupported_sport` («Вид спорта пока не поддерживается») takes precedence over
+`missing_required_power_metrics` («Нет необходимых данных мощности»), avoiding
+double counting. The query adds only the presence of the already joined metrics
+row, and the template renders backend counts and labels without domain rules.
 At narrow widths the list becomes a vertical feed; desktop uses compact
 columns. Exact data never depends on hover or JavaScript.
 

@@ -57,11 +57,11 @@ def test_diary_keeps_multiple_workouts_null_zero_and_persisted_rpe(monkeypatch):
     target = date(2026, 8, 30)
     cursor = Cursor([
         (3, "Late", "Ride", datetime(2026, 8, 29, 22, tzinfo=timezone.utc),
-         0, 4, "web", True, 4, 8, 7, 0, 0, 0),
+         0, 4, "web", True, 4, 8, 7, 0, 0, 0, True),
         (2, "Earlier", "Run", datetime(2026, 8, 29, 21, tzinfo=timezone.utc),
-         None, None, None, None, 5, None, None, None, None, None),
+         None, None, None, None, 5, None, None, None, None, None, True),
         (1, "Previous", "Ride", datetime(2026, 8, 29, 20, 59, tzinfo=timezone.utc),
-         3600, 7, "telegram", False, None, None, 7, 40, None, 0.8),
+         3600, 7, "telegram", False, None, None, 7, 40, None, 0.8, True),
     ])
     monkeypatch.setattr(diary, "get_conn", lambda: cursor)
     monkeypatch.setattr(diary, "WHATTE_TZ", ZoneInfo("Europe/Moscow"))
@@ -82,6 +82,9 @@ def test_diary_keeps_multiple_workouts_null_zero_and_persisted_rpe(monkeypatch):
     assert first.load_status == "Подходит для расчёта нагрузки"
     assert second.load_status == "Вид спорта пока не поддерживается"
     assert result.days[1].activities[0].load_status == "Нет необходимых данных мощности"
+    assert result.summary.load_included_count == 1
+    assert [(e.reason, e.count) for e in result.summary.load_exclusions] == [
+        ("unsupported_sport", 1), ("missing_required_power_metrics", 1)]
     assert first.duration_s == 0
     assert (first.rpe_score, first.rpe_source) == (4, "web")
     assert (first.rpe_web_score, first.rpe_strava_score, first.rpe_telegram_score) == (4, 8, 7)

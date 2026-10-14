@@ -7,8 +7,7 @@ from backend.config import settings
 from backend.db import get_conn
 from backend.services.decision_engine import build_recommendation
 from backend.services.activity_load_service import (
-    is_supported_cycling_activity,
-    resolve_activity_load,
+    assess_stored_activity_load,
 )
 from backend.services.readiness_composition import READINESS_MODEL_VERSION
 
@@ -219,31 +218,23 @@ def build_load_coverage(
             continue
 
         entry["canonical_activities"] += 1
-        if not has_metrics:
-            reason = "unavailable_metrics_record"
+        assessment = assess_stored_activity_load(
+            has_metrics=has_metrics, activity_type=activity_type, tss=tss,
+            normalized_power=normalized_power, intensity_factor=intensity_factor,
+        )
+        if assessment.included is None:
             entry["unknown_assessment"] += 1
+        elif assessment.included:
+            entry["included"] += 1
+            continue
         else:
-            assessment = resolve_activity_load(
-                activity_type=activity_type,
-                tss=tss,
-                normalized_power=normalized_power,
-                intensity_factor=intensity_factor,
-            )
-            if assessment["load_model_included"]:
-                entry["included"] += 1
-                continue
-            reason = (
-                "unsupported_sport"
-                if not is_supported_cycling_activity(activity_type)
-                else "missing_required_power_metrics"
-            )
             entry["not_included"] += 1
         entry["not_included_activities"].append({
             "activity_id": activity_id,
             "sport": activity_type,
             "local_start": local_start,
             "duration_s": duration_s,
-            "reason": reason,
+            "reason": assessment.reason,
         })
 
     for entry in days.values():

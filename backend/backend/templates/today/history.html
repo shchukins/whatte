@@ -42,7 +42,12 @@
             <li>Записанных тренировок: {{ summary.activity_count }}</li>
             <li>Известная длительность {{ summary.known_duration_s // 3600 }} ч {{ (summary.known_duration_s % 3600) // 60 }} мин {{ summary.known_duration_s % 60 }} с{% if summary.missing_duration_count %}; длительность отсутствует у {{ summary.missing_duration_count }} тренировок{% endif %}</li>
             <li>С итоговым RPE: {{ summary.rpe_count }} из {{ summary.activity_count }}</li>
+            {% if summary.load_included_count is not none %}<li>Учтено в модели нагрузки: {{ summary.load_included_count }} из {{ summary.activity_count }} тренировок</li>
+            {% else %}<li>Покрытие модели нагрузки недоступно</li>{% endif %}
         </ul>
+        {% if summary.load_exclusions %}<p class="hint">Не учтено: {% for exclusion in summary.load_exclusions %}{{ exclusion.label }} — {{ exclusion.count }}{% if not loop.last %}; {% endif %}{% endfor %}.</p>{% endif %}
+        {% if summary.load_unknown_count %}<p class="hint">Статус нагрузки неизвестен у {{ summary.load_unknown_count }} тренировок; они не отнесены к исключённым. Число учтённых показывает только подтверждённое включение.</p>{% endif %}
+        <p class="hint">Считаются тренировки по текущим сохранённым данным, а не доля физической нагрузки или история расчётов готовности.</p>
         {% else %}
         <p class="error">Сводка тренировок недоступна. Не удалось загрузить тренировки.</p>
         {% endif %}
