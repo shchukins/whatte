@@ -351,7 +351,7 @@ def test_today_page_renders_mobile_working_surface(monkeypatch):
     assert "Физиология" in response.text
     assert "Нет данных" in response.text
     assert "/today/recovery/4" in response.text
-    assert "/today/rpe/17855535922/5" in response.text
+    assert "/today/rpe/17855535922" in response.text
     assert 'formmethod="post"' in response.text
     assert "X-Requested-With" in response.text
 
@@ -399,11 +399,11 @@ def test_today_rpe_scale_is_numeric_and_shows_source_resolution(monkeypatch):
     response = TestClient(app_module.app).get("/today")
 
     assert response.status_code == 200
-    assert re.findall(r'<button class="rpe-button"[^>]*>(\d+)</button>', response.text) == [
+    assert re.findall(r'<input type="radio" name="score" value="(\d+)"', response.text) == [
         str(score) for score in range(1, 11)
     ]
-    assert 'aria-label="RPE 5: Умеренно" aria-pressed="true"' in response.text
-    assert 'aria-label="RPE 8: Очень тяжело" aria-pressed="false"' in response.text
+    assert 'aria-label="RPE 5: Умеренно" checked' in response.text
+    assert 'aria-label="RPE 8: Очень тяжело" >' in response.text
     assert "RPE 8/10 · Strava" in response.text
     assert "Strava 8/10" in response.text
     assert "Telegram 6/10" in response.text
@@ -553,7 +553,7 @@ def test_recovery_midnight_uses_whatte_timezone(monkeypatch, fetch):
     valid = client.post("/today/recovery/4", data={"local_date": "2026-08-31"}, headers=headers, follow_redirects=False)
     assert valid.status_code == 303
     assert calls[0]["target_date"] == date(2026, 8, 31)
-    assert "body: new URLSearchParams(new FormData(form))" in page
+    assert "const body = new URLSearchParams(new FormData(form))" in page
 
 
 @pytest.mark.parametrize("score", [1, 3, 10])
@@ -677,7 +677,7 @@ def test_today_answer_disclosure_and_feedback_order(monkeypatch):
     assert '30.08.2026, 08:00 MSK' in page
     assert '30.08.2026, 09:05 MSK' in page
     assert 'Отклик на тренировку' in page and 'Нет данных' in page
-    assert '/today/rpe/17855535922/5' in page
+    assert '/today/rpe/17855535922' in page
     assert 'action="/today/physiology"' in page
     assert 'id="history-title"' in page
 
@@ -736,15 +736,15 @@ def test_today_rpe_web_selection_is_independent_of_effective_source(monkeypatch,
     monkeypatch.setattr(today_service, "get_today_data",
                         lambda *a, **k: replace(data, activity=activity))
     page = TestClient(app_module.app).get("/today").text
-    buttons = re.findall(r'<button class="rpe-button"[^>]*>', page)
+    buttons = re.findall(r'<input type="radio"[^>]*>', page)
     assert len(buttons) == 10
     for score, button in enumerate(buttons, 1):
-        assert f'aria-pressed="{str(score == web_score).lower()}"' in button
+        assert ("checked" in button) is (score == web_score)
         assert f'aria-label="RPE {score}:' in button
-        assert f'action="/today/rpe/{activity.activity_id}/{score}"' in page
+        assert f'action="/today/rpe/{activity.activity_id}"' in page
     assert 'Итоговый RPE 8/10 · Strava' in page
     assert f'Ваша оценка в Web: {str(web_score) + "/10" if web_score else "не выбрана"}.' in page
-    assert len(re.findall(r'<span class="rpe-anchor" aria-hidden="true">', page)) == 10
+    assert page.count('<span data-rpe-description="') == 10
     assert 'Прокрутите или используйте стрелки' not in page
     assert 'прокрутите шкалу вбок' not in page
 
@@ -775,12 +775,12 @@ def test_today_rpe_editor_opens_only_without_effective_score(monkeypatch, scores
     if source:
         assert f'Итоговый RPE {activity.rpe_score}/10 · {source}' in section
     assert "Web-оценка сохраняется отдельно и не заменяет оценку Strava или Telegram" in editor.group(2)
-    assert editor.group(2).index("Web-оценка сохраняется отдельно") < editor.group(2).index('class="rpe-control"')
-    buttons = re.findall(r'<button class="rpe-button"[^>]*>', section)
+    assert editor.group(2).index("Web-оценка сохраняется отдельно") < editor.group(2).index('data-rpe-selector')
+    buttons = re.findall(r'<input type="radio"[^>]*>', section)
     assert len(buttons) == 10
     for score, button in enumerate(buttons, 1):
-        assert f'aria-pressed="{str(score == activity.rpe_web_score).lower()}"' in button
-        assert f'method="post" action="/today/rpe/{activity.activity_id}/{score}"' in section
+        assert ("checked" in button) is (score == activity.rpe_web_score)
+        assert f'method="post" action="/today/rpe/{activity.activity_id}"' in section
     if activity.rpe_web_score is not None:
         assert f'Web RPE: {activity.rpe_web_score}/10 · <span>Изменить</span>' in section
     if activity.rpe_disagreement:
@@ -817,7 +817,7 @@ def test_saved_feedback_editors_preserve_selection_and_sources(monkeypatch):
     assert "Web RPE: 5/10" in page
     assert "Итоговый RPE 8/10 · Strava" in page
     assert "RPE сохранён в Web." in page
-    assert re.search(r'<button class="rpe-button"[^>]*data-score="5"[^>]*aria-pressed="true"', page)
+    assert re.search(r'<input type="radio"[^>]*value="5"[^>]*checked', page)
     assert "Готовность на сегодня пересчитана" not in page
 
 
@@ -897,3 +897,45 @@ def test_load_status_read_failure_remains_independent_of_readiness(monkeypatch):
     assert "Статус недоступен" in page
     assert "Хорошая готовность" in page
     assert "Нет необходимых данных мощности" not in page
+
+
+@pytest.mark.parametrize("body", ["", "score=0", "score=11", "score=3.5", "score=01", "score=5&score=6", "score=5&user_id=other", "score=" + "9" * 129, b"score=\xff"])
+def test_rpe_form_rejects_invalid_selection_without_writing(monkeypatch, body):
+    monkeypatch.setattr(today_service, "get_today_data", lambda *a, **k: _today_data())
+    writes = []
+    monkeypatch.setattr(today_router_module, "upsert_activity_rpe_v2", lambda **k: writes.append(k))
+    response = TestClient(app_module.app).post(
+        "/today/rpe/17855535922", content=body,
+        headers={"content-type": "application/x-www-form-urlencoded"},
+    )
+    assert response.status_code == 422
+    assert 'Выберите целую оценку RPE от 1 до 10.' in response.text
+    assert 'workout-rpe-error' in response.text
+    assert not writes
+
+
+@pytest.mark.parametrize("score", range(1, 11))
+def test_rpe_form_saves_only_explicit_integer_with_existing_web_contract(monkeypatch, score):
+    data = _today_data()
+    monkeypatch.setattr(today_service, "get_today_data", lambda *a, **k: data)
+    monkeypatch.setattr(today_service, "get_today_activity", lambda *a, **k: data.activity)
+    writes = []
+    monkeypatch.setattr(today_router_module, "upsert_activity_rpe_v2", lambda **k: writes.append(k))
+    client = TestClient(app_module.app)
+    assert client.get('/today').status_code == 200
+    assert not writes
+    response = client.post('/today/rpe/17855535922', data={"score": str(score)}, follow_redirects=False)
+    assert response.status_code == 303
+    assert writes == [{"activity_id": 17855535922, "score": score, "source": "web"}]
+    assert response.headers['location'] == '/today?saved=rpe&activity_id=17855535922#rpe'
+
+
+def test_rpe_form_preserves_csrf_and_activity_ownership_checks(monkeypatch):
+    writes = []
+    monkeypatch.setattr(today_router_module, "upsert_activity_rpe_v2", lambda **k: writes.append(k))
+    monkeypatch.setattr(today_service, "get_today_activity", lambda *a, **k: None)
+    client = TestClient(app_module.app)
+    assert client.post('/today/rpe/999', data={"score": "5"}).status_code == 404
+    for headers in [{"sec-fetch-site": "cross-site"}, {"origin": "https://other.example"}]:
+        assert client.post('/today/rpe/999', data={"score": "5"}, headers=headers).status_code == 403
+    assert not writes

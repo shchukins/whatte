@@ -1,0 +1,41 @@
+/* Native radios control selection; the full column is a hit target, not the paint. */
+.rpe-control { border: 0; padding: 0; margin: 20px 0; min-width: 0; max-width: 780px; }
+.rpe-control legend { font: 13px var(--mono); }
+.rpe-control .viz-paper { padding-top: 8px; }
+.rpe-grid { position: absolute; inset: 8px 0 auto; width: 100%; height: 160px; pointer-events: none; }
+.rpe-bars { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); }
+.rpe-option { position: relative; display: block; min-width: 0; cursor: pointer; }
+.rpe-option input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; z-index: 1; }
+.rpe-bar { display: block; text-align: center; border: 2px solid transparent; }
+.rpe-bar > svg:first-child { display: block; width: 100%; height: 160px; }
+.rpe-number { display: block; font: 15px/32px var(--viz-mono); color: var(--viz-ink); }
+.rpe-selection { display: block; width: 100%; height: 26px; visibility: hidden; }
+.rpe-option input:checked + .rpe-bar { border-color: var(--viz-ink); }
+.rpe-option input:checked + .rpe-bar .rpe-number { font-weight: 700; }
+.rpe-option input:checked + .rpe-bar .rpe-selection { visibility: visible; }
+.rpe-option input:focus-visible + .rpe-bar { outline: 2px dashed var(--viz-ink); outline-offset: -6px; }
+.rpe-option:hover .rpe-number { text-decoration: underline; }
+.rpe-option input:disabled + .rpe-bar { opacity: .65; cursor: wait; }
+.rpe-readout { display: flex; align-items: baseline; gap: 16px; margin: 14px 0 0; flex-wrap: wrap; }
+[data-rpe-empty], [data-rpe-description] strong { font: 24px var(--mono); }
+[data-rpe-description] { display: none; }
+.rpe-control:has(input:checked) [data-rpe-empty] { display: none; }
+.rpe-control:has(input[value="1"]:checked) [data-rpe-description="1"] { display: inline; }
+.rpe-control:has(input[value="2"]:checked) [data-rpe-description="2"] { display: inline; }
+.rpe-control:has(input[value="3"]:checked) [data-rpe-description="3"] { display: inline; }
+.rpe-control:has(input[value="4"]:checked) [data-rpe-description="4"] { display: inline; }
+.rpe-control:has(input[value="5"]:checked) [data-rpe-description="5"] { display: inline; }
+.rpe-control:has(input[value="6"]:checked) [data-rpe-description="6"] { display: inline; }
+.rpe-control:has(input[value="7"]:checked) [data-rpe-description="7"] { display: inline; }
+.rpe-control:has(input[value="8"]:checked) [data-rpe-description="8"] { display: inline; }
+.rpe-control:has(input[value="9"]:checked) [data-rpe-description="9"] { display: inline; }
+.rpe-control:has(input[value="10"]:checked) [data-rpe-description="10"] { display: inline; }
+@media (max-width: 420px) {
+    .rpe-bar > svg:first-child, .rpe-grid { height: 132px; }
+    .rpe-number { font-size: 13px; }
+    .rpe-selection { height: 20px; }
+}
+@media (forced-colors: active) {
+    .rpe-bar rect { fill: Canvas; stroke: CanvasText; }
+    .rpe-option input:checked + .rpe-bar { border-color: Highlight; }
+}

@@ -1,5 +1,6 @@
 {% from "today/profile_pending.html" import profile_pending_notice %}
 {% from "today/history_figure.html" import readiness_figure %}
+{% from "today/rpe_selector.html" import rpe_selector %}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -7,7 +8,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light">
     <title>{{ page_title }}</title>
-    <style>{% include "today/editorial.css" %}{% include "today/history.css" %}</style>
+    <style>{% include "today/editorial.css" %}{% include "today/history.css" %}{% include "visualizations/editorial.css" %}{% include "today/rpe_selector.css" %}</style>
 </head>
 <body>
 <main class="shell">
@@ -122,7 +123,7 @@
             </div>
             <p class="saved feedback-status" role="status" aria-live="polite" aria-atomic="true">{% if saved == "rpe" %}{% if activity_section.status == "ok" and activity and activity.rpe_web_score is not none %}RPE сохранён в Web.{% else %}Не удалось подтвердить сохранение. Проверьте сохранённое состояние.{% endif %}{% endif %}</p>
             <div class="feedback-actions" hidden><a href="/today{% if activity %}?activity_id={{ activity.activity_id }}{% if return_day %}&amp;return_day={{ return_day }}{% endif %}{% endif %}#rpe">Проверить сохранённое состояние</a> · <button type="button" data-feedback-retry>Повторить отправку</button></div>
-            {% if rpe_error %}<p class="error" role="alert">{{ rpe_error }}</p>{% endif %}
+            {% if rpe_error and not activity %}<p class="error" role="alert">{{ rpe_error }}</p>{% endif %}
             {% if return_day %}<a class="diary-rpe" href="/today/history#day-{{ return_day }}">Вернуться к дню в дневнике</a>{% endif %}
             {% if activity and activity.rpe_disagreement %}
             <p class="hint">Оценки RPE из разных источников различаются: {% if activity.rpe_strava_score is not none %}Strava {{ activity.rpe_strava_score }}/10{% endif %}{% if activity.rpe_telegram_score is not none %}{% if activity.rpe_strava_score is not none %}, {% endif %}Telegram {{ activity.rpe_telegram_score }}/10{% endif %}{% if activity.rpe_web_score is not none %}{% if activity.rpe_strava_score is not none or activity.rpe_telegram_score is not none %}, {% endif %}Web {{ activity.rpe_web_score }}/10{% endif %}. Для итоговой оценки сначала используется Strava, затем Telegram, затем Web.</p>
@@ -140,19 +141,13 @@
             <p class="hint">{{ activity.load_status }}</p>
             <p class="hint">Ваша оценка в Web: {% if activity.rpe_web_score is not none %}{{ activity.rpe_web_score }}/10{% else %}не выбрана{% endif %}.</p>
             {% if activity.rpe_score is not none %}<p class="hint">Дополнительный ввод не нужен.</p>{% endif %}
-            <details class="feedback-editor" {% if activity.rpe_score is none or saved == "rpe" %}open{% endif %}>
+            <details class="feedback-editor" {% if activity.rpe_score is none or saved == "rpe" or rpe_error %}open{% endif %}>
                 <summary>{% if activity.rpe_web_score is not none %}Web RPE: {{ activity.rpe_web_score }}/10 · <span>Изменить</span>{% else %}Оценить нагрузку в Web{% endif %}</summary>
                 <p class="hint">Web-оценка сохраняется отдельно и не заменяет оценку Strava или Telegram, если она доступна. Приоритет итогового RPE: Strava → Telegram → Web.</p>
-            <div class="rpe-control" role="group" aria-label="Ощущаемая нагрузка от 1 до 10">
-                <div class="rpe-scale">
-                    {% for score, label in rpe_options %}
-                    <form method="post" action="/today/rpe/{{ activity.activity_id }}/{{ score }}{% if return_day %}?return_day={{ return_day }}{% endif %}" data-feedback-form>
-                        <button class="rpe-button" data-score="{{ score }}" type="submit" aria-label="RPE {{ score }}: {{ label | today_label('rpe') }}" aria-pressed="{{ 'true' if activity.rpe_web_score == score else 'false' }}">{{ score }}</button>
-                        <span class="rpe-anchor" aria-hidden="true">{{ label | today_label('rpe') | replace('Комфортно', 'Комфорт­но') | replace('Максимально', 'Макси­мально') }}</span>
-                    </form>
-                    {% endfor %}
-                </div>
-            </div>
+            <form method="post" action="/today/rpe/{{ activity.activity_id }}{% if return_day %}?return_day={{ return_day }}{% endif %}" data-feedback-form data-rpe-form>
+                {{ rpe_selector('workout-rpe', rpe_draft if rpe_draft is not none else activity.rpe_web_score, rpe_options, rpe_error) }}
+                <button class="physiology-save" type="submit">Сохранить RPE</button>
+            </form>
             </details>
             {% else %}
             <p class="empty">Пока нет подходящей тренировки для оценки.</p>
@@ -246,6 +241,7 @@
 </main>
 {% include "today/lifecycle.html" %}
 <script>
+{% include "today/rpe_selector.js" %}
     document.addEventListener("submit", async (event) => {
         const form = event.target.closest("[data-feedback-form]");
         if (!form || !window.fetch) return;
@@ -253,6 +249,10 @@
         const section = form.closest("[data-feedback-section]");
         if (section.dataset.saving === "true") return;
         section.dataset.saving = "true";
+        const rpe = form.querySelector('[name="score"]:checked');
+        const score = rpe ? rpe.value : event.submitter?.dataset.score;
+        // Freeze this payload before locking controls; a radio change never writes.
+        const body = new URLSearchParams(new FormData(form));
         const operation = window.whatteLifecycle.begin(section);
         const status = section.querySelector(".feedback-status");
         const actions = section.querySelector(".feedback-actions");
@@ -267,7 +267,7 @@
                 method: "POST",
                 credentials: "same-origin",
                 headers: {"X-Requested-With": "Whatte-Today"},
-                body: new URLSearchParams(new FormData(form)),
+                body,
             });
             if (!operation.current()) return;
             if (section.id === "recovery" && [409, 422].includes(response.status)) {
@@ -282,7 +282,9 @@
             if (!response.ok || !response.redirected) throw new Error("Unconfirmed save");
             const page = new DOMParser().parseFromString(await response.text(), "text/html");
             if (!operation.current()) return;
-            const selected = page.querySelector(`#${section.id} [data-score="${submitter.dataset.score}"][aria-pressed="true"]`);
+            const selected = section.id === 'rpe'
+                ? page.querySelector(`[data-rpe-form] input[value="${score}"]:checked`)
+                : page.querySelector(`#${section.id} [data-score="${score}"][aria-pressed="true"]`);
             if (!selected) throw new Error("Stored score unavailable");
             const destination = new URL(response.url);
             destination.hash = section.id;
@@ -302,7 +304,7 @@
         ? document.querySelector(location.hash) : null;
     window.addEventListener('load', () => {
         if (target) {
-            const control = target.querySelector('.feedback-editor[open] [aria-pressed="true"]')
+            const control = target.querySelector('.feedback-editor[open] input:checked, .feedback-editor[open] [aria-pressed="true"]')
                 || target.querySelector('.feedback-editor summary');
             if (control) control.focus({preventScroll: true});
         }

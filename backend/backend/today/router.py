@@ -144,6 +144,7 @@ def _today_page(
     saved: str | None = None,
     return_day: str | None = None,
     rpe_error: str | None = None,
+    rpe_draft: int | None = None,
     recovery_error: str | None = None,
     physiology_values: dict[str, str] | None = None,
     physiology_errors: dict[str, str] | None = None,
@@ -163,6 +164,7 @@ def _today_page(
             "selected_activity": activity_id is not None,
             "return_day": _validated_return_day(return_day, data.activity),
             "rpe_error": rpe_error,
+            "rpe_draft": rpe_draft,
             "recovery_error": recovery_error,
             "saved": saved if saved in {"recovery", "rpe", "physiology"} else None,
             "physiology_values": physiology_values,
@@ -211,6 +213,35 @@ async def submit_recovery(request: Request, score: FeedbackScore):
     return _redirect_to_today(saved="recovery")
 
 
+@router.post("/rpe/{activity_id}", include_in_schema=False)
+async def submit_rpe_form(
+    request: Request,
+    activity_id: Annotated[int, FastAPIPath(ge=1)],
+    return_day: str | None = Query(default=None),
+):
+    """Native selector adapter; the existing owned-activity write stays authoritative."""
+    _reject_cross_site_request(request)
+    try:
+        if request.headers.get("content-type", "").split(";")[0] != "application/x-www-form-urlencoded":
+            raise ValueError("Expected URL-encoded form")
+        body = bytearray()
+        async for chunk in request.stream():
+            # One integer field only; use the same bounded form size as recovery.
+            if len(body) + len(chunk) > RECOVERY_FORM_MAX_BYTES:
+                raise ValueError("RPE form too large")
+            body.extend(chunk)
+        fields = parse_qs(body.decode("utf-8"), keep_blank_values=True, max_num_fields=1)
+        raw_score = fields.get("score", [""])[0]
+        if set(fields) != {"score"} or not re.fullmatch(r"(?:[1-9]|10)", raw_score):
+            raise ValueError("Expected an integer from 1 to 10")
+    except ValueError:
+        return await run_in_threadpool(
+            _today_page, request, activity_id=activity_id, return_day=return_day,
+            status_code=422, rpe_error="Выберите целую оценку RPE от 1 до 10.",
+        )
+    return await run_in_threadpool(submit_rpe, request, activity_id, int(raw_score), return_day)
+
+
 @router.post("/rpe/{activity_id}/{score}")
 def submit_rpe(
     request: Request,
@@ -234,6 +265,7 @@ def submit_rpe(
         logging.getLogger(__name__).exception("today_rpe_save_failed")
         return _today_page(
             request, activity_id=activity_id, return_day=return_day, status_code=503,
+            rpe_draft=score,
             rpe_error="Не удалось сохранить RPE. Проверьте сохранённое состояние и повторите отправку.",
         )
     return _redirect_to_today(saved="rpe", activity_id=activity_id, return_day=return_day)

@@ -1,3 +1,4 @@
+import re
 from datetime import date, datetime
 from pathlib import Path
 
@@ -435,13 +436,14 @@ def test_historical_rpe_keeps_owned_activity_and_day_through_native_post(monkeyp
     assert 'Оценка тренировки за 2026-08-27' in page
     assert 'Последняя подходящая тренировка' not in page
     assert 'Готовность выше относится к сегодняшнему дню' in page
-    action = f"/today/rpe/{activity.activity_id}/6?return_day=2026-08-27"
+    action = f"/today/rpe/{activity.activity_id}?return_day=2026-08-27"
     assert f'action="{action}"' in page
-    response = client.post(action, follow_redirects=False)
+    response = client.post(action, data={"score": "6"}, follow_redirects=False)
     if save_fails:
         assert response.status_code == 503
         assert 'Не удалось сохранить RPE' in response.text
         assert 'private save error' not in response.text
+        assert re.search(r'<input type="radio"[^>]*value="6"[^>]*checked', response.text)
         page = response.text
     else:
         assert response.status_code == 303

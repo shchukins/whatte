@@ -1,0 +1,36 @@
+{% from "visualizations/primitives.html" import paper_surface, ink_grid, watercolor_fill, hand_drawn_stroke, editorial_annotation %}
+{# Controlled by the supplied Web/draft value; no effective-source fallback or persistence. #}
+{% macro rpe_selector(id, value, options, error=none) -%}
+<fieldset class="rpe-control viz-system" data-rpe-selector aria-describedby="{{ id }}-help{% if error %} {{ id }}-error{% endif %}">
+    <legend>Ощущаемая нагрузка / RPE</legend>
+    <p class="hint" id="{{ id }}-help">Выберите оценку, затем сохраните её. Выбор сам по себе не сохраняется.</p>
+    {% if error %}<p id="{{ id }}-error" class="error" role="alert">{{ error }}</p>{% endif %}
+    {% call paper_surface() %}
+    <svg class="rpe-grid" viewBox="0 0 600 160" preserveAspectRatio="none" aria-hidden="true">
+        {{ ink_grid(id ~ '-grid', 0, 0, 600, 160, minor=20, major=100) }}
+    </svg>
+    <div class="rpe-bars">
+        {% set tones = ['sage', 'sage', 'blue-gray', 'blue-gray', 'ochre', 'ochre', 'terracotta', 'terracotta', 'burgundy', 'burgundy'] %}
+        {% for score, label in options %}
+        <label class="rpe-option">
+            <input type="radio" name="score" value="{{ score }}" required aria-label="RPE {{ score }}: {{ label | today_label('rpe') }}" {% if value == score %}checked{% endif %}>
+            <span class="rpe-bar" aria-hidden="true">
+                <svg viewBox="0 0 40 160" preserveAspectRatio="none">
+                    {{ watercolor_fill(id ~ '-wash-' ~ score, tones[loop.index0]) }}
+                    <rect x="7" y="{{ 156 - score * 14 }}" width="26" height="{{ score * 14 }}" fill="url(#{{ id }}-wash-{{ score }})"/>
+                    {{ hand_drawn_stroke('M7 ' ~ (156 - score * 14) ~ 'H33V156H7Z') }}
+                </svg>
+                <span class="rpe-number">{{ score }}</span>
+                <svg class="rpe-selection" viewBox="0 0 40 28">{{ editorial_annotation(8, 19, '✓', handwritten=true) }}</svg>
+            </span>
+        </label>
+        {% endfor %}
+    </div>
+    {% endcall %}
+    <div class="rpe-readout" aria-live="polite" aria-atomic="true">
+        <span data-rpe-value class="sr-only">{% if value is not none %}{{ value }} / 10{% else %}Не выбрано{% endif %}</span>
+        <span data-rpe-empty aria-hidden="true">Не выбрано</span>
+        <span class="hint" data-rpe-label>{% for score, label in options %}<span data-rpe-description="{{ score }}"><strong>{{ score }} / 10</strong> · {{ label | today_label('rpe') }}</span>{% endfor %}</span>
+    </div>
+</fieldset>
+{%- endmacro %}

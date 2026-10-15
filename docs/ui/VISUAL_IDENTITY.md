@@ -47,4 +47,5 @@ The [Editorial Visualization System](EDITORIAL_VISUALIZATIONS.md) provides
 opt-in SVG/Jinja primitives, shared tokens and a static `/today/visual-system`
 preview for paper surfaces, technical grids, vector washes, ink outlines,
 annotations and chart typography. The preview uses labelled demonstration data.
-Adoption in RPE and other product charts requires separate scoped work.
+The RPE selector is the first production consumer (#192). Adoption in other
+product charts requires separate scoped work.

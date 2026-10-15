@@ -1,8 +1,8 @@
 # Editorial Visualization System
 
 Status: implemented visual primitives and reference preview (#191). Production
-RPE selector adoption belongs to #192, guidance to #193. Existing Today, Diary
-and Analytics charts have not been restyled. Reference: [visual identity](VISUAL_IDENTITY.md).
+RPE selector adoption is implemented in #192; guidance belongs to #193. Existing
+readiness, Diary and Analytics charts have not been restyled. Reference: [visual identity](VISUAL_IDENTITY.md).
 
 ## Preview and scope
 
@@ -123,3 +123,30 @@ contrast against paper: ink 12.63:1, captions 6.45:1. Three SVG baselines cover 
 representative compositions. Local backend suite: 832 passed (integration checks
 run separately in CI). Preview HTML including all inline styles/SVG: 38,700 bytes;
 no additional chart assets/dependencies or network requests are required.
+
+## RPE production composition (#192)
+
+`today/rpe_selector.html` is the first interactive consumer. Its macro accepts
+`id`, controlled nullable `value`, backend `options`, and optional `error`.
+Use it inside a form; it renders required native `score` radios but never submits.
+Include `today/rpe_selector.css` after the shared styles, and optionally
+`today/rpe_selector.js` for live numeric announcements. Each instance needs its own
+form/radio group and stable ID prefix. The caller owns confirmation and writes.
+Ten exact increasing rectangles use shared vector washes, ink, paper and grid;
+checked radios provide an outline and marginal check annotation. The entire
+column, including empty space above the paint, is interactive. At 390px columns
+are about 36px wide and 188px tall, keeping all ten values visible; desktop
+columns expand up to 78px. No fractional values, chart gestures or guidance rules
+are introduced. Native arrows, Space and focus remain browser-owned.
+
+Validation on 2026-10-15: Chromium at 390/1440px had document widths exactly
+matching the viewport. All ten values were selected by click and native arrows;
+a 390px touch/no-JS context selected and saved 10 with a visible numeric preview.
+Reduced motion computed no animation/transition. Selection emitted zero POSTs;
+a pending request locked all ten radios and save, and a duplicate submit emitted
+no extra POST. An aborted response retained the draft; only explicit retry sent
+the second request and confirmed stored Web state/focus. A simulated persisted
+pageshow restored all ten controls while invalidating the late save callback
+(without retry). This last check exercises the lifecycle handler, not an actual
+browser BFCache traversal. Local suite: 857 passed, 24 integration tests excluded;
+exact-SHA database/release checks run in CI. Screenshots inspected at both widths.

@@ -29,11 +29,12 @@ decision first, supporting signals and feedback next, and a compact 7-day overvi
   The 1–5 scale stays in one row, with Russian labels wrapping at 320 px.
   The backend recomputes readiness for that date after the idempotent upsert.
 - Lets the user create or edit RPE for the latest eligible canonical activity.
-  The form uses numeric 1–10 buttons in two rows (1–5, then 6–10) at widths
-  up to 900 px and a single row on wider screens. Each button has its own
-  semantic anchor and accessible name; all ten controls are visible without
-  horizontal scrolling, with keyboard focus in numeric order. Selection is
-  marked by a border and `aria-pressed` reflects only the Web observation.
+  The reusable editorial selector (#192) uses ten increasing SVG bars in one
+  horizontal row, backed by native required radios (integer 1–10). Full columns
+  are click/touch targets; selection and keyboard focus have distinct ink outlines.
+  Arrow keys select within the group. A numeric preview and selected annotation
+  update before the separate «Сохранить RPE» confirmation; choosing never writes.
+  There is no initial choice unless a Web observation or failed-save draft exists.
   The Web selection (including no selection) is shown separately from the
   effective RPE, which identifies Strava, Telegram fallback, or Web
   fallback. If observations disagree, the page shows each recorded source
@@ -42,7 +43,8 @@ decision first, supporting signals and feedback next, and a compact 7-day overvi
   and keeps the voluntary Web editor in closed native details, including
   Strava-only and Telegram-only observations. Without effective RPE the editor
   opens immediately, even if a Web observation exists without resolution.
-  Saved Web selections remain available for editing. Before input, the editor
+  Saved Web selections remain available for editing. Failed native saves retain
+  the submitted draft and reopen the editor, with a linked error. Before input, the editor
   explains that Web is stored separately and cannot override available Strava
   or Telegram observations. Native forms and details work without JavaScript.
   A changed effective score updates the response path through backend
@@ -213,3 +215,22 @@ current 14-day diary window; malformed, mismatched and out-of-window context
 is discarded. No URL or arbitrary anchor is accepted. Diary day anchors are
 stable, and both readiness figures use keyboard-accessible day links, including
 missing days, with exact dated values in accessible labels.
+
+## RPE selector form contract (#192)
+
+`POST /today/rpe/{activity_id}` accepts exactly one URL-encoded `score` field,
+integer 1–10, within 128 bytes. Invalid/missing/duplicate fields return a rendered
+422; unowned or ineligible activities return 404. Cross-site forms are rejected.
+It delegates to the existing `/today/rpe/{activity_id}/{score}` write contract,
+which remains supported. Success redirects with 303 to the selected activity and
+validated `return_day`; save failure returns 503 with the attempted score retained.
+Source precedence and backend recomputation are unchanged.
+
+The presentation macro `today/rpe_selector.html` receives a stable instance ID,
+controlled Web/draft value and the existing RPE options; it owns no persistence.
+It composes shared paper, grid, watercolor, ink and annotation primitives. Native
+radios, details, CSS numeric preview and confirmation work without JavaScript.
+The optional script announces changes. With fetch, the existing lifecycle locks
+radios and buttons during POST, confirms the returned stored Web value, and
+requires an explicit check or retry after an uncertain result. BFCache restores
+the controls without resubmitting. Recovery keeps its one-tap submission behavior.

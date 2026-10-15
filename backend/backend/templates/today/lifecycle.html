@@ -9,7 +9,7 @@
     }
     window.whatteLifecycle = {
         begin(container) {
-            const buttons = [...container.querySelectorAll('button')].map(button => ({
+            const buttons = [...container.querySelectorAll('button, input[type="radio"]')].map(button => ({
                 button, disabled: button.disabled, text: button.textContent,
             }));
             const operation = {
