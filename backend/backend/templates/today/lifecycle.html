@@ -10,15 +10,16 @@
     window.whatteLifecycle = {
         begin(container) {
             const buttons = [...container.querySelectorAll('button, input[type="radio"]')].map(button => ({
-                button, disabled: button.disabled, text: button.textContent,
+                button, disabled: button.disabled, children: [...button.childNodes],
             }));
             const operation = {
                 current: () => pending.get(container) === operation,
                 finish: () => {
                     if (!operation.current()) return;
-                    buttons.forEach(({button, disabled, text}) => {
+                    buttons.forEach(({button, disabled, children}) => {
                         button.disabled = disabled;
-                        button.textContent = text;
+                        // Restore labels and SVG controls intact after failure or BFCache.
+                        button.replaceChildren(...children);
                     });
                     container.removeAttribute('aria-busy');
                     delete container.dataset.saving;

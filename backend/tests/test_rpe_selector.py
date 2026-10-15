@@ -33,7 +33,7 @@ def test_controlled_selector_has_exact_bars_and_native_selection(value):
     assert [radio['value'] for radio in radios] == [str(i) for i in range(1, 11)]
     assert all('required' in radio for radio in radios)
     assert [radio['value'] for radio in radios if 'checked' in radio] == ([] if value is None else [str(value)])
-    bars = [attrs for tag, attrs in tags if tag == 'rect' and 'y' in attrs and attrs.get('width') == '26']
+    bars = [attrs for tag, attrs in tags if tag == 'rect' and 'rpe-paint' in attrs.get('class', '').split()]
     assert [int(bar['height']) for bar in bars] == [14 * i for i in range(1, 11)]
     assert all(int(bar['height']) + int(bar['y']) == 156 for bar in bars)
     assert not any(tag in {'button', 'form', 'script'} for tag, attrs in tags)

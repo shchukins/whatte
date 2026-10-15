@@ -1,4 +1,4 @@
-{% from "visualizations/primitives.html" import paper_surface, ink_grid, watercolor_fill, hand_drawn_stroke, editorial_annotation %}
+{% from "visualizations/primitives.html" import paper_surface, ink_grid %}
 {% from "today/rpe_guidance.html" import guidance %}
 {# Controlled by the supplied Web/draft value; no effective-source fallback or persistence. #}
 {% macro rpe_selector(id, value, options, error=none) -%}
@@ -18,12 +18,9 @@
             <input type="radio" name="score" value="{{ score }}" required aria-describedby="{{ id }}-guidance-{{ score }}" aria-label="RPE {{ score }}: {{ label | today_label('rpe') }}" {% if value == score %}checked{% endif %}>
             <span class="rpe-bar" aria-hidden="true">
                 <svg viewBox="0 0 40 160" preserveAspectRatio="none">
-                    {{ watercolor_fill(id ~ '-wash-' ~ score, tones[loop.index0]) }}
-                    <rect x="7" y="{{ 156 - score * 14 }}" width="26" height="{{ score * 14 }}" fill="url(#{{ id }}-wash-{{ score }})"/>
-                    {{ hand_drawn_stroke('M7 ' ~ (156 - score * 14) ~ 'H33V156H7Z') }}
+                    <rect class="rpe-paint viz-tone-{{ tones[loop.index0] }}" x="3" y="{{ 156 - score * 14 }}" width="34" height="{{ score * 14 }}"/>
                 </svg>
                 <span class="rpe-number">{{ score }}</span>
-                <svg class="rpe-selection" viewBox="0 0 40 28">{{ editorial_annotation(8, 19, '✓', handwritten=true) }}</svg>
             </span>
         </label>
         {% endfor %}

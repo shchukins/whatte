@@ -132,12 +132,20 @@ Use it inside a form; it renders required native `score` radios but never submit
 Include `today/rpe_selector.css` after the shared styles, and optionally
 `today/rpe_selector.js` for live numeric announcements. Each instance needs its own
 form/radio group and stable ID prefix. The caller owns confirmation and writes.
-Ten exact increasing rectangles use shared vector washes, ink, paper and grid;
-checked radios provide an outline and marginal check annotation. The entire
+Ten exact increasing rectangles use shared pigment tones with a uniform
+translucent fill, thin muted outlines, paper and a subdued grid. Checked radios
+increase the bar's own outline contrast and fill opacity, and bold its number;
+there is no outer selection frame or check annotation. Keyboard focus retains
+a separate dashed outline around the full hit target. The entire
 column, including empty space above the paint, is interactive. At 390px columns
-are about 36px wide and 188px tall, keeping all ten values visible; desktop
+are about 36px wide and 168px tall, keeping all ten values visible; desktop
 columns expand up to 78px. No fractional values or chart gestures are introduced.
 Native arrows, Space and focus remain browser-owned.
+
+Bars occupy 34 of each column's 40 SVG units, leaving compact gaps. The Today
+five-point feeling control uses the same translucent bars, outlines and grid,
+with its existing red-to-green palette and labels below the numbers. It retains
+native one-click POST buttons, dated input and saved `aria-pressed` state.
 
 Validation on 2026-10-15: Chromium at 390/1440px had document widths exactly
 matching the viewport. All ten values were selected by click and native arrows;

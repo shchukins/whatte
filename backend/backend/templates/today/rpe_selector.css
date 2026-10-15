@@ -1,21 +1,29 @@
 /* Native radios control selection; the full column is a hit target, not the paint. */
-.rpe-control { border: 0; padding: 0; margin: 20px 0; min-width: 0; max-width: 780px; }
+.rpe-control { --viz-grid-major-opacity: .12; --viz-grid-minor-opacity: .045; border: 0; padding: 0; margin: 20px 0; min-width: 0; max-width: 780px; }
 .rpe-control legend { font: 13px var(--mono); }
 .rpe-control .viz-paper { padding-top: 8px; }
 .rpe-grid { position: absolute; inset: 8px 0 auto; width: 100%; height: 160px; pointer-events: none; }
 .rpe-bars { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); }
 .rpe-option { position: relative; display: block; min-width: 0; cursor: pointer; }
 .rpe-option input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; z-index: 1; }
-.rpe-bar { display: block; text-align: center; border: 2px solid transparent; }
+.rpe-bar { display: block; text-align: center; padding: 2px; }
 .rpe-bar > svg:first-child { display: block; width: 100%; height: 160px; }
+.rpe-paint { fill: var(--viz-pigment); fill-opacity: .48; stroke: var(--viz-ink); stroke-opacity: .35; stroke-width: 1; vector-effect: non-scaling-stroke; }
 .rpe-number { display: block; font: 15px/32px var(--viz-mono); color: var(--viz-ink); }
-.rpe-selection { display: block; width: 100%; height: 26px; visibility: hidden; }
-.rpe-option input:checked + .rpe-bar { border-color: var(--viz-ink); }
+.rpe-option input:checked + .rpe-bar .rpe-paint { fill-opacity: .68; stroke-opacity: .8; stroke-width: 1.5; }
 .rpe-option input:checked + .rpe-bar .rpe-number { font-weight: 700; }
-.rpe-option input:checked + .rpe-bar .rpe-selection { visibility: visible; }
 .rpe-option input:focus-visible + .rpe-bar { outline: 2px dashed var(--viz-ink); outline-offset: -6px; }
 .rpe-option:hover .rpe-number { text-decoration: underline; }
 .rpe-option input:disabled + .rpe-bar { opacity: .65; cursor: wait; }
+/* Recovery keeps its existing one-click POST buttons and five-point semantics. */
+.recovery-control { --viz-grid-major-opacity: .12; --viz-grid-minor-opacity: .045; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; max-width: 390px; padding-top: 8px; }
+.recovery-control .scale-button { height: auto; padding: 0; border: 0; background: transparent; box-shadow: none; }
+.recovery-control .rpe-paint { --viz-pigment: var(--feel-color); }
+.recovery-control .scale-button[aria-pressed="true"] .rpe-paint { fill-opacity: .68; stroke-opacity: .8; stroke-width: 1.5; }
+.recovery-control .scale-button[aria-pressed="true"] .rpe-number { font-weight: 700; }
+.recovery-control .scale-button:focus-visible { outline: 2px dashed var(--viz-ink); outline-offset: -6px; }
+.recovery-control .scale-button:hover .rpe-number { text-decoration: underline; }
+.recovery-control .scale-label { margin-top: 0; padding: 0 2px; }
 .rpe-readout { display: flex; align-items: baseline; gap: 16px; margin: 14px 0 0; flex-wrap: wrap; }
 [data-rpe-empty], [data-rpe-description] strong { font: 24px var(--mono); }
 [data-rpe-description] { display: none; }
@@ -33,11 +41,11 @@
 @media (max-width: 420px) {
     .rpe-bar > svg:first-child, .rpe-grid { height: 132px; }
     .rpe-number { font-size: 13px; }
-    .rpe-selection { height: 20px; }
 }
 @media (forced-colors: active) {
-    .rpe-bar rect { fill: Canvas; stroke: CanvasText; }
-    .rpe-option input:checked + .rpe-bar { border-color: Highlight; }
+    .rpe-paint { fill: Canvas; fill-opacity: 1; stroke: CanvasText; stroke-opacity: 1; }
+    .rpe-option input:checked + .rpe-bar .rpe-paint { fill: Highlight; fill-opacity: 1; stroke: CanvasText; stroke-opacity: 1; stroke-width: 2; }
+    .recovery-control .scale-button[aria-pressed="true"] .rpe-paint { fill: Highlight; fill-opacity: 1; stroke: CanvasText; stroke-opacity: 1; stroke-width: 2; }
 }
 
 /* CSS previews preserve native checked state and also work without JavaScript.

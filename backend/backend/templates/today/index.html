@@ -1,6 +1,7 @@
 {% from "today/profile_pending.html" import profile_pending_notice %}
 {% from "today/history_figure.html" import readiness_figure %}
 {% from "today/rpe_selector.html" import rpe_selector %}
+{% from "visualizations/primitives.html" import ink_grid %}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -95,13 +96,21 @@
             {% else %}
             <details class="feedback-editor" {% if not recovery or saved == "recovery" %}open{% endif %}>
                 <summary>{% if recovery %}Самочувствие: {{ recovery.score }}/5 · <span>Изменить</span>{% else %}Оценить самочувствие{% endif %}</summary>
-            <div class="scale" aria-label="Оценка самочувствия от одного до пяти">
+            <div class="scale recovery-control viz-system viz-paper viz-texture-subtle" aria-label="Оценка самочувствия от одного до пяти">
+                <svg class="rpe-grid" viewBox="0 0 300 160" preserveAspectRatio="none" aria-hidden="true">
+                    {{ ink_grid('recovery-grid', 0, 0, 300, 160, minor=20, major=100) }}
+                </svg>
                 {% set recovery_options = [(1, 'Без сил'), (2, 'Уста­лость'), (3, 'Нор­мально'), (4, 'Бодро'), (5, 'Полон сил')] %}
                 {% for score, label in recovery_options %}
                 <form method="post" action="/today/recovery/{{ score }}" data-feedback-form>
                     <input type="hidden" name="local_date" value="{{ today }}">
                     <button class="scale-button" data-score="{{ score }}" type="submit" formmethod="post" formaction="/today/recovery/{{ score }}" aria-label="Самочувствие {{ score }}: {{ label | replace('­', '') }}" aria-pressed="{{ 'true' if recovery and recovery.score == score else 'false' }}">
-                        <span class="scale-number" aria-hidden="true">{{ score }}</span>
+                        <span class="rpe-bar" aria-hidden="true">
+                            <svg viewBox="0 0 40 160" preserveAspectRatio="none">
+                                <rect class="rpe-paint" x="3" y="{{ 156 - score * 28 }}" width="34" height="{{ score * 28 }}"/>
+                            </svg>
+                            <span class="rpe-number">{{ score }}</span>
+                        </span>
                     </button>
                     <span class="scale-label" aria-hidden="true">{{ label }}</span>
                 </form>
