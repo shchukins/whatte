@@ -1,8 +1,8 @@
 # Editorial Visualization System
 
 Status: implemented visual primitives and reference preview (#191). Production
-RPE selector adoption is implemented in #192; guidance belongs to #193. Existing
-readiness, Diary and Analytics charts have not been restyled. Reference: [visual identity](VISUAL_IDENTITY.md).
+RPE selector adoption is implemented in #192; contextual guidance is implemented
+in #193. Existing readiness, Diary and Analytics charts have not been restyled. Reference: [visual identity](VISUAL_IDENTITY.md).
 
 ## Preview and scope
 
@@ -136,8 +136,8 @@ Ten exact increasing rectangles use shared vector washes, ink, paper and grid;
 checked radios provide an outline and marginal check annotation. The entire
 column, including empty space above the paint, is interactive. At 390px columns
 are about 36px wide and 188px tall, keeping all ten values visible; desktop
-columns expand up to 78px. No fractional values, chart gestures or guidance rules
-are introduced. Native arrows, Space and focus remain browser-owned.
+columns expand up to 78px. No fractional values or chart gestures are introduced.
+Native arrows, Space and focus remain browser-owned.
 
 Validation on 2026-10-15: Chromium at 390/1440px had document widths exactly
 matching the viewport. All ten values were selected by click and native arrows;

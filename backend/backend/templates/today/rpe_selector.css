@@ -39,3 +39,44 @@
     .rpe-bar rect { fill: Canvas; stroke: CanvasText; }
     .rpe-option input:checked + .rpe-bar { border-color: Highlight; }
 }
+
+/* CSS previews preserve native checked state and also work without JavaScript.
+   Keyboard focus takes priority over pointer preview; touch uses selection. */
+.rpe-guidance { border-top: 1px solid var(--line); margin-top: 14px; padding-top: 10px; font-size: 14px; line-height: 1.5; }
+.rpe-guidance p { margin: 0 0 8px; }
+[data-rpe-guidance] { display: none; }
+.rpe-control:has(:where(input:checked)) [data-rpe-guidance-empty] { display: none; }
+.rpe-control:has(:where(input[value="1"]:checked)) [data-rpe-guidance="1"] { display: block; }
+.rpe-control:has(:where(input[value="2"]:checked)) [data-rpe-guidance="2"] { display: block; }
+.rpe-control:has(:where(input[value="3"]:checked)) [data-rpe-guidance="3"] { display: block; }
+.rpe-control:has(:where(input[value="4"]:checked)) [data-rpe-guidance="4"] { display: block; }
+.rpe-control:has(:where(input[value="5"]:checked)) [data-rpe-guidance="5"] { display: block; }
+.rpe-control:has(:where(input[value="6"]:checked)) [data-rpe-guidance="6"] { display: block; }
+.rpe-control:has(:where(input[value="7"]:checked)) [data-rpe-guidance="7"] { display: block; }
+.rpe-control:has(:where(input[value="8"]:checked)) [data-rpe-guidance="8"] { display: block; }
+.rpe-control:has(:where(input[value="9"]:checked)) [data-rpe-guidance="9"] { display: block; }
+.rpe-control:has(:where(input[value="10"]:checked)) [data-rpe-guidance="10"] { display: block; }
+@media (hover: hover) and (pointer: fine) {
+    .rpe-control:has(:where(.rpe-option:hover)) :is([data-rpe-guidance], [data-rpe-guidance-empty]) { display: none; }
+    .rpe-control:has(:where(.rpe-option:hover input[value="1"])) [data-rpe-guidance="1"] { display: block; }
+    .rpe-control:has(:where(.rpe-option:hover input[value="2"])) [data-rpe-guidance="2"] { display: block; }
+    .rpe-control:has(:where(.rpe-option:hover input[value="3"])) [data-rpe-guidance="3"] { display: block; }
+    .rpe-control:has(:where(.rpe-option:hover input[value="4"])) [data-rpe-guidance="4"] { display: block; }
+    .rpe-control:has(:where(.rpe-option:hover input[value="5"])) [data-rpe-guidance="5"] { display: block; }
+    .rpe-control:has(:where(.rpe-option:hover input[value="6"])) [data-rpe-guidance="6"] { display: block; }
+    .rpe-control:has(:where(.rpe-option:hover input[value="7"])) [data-rpe-guidance="7"] { display: block; }
+    .rpe-control:has(:where(.rpe-option:hover input[value="8"])) [data-rpe-guidance="8"] { display: block; }
+    .rpe-control:has(:where(.rpe-option:hover input[value="9"])) [data-rpe-guidance="9"] { display: block; }
+    .rpe-control:has(:where(.rpe-option:hover input[value="10"])) [data-rpe-guidance="10"] { display: block; }
+}
+.rpe-control:has(:where(input:focus-visible)) :is([data-rpe-guidance], [data-rpe-guidance-empty]) { display: none; }
+.rpe-control:has(:where(input[value="1"]:focus-visible)) [data-rpe-guidance="1"] { display: block; }
+.rpe-control:has(:where(input[value="2"]:focus-visible)) [data-rpe-guidance="2"] { display: block; }
+.rpe-control:has(:where(input[value="3"]:focus-visible)) [data-rpe-guidance="3"] { display: block; }
+.rpe-control:has(:where(input[value="4"]:focus-visible)) [data-rpe-guidance="4"] { display: block; }
+.rpe-control:has(:where(input[value="5"]:focus-visible)) [data-rpe-guidance="5"] { display: block; }
+.rpe-control:has(:where(input[value="6"]:focus-visible)) [data-rpe-guidance="6"] { display: block; }
+.rpe-control:has(:where(input[value="7"]:focus-visible)) [data-rpe-guidance="7"] { display: block; }
+.rpe-control:has(:where(input[value="8"]:focus-visible)) [data-rpe-guidance="8"] { display: block; }
+.rpe-control:has(:where(input[value="9"]:focus-visible)) [data-rpe-guidance="9"] { display: block; }
+.rpe-control:has(:where(input[value="10"]:focus-visible)) [data-rpe-guidance="10"] { display: block; }

@@ -234,3 +234,54 @@ The optional script announces changes. With fetch, the existing lifecycle locks
 radios and buttons during POST, confirms the returned stored Web value, and
 requires an explicit check or retry after an uncertain result. BFCache restores
 the controls without resubmitting. Recovery keeps its one-tap submission behavior.
+
+
+## Contextual session-RPE guidance (#193)
+
+Implemented in the shared selector on Today and Diary. Every integer has a
+Russian description, breathing/speech cue, illustrative endurance example and
+comparison with adjacent values in `today/rpe_guidance.html`. Existing localized
+labels and the `rpe_1_10` integer contract are retained, including 6 «Ровная
+нагрузка». Its explanation clarifies that steady work can feel somewhat hard.
+This is Whatte's existing 1–10 session effort scale with editorial guidance,
+not a verbatim reproduction of Borg CR10/Foster anchors, a new scale, a
+conversion of historical 1–5 feedback, or a prescription of intensity.
+Missing stays unselected. Historical data and effective-source precedence do not
+change; no load, recovery or readiness formulas change.
+
+The question is how hard the **whole session** felt, including easier portions;
+it is not a peak-interval score, a mathematical average of interval scores, or
+the duration-weighted training-load metric sometimes also called session-RPE.
+The selector always states «Оцени всю тренировку, а не только её самый тяжёлый
+момент». Duration, fatigue and conditions can change the perception of any
+example. No exact RPE is derived from power, HR, IF, zones or session type.
+Breathing/speech cues describe moments only and cannot identify an exact
+whole-session score.
+
+Semantic references checked on 2026-10-15:
+
+- [Primary session-RPE study](https://www.frontiersin.org/journals/physiology/articles/10.3389/fphys.2020.00919/full)
+  for overall session perception rather than one moment; the UI adds no timing
+  restriction or new measurement protocol.
+- [CDC relative intensity and talk test](https://www.cdc.gov/physical-activity-basics/measuring/)
+  for qualitative breathing/speech cues only. Its instantaneous intensity scale
+  and numeric cutoffs are not mapped onto the product's session scores.
+
+CSS exposes one inline guidance panel: checked value by default, pointer preview
+on devices with fine hover, then keyboard-visible focus with highest priority.
+Leaving hover restores the selected panel without changing the radio value.
+Touch selection and native keyboard arrows expose the same content. Every radio
+links to its own description with `aria-describedby`; instance IDs are unique.
+The numeric selected readout remains separate from the preview. These behaviors
+work without JavaScript; optional JS still announces only selection changes.
+Parent forms retain explicit confirmation, draft/error retention, loading locks,
+CSRF/user validation and no automatic POST retries.
+
+Validation on 2026-10-15: Chromium at 1440px previewed all ten values without
+selecting, restored selected 7 after previewing 8, and exposed all ten descriptions
+with native keyboard arrows. A second selector retained its own value. At 390px,
+a touch context with JavaScript disabled selected all ten and showed the matching
+panel; no horizontal overflow. Desktop/mobile screenshots were inspected.
+Reduced-motion mode added no animation. Local selector contract tests cover all
+ten descriptions, per-radio accessible links and instance ID uniqueness; existing
+Today/Diary tests cover draft/save/error behavior.

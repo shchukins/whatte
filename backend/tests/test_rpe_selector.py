@@ -52,3 +52,24 @@ def test_selector_instances_namespace_all_svg_references():
     assert set(re.findall(r'url\(#([^)]*)\)', html)) <= set(ids)
     assert any(attrs.get("aria-describedby") == "second-help second-error" for tag, attrs in tags)
     assert 'id="second-error" class="error" role="alert">Save failed</p>' in html
+
+
+def test_guidance_is_linked_to_each_radio_and_keeps_session_boundary():
+    template = router.templates.env.from_string(
+        '{% from "today/rpe_selector.html" import rpe_selector %}'
+        '{{ rpe_selector("guidance", none, options) }}'
+    )
+    html = template.render(options=list(RPE_LABELS.items()))
+    tags = Tags(html).tags
+    radios = [attrs for tag, attrs in tags if tag == 'input']
+    panels = [attrs for tag, attrs in tags if 'data-rpe-guidance' in attrs]
+    assert [panel['data-rpe-guidance'] for panel in panels] == [str(i) for i in range(1, 11)]
+    assert [radio['aria-describedby'] for radio in radios] == [panel['id'] for panel in panels]
+    guidance = router.templates.env.get_template('today/rpe_guidance.html').module.guidance
+    assert set(guidance) == set(RPE_LABELS)
+    assert all(len(parts) == 4 and all(parts) for parts in guidance.values())
+    assert 'Оцени всю тренировку, а не только её самый тяжёлый момент' in html
+    assert 'субъективная оценка по шкале 1–10' in html
+    assert 'Примеры условны' in html
+    assert 'не задают точный RPE' in html
+    assert 'один максимальный спринт не делает всю тренировку десяткой' in html
