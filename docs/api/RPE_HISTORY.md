@@ -61,3 +61,7 @@ coarse variability, never evidence of matching intervals. All matches declare
 limitation. Equal aggregates can conceal different intervals, fatigue or conditions.
 History is subjective context, never a correct answer. No migrations, stream scans,
 ML, readiness changes or external API calls are introduced.
+
+#195 additionally renders a separate [PED contract](EFFORT_DEVIATION.md) in this
+history fragment. Its stricter pre-target availability guards can yield a smaller
+sample than history; history matching and draft/save behavior remain unchanged.

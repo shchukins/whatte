@@ -13,3 +13,22 @@
 {% else %}
 <p class="hint">Недостаточно данных для сравнения: нужны хотя бы три похожие тренировки с RPE 1–10, мощностью и сопоставимым историческим FTP.</p>
 {% endif %}
+
+{% if rpe_history.ped is defined %}
+{% set ped = rpe_history.ped %}
+<h3>Сравнение усилия · PED</h3>
+{% if ped.status == 'available' %}
+<p>Сохранённый RPE: <strong>{{ ped.actual_rpe }}/10</strong> (источник: {{ ped.actual_reference.source }}); медиана похожих тренировок: {{ '%g' | format(ped.expected_rpe) }}. Разница PED: <strong>{{ '%+g' | format(ped.ped) }}</strong> балла.</p>
+<p class="hint">Сохранённая оценка {% if ped.comparison == 'above_median' %}выше{% elif ped.comparison == 'below_median' %}ниже{% else %}равна{% endif %} медианы прошлых оценок. Черновик выбора сюда не входит.</p>
+{% elif ped.status == 'error' %}
+<p class="hint">Сравнение усилия временно недоступно. Ваш выбор можно сохранить.</p>
+{% elif ped.expected_rpe is not none %}
+<p class="hint">Медиана похожих тренировок: {{ '%g' | format(ped.expected_rpe) }}. PED недоступен: нужна сохранённая оценка RPE по шкале 1–10.</p>
+{% else %}
+<p class="hint">PED недоступен: недостаточно похожих тренировок с данными, полученными до начала этой тренировки. Нужны хотя бы три.</p>
+{% endif %}
+{% if ped.dispersion %}
+<p class="hint">Выборка: {{ ped.sample_count }}; диапазон RPE {{ ped.dispersion.range[0] }}–{{ ped.dispersion.range[1] }}, медианное абсолютное отклонение {{ '%g' | format(ped.dispersion.mad) }} балла. В PED входят только данные, полученные до начала этой тренировки. Надёжность ограничена: малая выборка, структура интервалов неизвестна.</p>
+{% endif %}
+<p class="hint">Это описательное сравнение, а не вывод об усталости или восстановлении. Поздние правки исключаются; полная история изменений не хранится, поэтому расчёт на прошлую дату не воспроизводит все данные того момента.</p>
+{% endif %}

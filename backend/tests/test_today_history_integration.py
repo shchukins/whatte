@@ -152,3 +152,66 @@ def test_personal_rpe_history_uses_effective_source_scale_and_owner(monkeypatch)
         with pytest.raises(HTTPException) as exc:
             history.get_rpe_history('other', 1)
         assert exc.value.status_code == 404
+
+
+def test_effort_deviation_sql_temporal_sources_and_read_only(monkeypatch):
+    """Exercise real joins and edit timestamps, without writes from the service."""
+    from backend.services import effort_baseline_service as ped
+    from backend.services import rpe_history_service as history
+    target = datetime(2026, 10, 10, tzinfo=timezone.utc)
+    with get_conn() as conn:
+        for table in ('strava_activity_raw', 'activity_metrics',
+                      'activity_rpe_observation', 'activity_rpe_resolution'):
+            conn.execute(f'create temporary table {table} (like public.{table} including all)')
+        for activity_id in range(1, 14):
+            started = target if activity_id == 1 else target - timedelta(days=activity_id)
+            available = started + timedelta(hours=1)
+            conn.execute('''insert into strava_activity_raw
+                (id, strava_activity_id, user_id, strava_athlete_id, activity_type,
+                 start_date, updated_at, raw_json)
+                values (%s, %s, 'athlete', 1, 'Ride', %s, %s, '{}'::jsonb)''',
+                (activity_id, activity_id, started, available))
+            conn.execute('''insert into activity_metrics
+                (id, strava_activity_id, user_id, version, moving_time_s,
+                 normalized_power, intensity_factor, variability_index, computed_at)
+                values (%s, %s, 'athlete', 'v1', 3600, 200, 0.8, 1.05, %s)''',
+                (activity_id, activity_id, available))
+            conn.execute('''insert into activity_rpe_observation
+                (id, canonical_activity_id, user_id, source, score, received_at)
+                values (%s, %s, 'athlete', 'strava', %s, %s)''',
+                (activity_id, activity_id, 8 if activity_id == 1 else 6, available))
+            conn.execute('''insert into activity_rpe_resolution
+                (canonical_activity_id, user_id, effective_source, effective_score, resolved_at)
+                values (%s, 'athlete', 'strava', %s, %s)''',
+                (activity_id, 8 if activity_id == 1 else 6, available))
+        # Only 2,3,4 survive. Each rejected row isolates a distinct boundary.
+        conn.execute('update activity_rpe_observation set received_at = %s where canonical_activity_id = 5', (target,))
+        conn.execute('update activity_metrics set computed_at = %s where strava_activity_id = 6', (target,))
+        conn.execute('update strava_activity_raw set updated_at = %s where strava_activity_id = 7', (target,))
+        conn.execute('update activity_rpe_resolution set resolved_at = %s where canonical_activity_id = 8', (target,))
+        conn.execute("update strava_activity_raw set user_id = 'other' where strava_activity_id = 9")
+        conn.execute("update strava_activity_raw set is_deleted = true where strava_activity_id = 10")
+        conn.execute("update strava_activity_raw set is_excluded = true where strava_activity_id = 11")
+        conn.execute('update strava_activity_raw set duplicate_of_activity_id = 2 where strava_activity_id = 12')
+        conn.execute('update activity_rpe_observation set observed_at = %s where canonical_activity_id = 13', (target,))
+        # A usable lower-priority source must not replace a late Strava observation.
+        conn.execute('''insert into activity_rpe_observation
+            (id, canonical_activity_id, user_id, source, score, received_at)
+            values (100, 5, 'athlete', 'web', 3, %s)''', (target - timedelta(days=1),))
+        conn.commit()
+        monkeypatch.setattr(history, 'get_conn', lambda: nullcontext(conn))
+        with conn.transaction():
+            conn.execute('set transaction read only')
+            result = ped.get_effort_deviation('athlete', 1)
+            assert result['status'] == 'available'
+            assert result['expected_rpe'] == 6 and result['ped'] == 2
+            assert result['sample_count'] == 3
+            assert {r['activity_id'] for r in result['source_references']} == {2, 3, 4}
+            assert result['actual_reference']['source'] == 'strava'
+        with conn.transaction():
+            conn.execute('update activity_rpe_observation set received_at = %s where canonical_activity_id = 2', (target,))
+        with conn.transaction():
+            conn.execute('set transaction read only')
+            result = ped.get_effort_deviation('athlete', 1)
+            assert result['status'] == 'unavailable'
+            assert result['ped'] is None and result['sample_count'] == 2

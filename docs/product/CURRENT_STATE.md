@@ -211,6 +211,7 @@ scored signals; точная формула зафиксирована в `docs/
 
 - Strava ingestion материализует training load и response metrics
 - Web/Telegram сохраняют RPE и morning feeling
+- [PED v1](../models/PERCEIVED_EFFORT_DEVIATION.md) сравнивает сохранённый effective RPE с медианой 3–5 похожих прошлых тренировок; показывает разброс, ограниченную надёжность и ограничения исторических правок, без влияния на readiness
 - scheduled worker продлевает load state до текущей локальной даты
 - `readiness_daily` работает без physiology
 - historical exact-date physiology продолжает обогащать старые даты

@@ -85,6 +85,7 @@ def test_query_bounds_and_owner_on_all_joins(monkeypatch):
 def test_route_requires_selection_and_never_writes(monkeypatch):
     router = importlib.import_module('backend.today.router')
     calls = []
+    monkeypatch.setattr(router, 'get_effort_deviation', lambda *args: {'status': 'error'})
     def history(user_id, activity_id):
         calls.append((user_id, activity_id))
         return service.build_context(session(), [session(i) for i in range(2, 5)])
@@ -115,6 +116,7 @@ def test_same_time_ties_use_id_and_tolerance_is_not_equivalence():
 def test_native_preview_and_error_preserve_independent_draft(monkeypatch):
     router = importlib.import_module('backend.today.router')
     captured = []
+    monkeypatch.setattr(router, 'get_effort_deviation', lambda *args: {'status': 'error'})
     from fastapi.responses import HTMLResponse
     def page(request, **kwargs):
         captured.append(kwargs)

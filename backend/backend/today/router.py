@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Annotated
 from urllib.parse import parse_qs, urlsplit
 
+from fastapi.encoders import jsonable_encoder
 from fastapi import APIRouter, HTTPException, Path as FastAPIPath, Query, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -22,6 +23,7 @@ from backend.services.manual_physiology_service import (
 )
 from backend.services.rpe_service import RPE_LABELS
 from backend.services.rpe_history_service import get_rpe_history
+from backend.services.effort_baseline_service import get_effort_deviation
 from backend.services.subjective_feedback_service import (
     FEEDBACK_SOURCE_WEB,
     upsert_activity_rpe_v2,
@@ -138,6 +140,20 @@ def visual_system_preview(request: Request):
     )
 
 
+@router.get("/effort-deviation/{activity_id}")
+def effort_deviation(activity_id: Annotated[int, FastAPIPath(ge=1)]):
+    # Same configured-athlete and edge auth boundary as Today; no user ID input.
+    try:
+        result = get_effort_deviation(settings.daily_readiness_user_id, activity_id)
+    except HTTPException:
+        raise
+    except Exception:
+        logging.getLogger(__name__).exception("effort_deviation_unavailable")
+        return JSONResponse({"error": "effort_deviation_unavailable"}, status_code=503,
+                            headers={"Cache-Control": "no-store"})
+    return JSONResponse(jsonable_encoder(result), headers={"Cache-Control": "no-store"})
+
+
 @router.get("/rpe-context/{activity_id}", include_in_schema=False)
 def rpe_context(request: Request, activity_id: Annotated[int, FastAPIPath(ge=1)],
                 score: Annotated[int, Query(ge=1, le=10)], fragment: bool = False,
@@ -153,6 +169,12 @@ def rpe_context(request: Request, activity_id: Annotated[int, FastAPIPath(ge=1)]
             return JSONResponse({"error": "history_unavailable"}, status_code=503,
                                 headers={"Cache-Control": "no-store"})
         history = {"status": "error"}
+    if history["status"] != "error":
+        try:
+            history["ped"] = get_effort_deviation(settings.daily_readiness_user_id, activity_id)
+        except Exception:
+            logging.getLogger(__name__).exception("effort_deviation_unavailable")
+            history["ped"] = {"status": "error"}
     if fragment:
         return templates.TemplateResponse(request=request, name="today/rpe_history.html",
             context={"rpe_history": history}, headers={"Cache-Control": "no-store"})
