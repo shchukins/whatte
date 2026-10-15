@@ -215,3 +215,42 @@ def test_effort_deviation_sql_temporal_sources_and_read_only(monkeypatch):
             result = ped.get_effort_deviation('athlete', 1)
             assert result['status'] == 'unavailable'
             assert result['ped'] is None and result['sample_count'] == 2
+
+
+def test_prospective_ped_capture_real_joins_are_read_only(monkeypatch):
+    from scripts import capture_ped_research as capture
+    from backend.services.ped_research import validate_snapshots
+    target = datetime.now(timezone.utc)-timedelta(days=10)
+    with get_conn() as conn:
+        for table in ('strava_activity_raw', 'activity_metrics',
+                      'activity_rpe_observation', 'activity_rpe_resolution'):
+            conn.execute(f'create temporary table {table} (like public.{table} including all)')
+        for activity_id in range(1, 5):
+            started = target-timedelta(days=activity_id)
+            available = started+timedelta(hours=2)
+            score = 8 if activity_id == 1 else 6
+            conn.execute('''insert into strava_activity_raw
+                (id, strava_activity_id, user_id, strava_athlete_id, activity_type,
+                 start_date, elapsed_time_s, updated_at, raw_json)
+                values (%s, %s, 'athlete', 1, 'Ride', %s, 3600, %s, '{}'::jsonb)''',
+                (activity_id, activity_id, started, available))
+            conn.execute('''insert into activity_metrics
+                (id, strava_activity_id, user_id, version, moving_time_s,
+                 normalized_power, intensity_factor, variability_index, computed_at)
+                values (%s, %s, 'athlete', 'v1', 3600, 200, 0.8, 1.05, %s)''',
+                (activity_id, activity_id, available))
+            conn.execute('''insert into activity_rpe_observation
+                (id, canonical_activity_id, user_id, source, score, received_at)
+                values (%s, %s, 'athlete', 'strava', %s, %s)''',
+                (activity_id, activity_id, score, available))
+            conn.execute('''insert into activity_rpe_resolution
+                (canonical_activity_id, user_id, effective_source, effective_score, resolved_at)
+                values (%s, 'athlete', 'strava', %s, %s)''',
+                (activity_id, score, available))
+        conn.commit()
+        monkeypatch.setattr(capture, 'get_conn', lambda: nullcontext(conn))
+        with conn.transaction():
+            evidence = capture.capture('athlete', 1)
+            assert validate_snapshots(evidence)[0]['ped'] == 2
+            assert conn.execute("select current_setting('transaction_read_only')").fetchone()[0] == 'on'
+            assert conn.execute("select current_setting('transaction_isolation')").fetchone()[0] == 'repeatable read'

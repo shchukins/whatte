@@ -13,6 +13,13 @@ PROTOCOL_VERSION = "research_execution_v1"
 
 
 def process_request(request):
+    if request.get("protocol_version") == "ped_research_execution_v1":
+        from backend.services.ped_research import predict
+        if request.get("operation") != "candidate":
+            raise ValueError("unsupported_operation")
+        result = predict(request["observations"], request["state"], request["dataset_hash"],
+                         request["partition"], request["candidate_id"])
+        return {"protocol_version": "ped_research_execution_v1", "status": "ok", "result": result}
     if request.get("protocol_version") == "research_execution_v2":
         from backend.services.recovery_prediction import prediction_artifact
         from backend.services.recovery_prediction_config import validate_recovery_config

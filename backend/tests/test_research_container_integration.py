@@ -142,3 +142,21 @@ def test_reviewed_model_image_predicts_and_evaluates_without_credentials(reviewe
     assert evaluated["metadata"]["cleanup_succeeded"]
     assert evaluated["response"]["result"] == evaluator.evaluate_research_candidate(
         dataset=selected, partition="validation", baseline_artifact=baseline, candidate_artifact=expected_candidate)
+
+
+def test_ped_worker_real_image_matches_host_without_credentials(reviewed_model_image, tmp_path):
+    from test_ped_research import fixture
+    from test_recovery_prediction import FIT_TIME
+    from backend.services.ped_research import prepare_study, predict
+    dataset, evidence = fixture()
+    report, jobs = prepare_study(dataset, evidence, fit_as_of=FIT_TIME)
+    job = jobs[0]
+    request = {'protocol_version': 'ped_research_execution_v1', 'operation': 'candidate',
+               'observations': job['observations'], 'state': job['state'],
+               'dataset_hash': report['dataset_hash'], 'partition': 'validation', 'candidate_id': 'ped-proof'}
+    assert 'outcome' not in json.dumps(request)
+    result = DockerExecutor(reviewed_model_image, ResourceLimits()).execute(request, tmp_path/'ped')
+    assert result['metadata']['failure_reason'] is None
+    assert result['metadata']['cleanup_succeeded']
+    assert result['response']['result'] == predict(job['observations'], job['state'],
+                                                  report['dataset_hash'], 'validation', 'ped-proof')

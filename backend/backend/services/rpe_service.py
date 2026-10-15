@@ -8,9 +8,8 @@ from typing import Any
 
 from backend.db import get_conn
 
-RPE_SCALE_VERSION = "rpe_1_10"
+from backend.services.rpe_contract import RPE_SCALE_VERSION, RPE_SOURCES
 RPE_OBSERVATION_SCHEMA_VERSION = "rpe_observation_v1"
-RPE_SOURCES = ("strava", "telegram", "web")
 RPE_LABELS = {
     1: "Very easy",
     2: "Easy",

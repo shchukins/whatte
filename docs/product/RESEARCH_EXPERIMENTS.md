@@ -57,3 +57,9 @@ frozen evaluator output. The separate research writer uses column-level SQL gran
 and no production table permissions; containers never receive its credentials.
 See [research runner](RESEARCH_RUNNER.md) for the partial status, image/source/baseline
 pinning, recovery procedures and outstanding outcome-prediction prerequisite.
+
+## PED study (#196)
+
+[Offline PED research](PED_RESEARCH.md) reuses the day dataset, frozen evaluator,
+isolated executor, private receipts and optional dedicated experiment audit.
+Current result is insufficient evidence; no automatic model promotion.

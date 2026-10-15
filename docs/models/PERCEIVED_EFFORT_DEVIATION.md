@@ -66,3 +66,9 @@ explicitly distinct from the current draft. Missing saved RPE can retain the
 expected baseline while PED remains null. Insufficient history returns null
 expected/PED/dispersion with no verdict. No migrations, streams, external calls,
 automatic assignment, save retries or readiness changes.
+
+## Offline research
+
+[#196 protocol and observed insufficient evidence](../product/PED_RESEARCH.md)
+uses prospective private captures and the existing evaluator; current-record
+PED is never silently converted into historical as-of evidence.

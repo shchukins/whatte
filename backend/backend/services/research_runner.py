@@ -229,3 +229,85 @@ def run_research_experiment(*, config, dataset, baseline, experiment_id, hypothe
     return {"experiment_id": experiment_id, "status": result["status"],
             "failure_reason": failure, "receipt_reference": str(directory / "receipt.json"),
             "receipt_updated": receipt_updated}
+
+
+def run_ped_study(*, dataset, evidence, fit_as_of, experiment_id, output_root,
+                  partition="validation", test_access_granted=False, image=None,
+                  connection_factory=None, limits=None):
+    """Reuse bounded executor, frozen evaluator, receipts and optional dedicated audit.
+
+    An insufficient-data receipt needs no image execution or DB provisioning.
+    Actual predictions require the same credential-free Docker boundary as v2.
+    """
+    from backend.services.ped_research import prepare_study, predict, finish_comparison, canonical_hash
+    from backend.services.ped_research_config import study_config
+    from backend.services import research_evaluator_v2 as evaluator
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,95}", experiment_id):
+        raise ValueError("invalid_experiment_id")
+    report, jobs = prepare_study(dataset, evidence, fit_as_of=fit_as_of, partition=partition,
+                                 test_access_granted=test_access_granted)
+    if jobs:
+        image = validate_image(image)
+    config = study_config(canonical_hash(jobs), report["evidence_hash"])
+    source_hash = hashlib.sha256(b"".join(Path(__file__).with_name(n).read_bytes() for n in (
+        "ped_research.py", "ped_research_config.py", "effort_deviation_core.py", "rpe_matching.py", "rpe_contract.py",
+        "recovery_prediction.py", "recovery_prediction_config.py", "research_parameter_space.py",
+        "readiness_composition.py", "research_evaluator.py", "research_evaluator_v2.py",
+        "research_runner.py", "research_container.py"))).hexdigest()
+    root = Path(output_root).resolve()
+    root.mkdir(mode=0o700, parents=True, exist_ok=True)
+    if root.stat().st_mode & 0o077:
+        raise ValueError("output_root must be private (mode 0700)")
+    directory = root / experiment_id
+    directory.mkdir(mode=0o700)
+    metadata = {"protocol_version": "ped_research_execution_v1", "image": image,
+                "runner_source_hash": source_hash, "limits": (limits or ResourceLimits()).as_dict(),
+                "evidence_hash": report["evidence_hash"], "stages": []}
+    receipt = {"experiment_id": experiment_id, "status": "running",
+               "dataset_hash": report["dataset_hash"], "candidate_config_hash": candidate_config_hash(config),
+               "execution_metadata": metadata}
+    _write_receipt(directory, receipt)
+    if connection_factory:
+        create_research_experiment(experiment_id=experiment_id,
+            hypothesis="Frozen PED incremental next-day recovery study; no production promotion",
+            candidate_model_version=config["candidate_model_version"], candidate_config=config,
+            dataset_version=config["dataset_version"], dataset_hash=report["dataset_hash"],
+            dataset_partition=partition, evaluator_version=evaluator.EVALUATOR_VERSION,
+            evaluator_specification_hash=evaluator.METRIC_SPECIFICATION_HASH,
+            provider_metadata=metadata, connection_factory=connection_factory)
+    try:
+        for index, job in enumerate(jobs):
+            request = {"protocol_version": "ped_research_execution_v1", "operation": "candidate",
+                       "observations": job["observations"], "state": job["state"],
+                       "dataset_hash": report["dataset_hash"], "partition": partition,
+                       "candidate_id": candidate_config_hash(config)+str(index)}
+            stage = DockerExecutor(image, limits or ResourceLimits()).execute(request, directory / f"candidate-{index}")
+            metadata["stages"].append(stage["metadata"])
+            response = stage["response"]
+            expected = predict(job["observations"], job["state"], report["dataset_hash"], partition, request["candidate_id"])
+            if (stage["metadata"].get("failure_reason") or not stage["metadata"].get("cleanup_succeeded")
+                    or not isinstance(response, dict) or response.get("protocol_version") != request["protocol_version"]
+                    or response.get("status") != "ok" or response.get("result") != expected):
+                raise ValueError("ped_candidate_execution_failed")
+            # Frozen host evaluator is authoritative; worker receives no outcomes.
+            finish_comparison(report, job, dataset, expected, test_access_granted=test_access_granted)
+        report["report_hash"] = canonical_hash(report)
+        status = "candidate" if report["recommendation"] == "refine" else "rejected"
+        path = directory / "study-report.json"
+        with path.open("x", encoding="utf-8") as stream:
+            path.chmod(0o600)
+            json.dump(report, stream, sort_keys=True, indent=2, allow_nan=False)
+        receipt.update(status=status, recommendation=report["recommendation"], report_hash=report["report_hash"])
+        if connection_factory:
+            finish_research_experiment(experiment_id=experiment_id, status=status, metrics=report,
+                execution_metadata=metadata, connection_factory=connection_factory)
+    except Exception:
+        receipt.update(status="failed", failure_reason="ped_study_execution_failed")
+        _write_receipt(directory, receipt)
+        if connection_factory:
+            finish_research_experiment(experiment_id=experiment_id, status="failed",
+                failure_reason="ped_study_execution_failed", execution_metadata=metadata,
+                connection_factory=connection_factory)
+        raise
+    _write_receipt(directory, receipt)
+    return report
