@@ -14,7 +14,7 @@
     <rect x="50" y="30" width="550" height="200" fill="url(#area-grid-major)"/>
 </g>
     <defs>
-    
+
     <pattern id="area-wash" class="viz-tone-blue-gray" width="48" height="48" patternUnits="userSpaceOnUse">
         <rect width="48" height="48" class="viz-pigment"/>
         <path d="M2 7Q12 0 23 8T45 6Q49 17 37 19T16 17Q2 22 2 7Z M5 33Q18 24 27 32T43 35Q42 46 29 43T9 45Z" fill="white" opacity=".07"/>
@@ -24,26 +24,26 @@
     <path d="M80 230V170L180 110 280 140V230Z M480 230V90L580 120V230Z" fill="url(#area-wash)"/>
     <path class="viz-ink" d="M80 170L180 110 280 140M480 90L580 120" stroke-width="1.5"/>
 
-    
+
         <circle cx="80" cy="170" r="3" fill="var(--viz-ink)"/>
         <text class="viz-type-number" x="80" y="158" text-anchor="middle">30</text>
-    
+
         <circle cx="180" cy="110" r="3" fill="var(--viz-ink)"/>
         <text class="viz-type-number" x="180" y="98" text-anchor="middle">60</text>
-    
+
         <circle cx="280" cy="140" r="3" fill="var(--viz-ink)"/>
         <text class="viz-type-number" x="280" y="128" text-anchor="middle">45</text>
-    
+
         <circle cx="480" cy="90" r="3" fill="var(--viz-ink)"/>
         <text class="viz-type-number" x="480" y="78" text-anchor="middle">70</text>
-    
+
         <circle cx="580" cy="120" r="3" fill="var(--viz-ink)"/>
         <text class="viz-type-number" x="580" y="108" text-anchor="middle">55</text>
-    
+
     <g class="viz-annotation">
     <path class="viz-ink" d="M378 65V199M373 192L378 199 383 192" aria-hidden="true"/>
     <text class="viz-type-axis" x="325" y="52">Нет данных</text>
-    
+
 </g>
     <path class="viz-ink" d="M50 30V230H600" stroke-width="1"/>
 

@@ -2,14 +2,14 @@
                 <title id="notes-title">Типографика и аннотации</title><desc id="notes-desc">Заголовок, число 42 и рукописное пояснение с линией-указателем. Демонстрационный пример.</desc>
                 <text class="viz-type-heading" x="24" y="38" text-anchor="start">Наблюдение</text>
                 <g class="viz-annotation">
-    
+
     <text class="viz-type-axis" x="24" y="72">Условное значение</text>
     <text class="viz-type-callout" x="24" y="101">42</text>
 </g>
                 <g class="viz-annotation">
     <path class="viz-ink" d="M350 60Q340 85 305 96M312 88L305 96 316 97" aria-hidden="true"/>
     <text class="viz-handwritten" x="330" y="48">Примечание на полях</text>
-    
+
 </g>
                 <path class="viz-ink" d="M24 120H600" stroke-width="1"/>
 <path class="viz-ink viz-echo" d="M26 122L300 121 599 122" stroke-width="1" aria-hidden="true"/>

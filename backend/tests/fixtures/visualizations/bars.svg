@@ -14,77 +14,77 @@
     <rect x="50" y="30" width="550" height="200" fill="url(#bars-grid-major)"/>
 </g>
     <defs>
-    
+
     <pattern id="bars-sage" class="viz-tone-sage" width="48" height="48" patternUnits="userSpaceOnUse">
         <rect width="48" height="48" class="viz-pigment"/>
         <path d="M2 7Q12 0 23 8T45 6Q49 17 37 19T16 17Q2 22 2 7Z M5 33Q18 24 27 32T43 35Q42 46 29 43T9 45Z" fill="white" opacity=".07"/>
         <path d="M4 2L13 4M32 21L44 18M8 25L17 21M23 44L36 40" class="viz-grain"/>
     </pattern>
 </defs><defs>
-    
+
     <pattern id="bars-blue-gray" class="viz-tone-blue-gray" width="48" height="48" patternUnits="userSpaceOnUse">
         <rect width="48" height="48" class="viz-pigment"/>
         <path d="M2 7Q12 0 23 8T45 6Q49 17 37 19T16 17Q2 22 2 7Z M5 33Q18 24 27 32T43 35Q42 46 29 43T9 45Z" fill="white" opacity=".07"/>
         <path d="M4 2L13 4M32 21L44 18M8 25L17 21M23 44L36 40" class="viz-grain"/>
     </pattern>
 </defs><defs>
-    
+
     <pattern id="bars-ochre" class="viz-tone-ochre" width="48" height="48" patternUnits="userSpaceOnUse">
         <rect width="48" height="48" class="viz-pigment"/>
         <path d="M2 7Q12 0 23 8T45 6Q49 17 37 19T16 17Q2 22 2 7Z M5 33Q18 24 27 32T43 35Q42 46 29 43T9 45Z" fill="white" opacity=".07"/>
         <path d="M4 2L13 4M32 21L44 18M8 25L17 21M23 44L36 40" class="viz-grain"/>
     </pattern>
 </defs><defs>
-    
+
     <pattern id="bars-terracotta" class="viz-tone-terracotta" width="48" height="48" patternUnits="userSpaceOnUse">
         <rect width="48" height="48" class="viz-pigment"/>
         <path d="M2 7Q12 0 23 8T45 6Q49 17 37 19T16 17Q2 22 2 7Z M5 33Q18 24 27 32T43 35Q42 46 29 43T9 45Z" fill="white" opacity=".07"/>
         <path d="M4 2L13 4M32 21L44 18M8 25L17 21M23 44L36 40" class="viz-grain"/>
     </pattern>
 </defs><defs>
-    
+
     <pattern id="bars-burgundy" class="viz-tone-burgundy" width="48" height="48" patternUnits="userSpaceOnUse">
         <rect width="48" height="48" class="viz-pigment"/>
         <path d="M2 7Q12 0 23 8T45 6Q49 17 37 19T16 17Q2 22 2 7Z M5 33Q18 24 27 32T43 35Q42 46 29 43T9 45Z" fill="white" opacity=".07"/>
         <path d="M4 2L13 4M32 21L44 18M8 25L17 21M23 44L36 40" class="viz-grain"/>
     </pattern>
 </defs>
-    
-        
+
+
         <rect x="78" y="190" width="65" height="40" fill="url(#bars-sage)"/>
         <path class="viz-ink" d="M78 230V190h65V230Z" stroke-width="1"/>
 
         <text class="viz-type-number" x="110.5" y="180" text-anchor="middle">20</text>
         <text class="viz-type-axis" x="110.5" y="254" text-anchor="middle">A</text>
-    
-        
+
+
         <rect x="182" y="160" width="65" height="70" fill="url(#bars-blue-gray)"/>
         <path class="viz-ink" d="M182 230V160h65V230Z" stroke-width="1"/>
 
         <text class="viz-type-number" x="214.5" y="150" text-anchor="middle">35</text>
         <text class="viz-type-axis" x="214.5" y="254" text-anchor="middle">B</text>
-    
-        
+
+
         <rect x="286" y="130" width="65" height="100" fill="url(#bars-ochre)"/>
         <path class="viz-ink" d="M286 230V130h65V230Z" stroke-width="1"/>
 
         <text class="viz-type-number" x="318.5" y="120" text-anchor="middle">50</text>
         <text class="viz-type-axis" x="318.5" y="254" text-anchor="middle">C</text>
-    
-        
+
+
         <rect x="390" y="100" width="65" height="130" fill="url(#bars-terracotta)"/>
         <path class="viz-ink" d="M390 230V100h65V230Z" stroke-width="1"/>
 
         <text class="viz-type-number" x="422.5" y="90" text-anchor="middle">65</text>
         <text class="viz-type-axis" x="422.5" y="254" text-anchor="middle">D</text>
-    
-        
+
+
         <rect x="494" y="70" width="65" height="160" fill="url(#bars-burgundy)"/>
         <path class="viz-ink" d="M494 230V70h65V230Z" stroke-width="1"/>
 
         <text class="viz-type-number" x="526.5" y="60" text-anchor="middle">80</text>
         <text class="viz-type-axis" x="526.5" y="254" text-anchor="middle">E</text>
-    
+
     <path class="viz-ink" d="M50 30V230H600" stroke-width="1"/>
 
     <text class="viz-type-axis" x="40" y="235" text-anchor="end">0</text><text class="viz-type-axis" x="40" y="135" text-anchor="end">50</text><text class="viz-type-axis" x="40" y="35" text-anchor="end">100</text>
