@@ -21,6 +21,7 @@ from backend.services.manual_physiology_service import (
     save_manual_physiology_observation,
 )
 from backend.services.rpe_service import RPE_LABELS
+from backend.services.rpe_history_service import get_rpe_history
 from backend.services.subjective_feedback_service import (
     FEEDBACK_SOURCE_WEB,
     upsert_activity_rpe_v2,
@@ -137,6 +138,30 @@ def visual_system_preview(request: Request):
     )
 
 
+@router.get("/rpe-context/{activity_id}", include_in_schema=False)
+def rpe_context(request: Request, activity_id: Annotated[int, FastAPIPath(ge=1)],
+                score: Annotated[int, Query(ge=1, le=10)], fragment: bool = False,
+                return_day: str | None = None):
+    # A selection is required before reading historical ratings; this GET never saves.
+    try:
+        history = get_rpe_history(settings.daily_readiness_user_id, activity_id)
+    except HTTPException:
+        raise
+    except Exception:
+        logging.getLogger(__name__).exception("rpe_history_unavailable")
+        if fragment:
+            return JSONResponse({"error": "history_unavailable"}, status_code=503,
+                                headers={"Cache-Control": "no-store"})
+        history = {"status": "error"}
+    if fragment:
+        return templates.TemplateResponse(request=request, name="today/rpe_history.html",
+            context={"rpe_history": history}, headers={"Cache-Control": "no-store"})
+    response = _today_page(request, activity_id=activity_id, rpe_draft=score,
+                           rpe_history=history, return_day=return_day)
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 def _today_page(
     request: Request,
     *,
@@ -145,6 +170,7 @@ def _today_page(
     return_day: str | None = None,
     rpe_error: str | None = None,
     rpe_draft: int | None = None,
+    rpe_history: dict | None = None,
     recovery_error: str | None = None,
     physiology_values: dict[str, str] | None = None,
     physiology_errors: dict[str, str] | None = None,
@@ -165,6 +191,7 @@ def _today_page(
             "return_day": _validated_return_day(return_day, data.activity),
             "rpe_error": rpe_error,
             "rpe_draft": rpe_draft,
+            "rpe_history": rpe_history,
             "recovery_error": recovery_error,
             "saved": saved if saved in {"recovery", "rpe", "physiology"} else None,
             "physiology_values": physiology_values,

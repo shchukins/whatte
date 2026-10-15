@@ -1,0 +1,15 @@
+<h3>Из твоего дневника</h3>
+{% if rpe_history.status == 'available' %}
+<p>Медианная оценка похожих тренировок: <strong>{{ '%g' | format(rpe_history.median) }}</strong>. Диапазон: {{ rpe_history.range[0] }}–{{ rpe_history.range[1] }}; тренировок: {{ rpe_history.count }}.</p>
+<ul>
+{% for match in rpe_history.matches %}
+<li><a href="https://www.strava.com/activities/{{ match.activity_id }}" target="_blank" rel="noopener">{{ match.started_at | today_timestamp }}</a> · {{ (match.duration_s / 60) | round | int }} мин · IF {{ '%.2f' | format(match['if']) }} · NP {{ match.np_w | round | int }} Вт{% if match.tss is not none %} · TSS {{ match.tss | round | int }}{% endif %} · RPE {{ match.rpe }}/10 ({{ match.source }}, 1–10). Сходство метрик {{ (match.quality * 100) | round | int }}%.</li>
+{% endfor %}
+</ul>
+<p class="hint">Совпадают тип, близки длительность, относительная интенсивность и вариативность мощности. Сопоставимость ограничена: структура интервалов неизвестна; VI её не заменяет. Использованы исторические NP/IF и их FTP, а не сегодняшний FTP.</p>
+<p class="hint">Это контекст ваших прошлых оценок, а не правильный ответ. Усталость и условия могли отличаться. Можно изменить свой выбор перед сохранением.</p>
+{% elif rpe_history.status == 'error' %}
+<p class="hint">История временно недоступна. Ваш выбор можно сохранить или повторить сравнение.</p>
+{% else %}
+<p class="hint">Недостаточно данных для сравнения: нужны хотя бы три похожие тренировки с RPE 1–10, мощностью и сопоставимым историческим FTP.</p>
+{% endif %}

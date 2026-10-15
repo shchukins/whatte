@@ -100,3 +100,55 @@ def test_diary_sql_filters_boundaries_sources_and_read_only(monkeypatch, target,
             assert (result[1].rpe_score, result[1].rpe_source, result[1].rpe_disagreement) == (4, "web", True)
             assert (result[1].rpe_web_score, result[1].rpe_strava_score, result[1].rpe_telegram_score) == (4, 8, 7)
             assert diary.get_diary_activities("absent", target) == []
+
+
+def test_personal_rpe_history_uses_effective_source_scale_and_owner(monkeypatch):
+    from backend.services import rpe_history_service as history
+
+    with get_conn() as conn:
+        for table in ('strava_activity_raw', 'activity_metrics',
+                      'activity_rpe_observation', 'activity_rpe_resolution'):
+            conn.execute(f'create temporary table {table} (like public.{table} including all)')
+        for activity_id in range(1, 11):
+            user = 'other' if activity_id == 7 else 'athlete'
+            started = datetime(2026, 8, 30, tzinfo=timezone.utc) - timedelta(days=activity_id)
+            if activity_id == 8:
+                started = datetime(2026, 8, 31, tzinfo=timezone.utc)
+            conn.execute(
+                """insert into strava_activity_raw
+                   (id, strava_activity_id, strava_athlete_id, user_id, start_date,
+                    activity_type, raw_json, is_excluded)
+                   values (%s, %s, 1, %s, %s, 'Ride', '{}'::jsonb, %s)""",
+                (activity_id, activity_id, user, started, activity_id == 9))
+            conn.execute(
+                """insert into activity_metrics
+                   (id, strava_activity_id, user_id, moving_time_s, normalized_power,
+                    intensity_factor, variability_index)
+                   values (%s, %s, %s, 3600, 200, 0.8, 1.05)""",
+                (activity_id, activity_id, user))
+            conn.execute(
+                """insert into activity_rpe_resolution
+                   (canonical_activity_id, user_id, effective_score, effective_source)
+                   values (%s, %s, 7, 'strava')""", (activity_id, user))
+            # Candidate 5 lacks an observation; candidate 6 has a mismatched score.
+            if activity_id != 5:
+                conn.execute(
+                    """insert into activity_rpe_observation
+                       (id, canonical_activity_id, user_id, source, score)
+                       values (%s, %s, %s, 'strava', %s)""",
+                    (activity_id, activity_id, user, 5 if activity_id == 6 else 7))
+        # A foreign observation must not qualify an owner's effective resolution.
+        conn.execute("update activity_rpe_observation set user_id='other' where canonical_activity_id=10")
+        # A manual value cannot override the mismatched effective Strava observation.
+        conn.execute("""insert into activity_rpe_observation
+                       (id, canonical_activity_id, user_id, source, score)
+                       values (20, 6, 'athlete', 'web', 8)""")
+        monkeypatch.setattr(history, 'get_conn', lambda: nullcontext(conn))
+        result = history.get_rpe_history('athlete', 1)
+        assert result['status'] == 'available'
+        assert [row['activity_id'] for row in result['matches']] == [2, 3, 4]
+        assert all(row['source'] == 'strava' and row['rpe'] == 7 for row in result['matches'])
+        from fastapi import HTTPException
+        with pytest.raises(HTTPException) as exc:
+            history.get_rpe_history('other', 1)
+        assert exc.value.status_code == 404

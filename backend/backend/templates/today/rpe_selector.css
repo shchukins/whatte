@@ -80,3 +80,7 @@
 .rpe-control:has(:where(input[value="8"]:focus-visible)) [data-rpe-guidance="8"] { display: block; }
 .rpe-control:has(:where(input[value="9"]:focus-visible)) [data-rpe-guidance="9"] { display: block; }
 .rpe-control:has(:where(input[value="10"]:focus-visible)) [data-rpe-guidance="10"] { display: block; }
+
+.rpe-history { border-top: 1px solid var(--line); margin: 18px 0; padding-top: 12px; font-size: 14px; line-height: 1.6; }
+.rpe-history h3 { font-family: var(--serif); }
+.rpe-history li { margin-bottom: 8px; overflow-wrap: anywhere; }

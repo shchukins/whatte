@@ -150,3 +150,10 @@ pageshow restored all ten controls while invalidating the late save callback
 (without retry). This last check exercises the lifecycle handler, not an actual
 browser BFCache traversal. Local suite: 857 passed, 24 integration tests excluded;
 exact-SHA database/release checks run in CI. Screenshots inspected at both widths.
+
+## Personal RPE history (#194)
+
+After independent selection, Today reveals backend-owned personal comparison
+context before explicit saving. Native GET preview supports JavaScript being
+unavailable. Missing/error states leave selection editable. See the
+[matching policy and Web contract](../api/RPE_HISTORY.md).

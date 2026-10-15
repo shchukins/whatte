@@ -141,11 +141,15 @@
             <p class="hint">{{ activity.load_status }}</p>
             <p class="hint">Ваша оценка в Web: {% if activity.rpe_web_score is not none %}{{ activity.rpe_web_score }}/10{% else %}не выбрана{% endif %}.</p>
             {% if activity.rpe_score is not none %}<p class="hint">Дополнительный ввод не нужен.</p>{% endif %}
-            <details class="feedback-editor" {% if activity.rpe_score is none or saved == "rpe" or rpe_error %}open{% endif %}>
+            <details class="feedback-editor" {% if activity.rpe_score is none or saved == "rpe" or rpe_error or rpe_history %}open{% endif %}>
                 <summary>{% if activity.rpe_web_score is not none %}Web RPE: {{ activity.rpe_web_score }}/10 · <span>Изменить</span>{% else %}Оценить нагрузку в Web{% endif %}</summary>
                 <p class="hint">Web-оценка сохраняется отдельно и не заменяет оценку Strava или Telegram, если она доступна. Приоритет итогового RPE: Strava → Telegram → Web.</p>
             <form method="post" action="/today/rpe/{{ activity.activity_id }}{% if return_day %}?return_day={{ return_day }}{% endif %}" data-feedback-form data-rpe-form>
                 {{ rpe_selector('workout-rpe', rpe_draft if rpe_draft is not none else activity.rpe_web_score, rpe_options, rpe_error) }}
+                <div class="rpe-history" data-rpe-history aria-live="polite" {% if not rpe_history %}hidden{% endif %}>
+                {% if rpe_history %}{% include "today/rpe_history.html" %}{% endif %}
+                </div>
+                <button type="submit" formmethod="get" formaction="/today/rpe-context/{{ activity.activity_id }}#rpe" {% if return_day %}name="return_day" value="{{ return_day }}"{% endif %} data-rpe-compare>Сравнить с дневником</button>
                 <button class="physiology-save" type="submit">Сохранить RPE</button>
             </form>
             </details>
@@ -243,6 +247,7 @@
 <script>
 {% include "today/rpe_selector.js" %}
     document.addEventListener("submit", async (event) => {
+        if (event.submitter?.matches('[data-rpe-compare]')) return;
         const form = event.target.closest("[data-feedback-form]");
         if (!form || !window.fetch) return;
         event.preventDefault();
@@ -258,7 +263,7 @@
         const actions = section.querySelector(".feedback-actions");
         actions.hidden = true;
         status.textContent = "Сохранение…";
-        const submitter = event.submitter || form.querySelector("button");
+        const submitter = event.submitter || form.querySelector("button:not([data-rpe-compare])");
         let navigating = false;
         try {
             // Redirected GET confirms the stored observation; a lost response
