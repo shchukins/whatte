@@ -1,0 +1,16 @@
+<svg class="viz-chart" viewBox="0 0 640 300" role="img" aria-labelledby="bars-title bars-desc" xmlns="http://www.w3.org/2000/svg">
+    <title id="bars-title">Столбцы: пять наблюдений</title>
+    <desc id="bars-desc">Демонстрационные данные, условные единицы: A — 20, B — 35, C — 50, D — 65, E — 80. Вертикальная ось от 0 до 100.</desc>
+    {{ ink_grid('bars-grid', 50, 30, 550, 200, minor=20, major=100) }}
+    {% for tone in ['sage', 'blue-gray', 'ochre', 'terracotta', 'burgundy'] %}{{ watercolor_fill('bars-' ~ tone, tone) }}{% endfor %}
+    {% for label, value, tone in [('A', 20, 'sage'), ('B', 35, 'blue-gray'), ('C', 50, 'ochre'), ('D', 65, 'terracotta'), ('E', 80, 'burgundy')] %}
+        {% set x = 78 + loop.index0 * 104 %}{% set y = 230 - value * 2 %}
+        <rect x="{{ x }}" y="{{ y }}" width="65" height="{{ value * 2 }}" fill="url(#bars-{{ tone }})"/>
+        {{ hand_drawn_stroke('M' ~ x ~ ' 230V' ~ y ~ 'h65V230Z') }}
+        {{ chart_typography(x + 32.5, y - 10, value, kind='number', anchor='middle') }}
+        {{ chart_typography(x + 32.5, 254, label, anchor='middle') }}
+    {% endfor %}
+    {{ hand_drawn_stroke('M50 30V230H600') }}
+    {% for value in [0, 50, 100] %}{{ chart_typography(40, 235 - value * 2, value, anchor='end') }}{% endfor %}
+    {{ chart_typography(50, 285, 'Наблюдения / условные единицы') }}
+</svg>

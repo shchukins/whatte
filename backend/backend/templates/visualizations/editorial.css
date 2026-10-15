@@ -1,0 +1,64 @@
+/* Opt-in presentation tokens. No data coordinates or existing chart selectors. */
+.viz-system {
+    --viz-paper: var(--paper, #f5f2e9);
+    --viz-ink: var(--ink, #292c28);
+    --viz-muted: #53594f;
+    --viz-sage: #9eae94;
+    --viz-blue-gray: #a0b3b6;
+    --viz-ochre: #d3b473;
+    --viz-terracotta: #ca9476;
+    --viz-burgundy: #a66661;
+    --viz-grid-major-opacity: .25;
+    --viz-grid-minor-opacity: .10;
+    --viz-texture-opacity: .035;
+    --viz-serif: var(--serif, Georgia, serif);
+    --viz-mono: var(--mono, monospace);
+    --viz-hand: "Segoe Print", "Bradley Hand", cursive;
+    color: var(--viz-ink);
+}
+.viz-paper { position: relative; isolation: isolate; background: var(--viz-paper); }
+.viz-paper::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    opacity: var(--viz-texture-opacity);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48'%3E%3Cpath d='M3 5h2m13 9h1m17-7h2M7 31h1m18 9h2m14-13h1' stroke='%23292c28'/%3E%3C/svg%3E");
+}
+.viz-texture-none { --viz-texture-opacity: 0; }
+.viz-texture-subtle { --viz-texture-opacity: .035; }
+.viz-texture-visible { --viz-texture-opacity: .07; }
+.viz-transparent { background: transparent; }
+.viz-tone-sage { --viz-pigment: var(--viz-sage); }
+.viz-tone-blue-gray { --viz-pigment: var(--viz-blue-gray); }
+.viz-tone-ochre { --viz-pigment: var(--viz-ochre); }
+.viz-tone-terracotta { --viz-pigment: var(--viz-terracotta); }
+.viz-tone-burgundy { --viz-pigment: var(--viz-burgundy); }
+.viz-pigment { fill: var(--viz-pigment); }
+.viz-grain { fill: none; stroke: var(--viz-ink); stroke-width: .65; opacity: .09; }
+.viz-grid-major, .viz-grid-minor { fill: none; stroke: var(--viz-ink); stroke-width: 1; }
+.viz-grid-major { opacity: var(--viz-grid-major-opacity); }
+.viz-grid-minor { opacity: var(--viz-grid-minor-opacity); }
+.viz-ink { fill: none; stroke: var(--viz-ink); stroke-linejoin: round; stroke-linecap: round; }
+.viz-echo { opacity: .22; }
+.viz-type-heading { font: 26px var(--viz-serif); fill: var(--viz-ink); }
+.viz-type-axis, .viz-type-number { font: 14px var(--viz-mono); fill: var(--viz-ink); }
+.viz-type-number { font-weight: 700; font-variant-numeric: tabular-nums; }
+.viz-type-callout { font: 27px var(--viz-mono); fill: var(--viz-ink); }
+.viz-handwritten { font: italic 19px var(--viz-hand); fill: var(--viz-ink); }
+.viz-scroll { overflow-x: auto; padding: 4px; }
+.viz-scroll:focus-visible, .viz-system a:focus-visible { outline: 2px solid var(--viz-ink); outline-offset: 3px; }
+.viz-chart { display: block; width: 100%; min-width: 560px; height: auto; }
+.viz-caption { color: var(--viz-muted); font: 13px/1.6 var(--viz-mono); }
+.viz-table { width: 100%; border-collapse: collapse; font: 13px/1.6 var(--viz-mono); }
+.viz-table th, .viz-table td { padding: 7px 10px; text-align: left; border-bottom: 1px solid var(--line); }
+.viz-system .viz-table caption { text-align: left; padding: 12px 10px; }
+/* No motion by default; also guard future opt-in decoration. */
+@media (prefers-reduced-motion: reduce) {
+    .viz-system *, .viz-system *::before, .viz-system *::after { animation: none !important; transition: none !important; }
+}
+@media (forced-colors: active) {
+    .viz-paper::before { display: none; }
+    .viz-system { --viz-ink: CanvasText; --viz-muted: CanvasText; --viz-paper: Canvas; }
+}

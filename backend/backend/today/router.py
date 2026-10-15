@@ -129,6 +129,14 @@ def local_day_context():
     )
 
 
+@router.get("/visual-system", include_in_schema=False)
+def visual_system_preview(request: Request):
+    # Static examples only; shares /today's edge access boundary, no athlete reads.
+    return templates.TemplateResponse(
+        request=request, name="visualizations/gallery.html", context={},
+    )
+
+
 def _today_page(
     request: Request,
     *,

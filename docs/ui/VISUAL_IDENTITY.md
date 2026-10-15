@@ -40,3 +40,11 @@ Today’s palette and typography in a compact, centered layout (760px maximum)
 with inline form fields on desktop and stacked fields on narrow screens.
 Use this identity when working on other pages, including Analytics, in their
 own scoped changes. Analytics remains outside this rollout.
+
+## Visualization primitives
+
+The [Editorial Visualization System](EDITORIAL_VISUALIZATIONS.md) provides
+opt-in SVG/Jinja primitives, shared tokens and a static `/today/visual-system`
+preview for paper surfaces, technical grids, vector washes, ink outlines,
+annotations and chart typography. The preview uses labelled demonstration data.
+Adoption in RPE and other product charts requires separate scoped work.

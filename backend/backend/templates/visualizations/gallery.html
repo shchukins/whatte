@@ -1,0 +1,71 @@
+{% from "visualizations/primitives.html" import paper_surface, ink_grid, watercolor_fill, hand_drawn_stroke, editorial_annotation, chart_typography %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Визуальная система · Whatte</title>
+    <style>{% include "today/editorial.css" %}{% include "visualizations/editorial.css" %}{% include "visualizations/gallery.css" %}</style>
+</head>
+<body>
+<main class="shell viz-system viz-gallery">
+    <header><p class="brand">WHATTE</p><a href="/today">Сегодня</a><span class="viz-caption">Визуальная система / 01</span></header>
+    <h1>Наблюдать.<br>Сравнивать. Понимать.</h1>
+    <p class="viz-intro">Бумага, тонкая сетка и приглушённый пигмент. Общий язык для графиков Whatte: точные значения и спокойные пояснения.</p>
+    <p class="viz-caption">Демонстрационные данные · не показатели спортсмена и не рекомендации.</p>
+    <div class="viz-swatches" aria-label="Палитра">
+        {% for tone, label in [('sage', 'Шалфей'), ('blue-gray', 'Серо-голубой'), ('ochre', 'Охра'), ('terracotta', 'Терракота'), ('burgundy', 'Бордовый')] %}
+        <span class="viz-tone-{{ tone }}"><i aria-hidden="true"></i>{{ label }}</span>
+        {% endfor %}
+    </div>
+    <section aria-labelledby="bars-heading">
+        <p class="eyebrow">01 / Столбцы</p><h2 id="bars-heading">Ритм наблюдений</h2>
+        {% call paper_surface() %}
+        <figure>
+            <div class="viz-scroll" role="region" tabindex="0" aria-label="Столбцы: прокрутка графика по горизонтали">
+                {% include "visualizations/sample_bars.svg" %}
+            </div>
+            <figcaption class="viz-caption">Значения подписаны над столбцами. Контур и подписи сохраняют смысл без цвета. На узком экране график можно прокрутить.</figcaption>
+        </figure>
+        {% endcall %}
+        <details><summary>Значения примера в таблице</summary>
+            <table class="viz-table"><caption>Условные единицы</caption><thead><tr><th scope="col">Наблюдение</th><th scope="col">Значение</th></tr></thead><tbody>
+                {% for label, value in [('A', 20), ('B', 35), ('C', 50), ('D', 65), ('E', 80)] %}<tr><th scope="row">{{ label }}</th><td>{{ value }}</td></tr>{% endfor %}
+            </tbody></table>
+        </details>
+    </section>
+    <section aria-labelledby="area-heading">
+        <p class="eyebrow">02 / Область и разрыв</p><h2 id="area-heading">Линия сохраняет пробелы</h2>
+        {% call paper_surface(texture='visible', transparent=true) %}
+        <figure>
+            <div class="viz-scroll" role="region" tabindex="0" aria-label="Область: прокрутка графика по горизонтали">
+                {% include "visualizations/sample_area.svg" %}
+            </div>
+            <figcaption class="viz-caption">Пункт 4 отсутствует. Заливка и линия обрываются: пропуск не превращается в ноль и не соединяется с соседями.</figcaption>
+        </figure>
+        {% endcall %}
+        <details><summary>Значения примера в таблице</summary>
+            <table class="viz-table"><caption>Условные единицы; «нет данных» — пропуск</caption><thead><tr><th scope="col">Пункт</th><th scope="col">Значение</th></tr></thead><tbody>
+                {% for label, value in [(1, 30), (2, 60), (3, 45), (4, 'Нет данных'), (5, 70), (6, 55)] %}<tr><th scope="row">{{ label }}</th><td>{{ value }}</td></tr>{% endfor %}
+            </tbody></table>
+        </details>
+    </section>
+    <section aria-labelledby="annotation-heading">
+        <p class="eyebrow">03 / Поля и пояснения</p><h2 id="annotation-heading">Внимание к детали</h2>
+        {% call paper_surface(texture='none') %}
+        <div class="viz-scroll" role="region" tabindex="0" aria-label="Примеры аннотаций: прокрутка по горизонтали">
+            <svg class="viz-chart" viewBox="0 0 640 140" role="img" aria-labelledby="notes-title notes-desc" xmlns="http://www.w3.org/2000/svg">
+                <title id="notes-title">Типографика и аннотации</title><desc id="notes-desc">Заголовок, число 42 и рукописное пояснение с линией-указателем. Демонстрационный пример.</desc>
+                {{ chart_typography(24, 38, 'Наблюдение', kind='heading') }}
+                {{ editorial_annotation(24, 72, 'Условное значение', callout='42') }}
+                {{ editorial_annotation(330, 48, 'Примечание на полях', leader='M350 60Q340 85 305 96M312 88L305 96 316 97', handwritten=true) }}
+                {{ hand_drawn_stroke('M24 120H600', echo_path='M26 122L300 121 599 122') }}
+            </svg>
+        </div>
+        {% endcall %}
+        <p class="viz-caption">Рукописный акцент — только для коротких пояснений. Оси, единицы и числа остаются наборными.</p>
+    </section>
+    <footer class="viz-caption">Whatte / Editorial Visualization System · SVG + CSS · v1</footer>
+</main>
+</body>
+</html>

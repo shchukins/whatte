@@ -1,0 +1,17 @@
+<svg class="viz-chart" viewBox="0 0 640 300" role="img" aria-labelledby="area-title area-desc" xmlns="http://www.w3.org/2000/svg">
+    <title id="area-title">Область с отсутствующим наблюдением</title>
+    <desc id="area-desc">Демонстрационные данные, условные единицы: 1 — 30, 2 — 60, 3 — 45, 4 — нет данных, 5 — 70, 6 — 55. Вертикальная ось от 0 до 100.</desc>
+    {{ ink_grid('area-grid', 50, 30, 550, 200, minor=20, major=100, vertical=false) }}
+    {{ watercolor_fill('area-wash', 'blue-gray') }}
+    <path d="M80 230V170L180 110 280 140V230Z M480 230V90L580 120V230Z" fill="url(#area-wash)"/>
+    {{ hand_drawn_stroke('M80 170L180 110 280 140M480 90L580 120', width=1.5) }}
+    {% for x, y, value in [(80, 170, 30), (180, 110, 60), (280, 140, 45), (480, 90, 70), (580, 120, 55)] %}
+        <circle cx="{{ x }}" cy="{{ y }}" r="3" fill="var(--viz-ink)"/>
+        {{ chart_typography(x, y - 12, value, kind='number', anchor='middle') }}
+    {% endfor %}
+    {{ editorial_annotation(325, 52, 'Нет данных', leader='M378 65V199M373 192L378 199 383 192') }}
+    {{ hand_drawn_stroke('M50 30V230H600') }}
+    {% for value in [0, 50, 100] %}{{ chart_typography(40, 235 - value * 2, value, anchor='end') }}{% endfor %}
+    {% for x in [80, 180, 280, 380, 480, 580] %}{{ chart_typography(x, 254, loop.index, anchor='middle') }}{% endfor %}
+    {{ chart_typography(50, 285, 'Пункты / условные единицы') }}
+</svg>

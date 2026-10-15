@@ -1,0 +1,17 @@
+.viz-gallery { max-width: 1100px; }
+.viz-gallery header { padding: 28px 0 20px; border-bottom: 1px solid var(--ink); display: flex; justify-content: space-between; align-items: baseline; gap: 20px; }
+.viz-gallery h1 { font: 400 clamp(38px, 6vw, 70px)/1.02 var(--serif); letter-spacing: -.045em; margin: 28px 0 20px; }
+.viz-gallery h2 { font: 400 32px/1.1 var(--serif); margin: 0 0 14px; }
+.viz-gallery .viz-intro { max-width: 660px; line-height: 1.6; }
+.viz-gallery section { padding: 32px 0; border-bottom: 1px solid var(--ink); }
+.viz-gallery figure { margin: 22px 0 0; }
+.viz-gallery .viz-paper { padding: 18px; border: 1px solid var(--line); }
+.viz-swatches { display: flex; flex-wrap: wrap; gap: 18px; margin: 20px 0; font: 12px var(--mono); }
+.viz-swatches span { display: flex; align-items: center; gap: 9px; }
+.viz-swatches i { display: inline-block; width: 22px; height: 22px; background: var(--viz-pigment); border: 1px solid var(--ink); }
+.viz-gallery footer { padding: 25px 0; }
+@media (max-width: 600px) {
+    .viz-gallery.shell { width: calc(100% - 32px); }
+    .viz-gallery .viz-paper { padding: 8px; }
+    .viz-gallery header { flex-wrap: wrap; }
+}
