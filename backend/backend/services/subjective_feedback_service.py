@@ -254,7 +254,7 @@ def build_next_day_recovery_message() -> str:
     return (
         "WHATTE\n\n"
         "How recovered do you feel today?\n\n"
-        "This helps calibrate readiness after yesterday's training."
+        "You can then optionally record sleep, HRV and resting heart rate."
     )
 
 
@@ -1135,17 +1135,6 @@ def deliver_next_day_recovery_prompt(
 ) -> dict[str, Any]:
     recovery_context = _load_recovery_prompt_context(user_id, recovery_date)
 
-    if not recovery_context["has_training"]:
-        result = {
-            "ok": True,
-            "skipped": True,
-            "reason": "no_previous_training_day",
-            "prompt_log": None,
-            **recovery_context,
-        }
-        log_event(logger, "recovery_prompt_skipped", reason=result["reason"], **recovery_context)
-        return result
-
     if has_next_day_recovery_feedback(user_id, recovery_context["target_date"]):
         result = {
             "ok": True,
@@ -1251,37 +1240,10 @@ def deliver_next_day_recovery_prompt(
 
 
 def list_recovery_prompt_candidate_users(target_date: str | date) -> list[str]:
-    recovery_day = _coerce_iso_date(target_date)
-    previous_day = recovery_day - timedelta(days=1)
-
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                with candidate_users as (
-                    select distinct user_id
-                    from daily_training_load
-                    where date = %s
-                      and (
-                        coalesce(activities_count, 0) > 0
-                        or coalesce(tss, 0) > 0
-                      )
-                    union
-                    select distinct user_id
-                    from strava_activity_raw
-                    where date(start_date) = %s
-                      and is_deleted = false
-                      and is_excluded = false
-                )
-                select user_id
-                from candidate_users
-                order by user_id asc;
-                """,
-                (previous_day, previous_day),
-            )
-            rows = cur.fetchall()
-
-    return [str(row[0]) for row in rows]
+    _coerce_iso_date(target_date)
+    # Telegram has one configured recipient. Daily check-ins must also reach
+    # that user on rest days and before any training history exists.
+    return [settings.daily_readiness_user_id]
 
 
 def schedule_next_day_recovery_prompts(

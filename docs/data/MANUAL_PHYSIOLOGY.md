@@ -95,8 +95,9 @@ scoped to `DAILY_READINESS_USER_ID`, so clients cannot select another user.
 
 ## Telegram collection
 
-The existing one-tap next-day recovery check remains unchanged. After its
-successful write, Telegram offers an optional physiology block; skipping it
+Telegram requests the existing one-tap recovery score daily for
+`DAILY_READINESS_USER_ID`, including rest days and days without training history.
+After its successful write, Telegram offers an optional physiology block; skipping it
 does not block recovery feedback, readiness, or a recommendation.
 
 The block collects sleep duration, optional sleep quality, HRV, and resting

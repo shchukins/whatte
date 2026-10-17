@@ -452,7 +452,7 @@ System map slice:
 
 - activity ingestion
 - Telegram RPE prompt
-- next-day recovery prompt
+- daily recovery check-in, including rest days, followed by optional sleep/HRV/resting HR input
 - prompt log
 - subjective feedback storage
 
@@ -534,7 +534,7 @@ Status: `implemented baseline`
 
 - daily readiness notifications
 - post-ride RPE prompt
-- next-day recovery prompt
+- daily recovery check-in, including rest days, followed by optional sleep/HRV/resting HR input
 - callback-based feedback collection
 
 ### Web Today / morning briefing

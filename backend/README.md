@@ -484,13 +484,10 @@ Indoor дедупликация запускается после сохране
 
 ## Telegram next-day recovery feedback
 
-Backend может отправить next-day recovery prompt для конкретной даты, если предыдущий день выглядел как тренировочный.
-
-Prompt usefulness:
-
-- `daily_training_load.tss > 0`
-- или `daily_training_load.activities_count > 0`
-- или есть activities в `strava_activity_raw` за предыдущую дату
+Backend ежедневно предлагает настроенному пользователю `DAILY_READINESS_USER_ID`
+оценить самочувствие, включая дни отдыха и дни без истории тренировок.
+После ответа предлагается необязательный ввод сна, качества сна, HRV и пульса покоя.
+История вчерашней нагрузки сохраняется как контекст, но не ограничивает отправку.
 
 Текущий callback format:
 
@@ -638,11 +635,12 @@ API:
 
 ## Scheduled next-day recovery prompt
 
-The backend worker now schedules next-day recovery prompts once the current UTC hour matches `NEXT_DAY_RECOVERY_PROMPT_HOUR_UTC` (default `7`).
+The backend worker schedules daily recovery check-ins once the current UTC hour matches `NEXT_DAY_RECOVERY_PROMPT_HOUR_UTC` (default `7`).
 
 Current V1 behavior:
 
-- looks at the previous UTC day for training load or activities
+- targets `DAILY_READINESS_USER_ID` every day, independently of training history
+- uses the current date in `WHATTE_TIMEZONE` as the target date
 - skips users who already submitted `next_day_recovery` feedback for the target date
 - persists delivery state in `subjective_feedback_prompt_log`
 - prevents duplicate sends across repeated worker loops
@@ -650,7 +648,7 @@ Current V1 behavior:
 
 Current limitation:
 
-- scheduling is UTC-based because per-user timezone orchestration is not implemented yet
+- the hour gate is UTC-based; the target date uses the backend-wide `WHATTE_TIMEZONE`
 
 ## User profile
 

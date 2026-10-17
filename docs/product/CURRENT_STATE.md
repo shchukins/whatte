@@ -323,7 +323,7 @@ Operational monitoring status:
 Уже реализованы:
 
 - post-ride RPE prompt
-- next-day recovery prompt
+- daily recovery check-in, including rest days, followed by optional sleep/HRV/resting HR input
 - `activity_subjective_feedback`
 - `subjective_feedback_prompt_log`
 - `decision_context_snapshot` для append-only delivery/check-in context

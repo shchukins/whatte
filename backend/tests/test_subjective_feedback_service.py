@@ -623,39 +623,20 @@ def test_upsert_next_day_recovery_feedback_updates_existing_row(monkeypatch):
     assert result["feedback_score"] == 5
 
 
-def test_send_next_day_recovery_prompt_skips_when_previous_day_has_no_training(monkeypatch):
-    monkeypatch.setattr(
-        feedback_service,
-        "_load_recovery_prompt_context",
-        lambda user_id, recovery_date: {
-            "user_id": user_id,
-            "target_date": "2026-05-15",
-            "previous_date": "2026-05-14",
-            "activities_count": 0,
-            "previous_training_load": 0.0,
-            "linked_activity_ids": [],
-            "has_training": False,
-        },
-    )
+def test_list_recovery_prompt_candidate_users_includes_configured_user_without_history(monkeypatch):
+    monkeypatch.setattr(feedback_service.settings, "daily_readiness_user_id", "configured-user")
 
-    result = feedback_service.send_next_day_recovery_prompt("user-1", "2026-05-15")
+    def unexpected_database_read():
+        pytest.fail("Daily check-in eligibility must not depend on training history")
 
-    assert result == {
-        "ok": True,
-        "skipped": True,
-        "reason": "no_previous_training_day",
-        "prompt_log": None,
-        "user_id": "user-1",
-        "target_date": "2026-05-15",
-        "previous_date": "2026-05-14",
-        "activities_count": 0,
-        "previous_training_load": 0.0,
-        "linked_activity_ids": [],
-        "has_training": False,
-    }
+    monkeypatch.setattr(feedback_service, "get_conn", unexpected_database_read)
+
+    assert feedback_service.list_recovery_prompt_candidate_users("2026-05-15") == ["configured-user"]
+    assert feedback_service.list_recovery_prompt_candidate_users("2026-05-16") == ["configured-user"]
 
 
-def test_send_next_day_recovery_prompt_sends_when_previous_day_has_training(monkeypatch):
+@pytest.mark.parametrize("has_training", [True, False])
+def test_send_next_day_recovery_prompt_sends_every_day(monkeypatch, has_training):
     claim_calls = []
     sent_messages = []
 
@@ -666,10 +647,10 @@ def test_send_next_day_recovery_prompt_sends_when_previous_day_has_training(monk
             "user_id": user_id,
             "target_date": "2026-05-15",
             "previous_date": "2026-05-14",
-            "activities_count": 1,
-            "previous_training_load": 47.0,
-            "linked_activity_ids": [17855535922],
-            "has_training": True,
+            "activities_count": 1 if has_training else 0,
+            "previous_training_load": 47.0 if has_training else 0.0,
+            "linked_activity_ids": [17855535922] if has_training else [],
+            "has_training": has_training,
         },
     )
     monkeypatch.setattr(feedback_service, "has_next_day_recovery_feedback", lambda *args, **kwargs: False)
@@ -716,8 +697,8 @@ def test_send_next_day_recovery_prompt_sends_when_previous_day_has_training(monk
     assert result["ok"] is True
     assert result["skipped"] is False
     assert result["reason"] is None
-    assert result["activities_count"] == 1
-    assert result["previous_training_load"] == 47.0
+    assert result["activities_count"] == (1 if has_training else 0)
+    assert result["previous_training_load"] == (47.0 if has_training else 0.0)
     assert result["prompt_log"]["delivery_status"] == "sent"
     assert result["prompt_log"]["telegram_message_id"] == 444
     assert claim_calls == [
@@ -729,7 +710,7 @@ def test_send_next_day_recovery_prompt_sends_when_previous_day_has_training(monk
     ]
     assert sent_messages == [
         (
-            "WHATTE\n\nHow recovered do you feel today?\n\nThis helps calibrate readiness after yesterday's training.",
+            "WHATTE\n\nHow recovered do you feel today?\n\nYou can then optionally record sleep, HRV and resting heart rate.",
             feedback_service.build_next_day_recovery_keyboard("user-1", "2026-05-15"),
         )
     ]
@@ -1117,7 +1098,8 @@ def test_mark_prompt_delivery_result_updates_sent_metadata(monkeypatch):
     assert cursor.execute_calls[0][1] == ("sent", "sent", "sent", 444, 31)
 
 
-def test_deliver_next_day_recovery_prompt_skips_when_feedback_already_exists(monkeypatch):
+@pytest.mark.parametrize("has_training", [True, False])
+def test_deliver_next_day_recovery_prompt_skips_when_feedback_already_exists(monkeypatch, has_training):
     monkeypatch.setattr(
         feedback_service,
         "_load_recovery_prompt_context",
@@ -1125,10 +1107,10 @@ def test_deliver_next_day_recovery_prompt_skips_when_feedback_already_exists(mon
             "user_id": user_id,
             "target_date": "2026-05-15",
             "previous_date": "2026-05-14",
-            "activities_count": 1,
-            "previous_training_load": 47.0,
-            "linked_activity_ids": [17855535922],
-            "has_training": True,
+            "activities_count": 1 if has_training else 0,
+            "previous_training_load": 47.0 if has_training else 0.0,
+            "linked_activity_ids": [17855535922] if has_training else [],
+            "has_training": has_training,
         },
     )
     monkeypatch.setattr(feedback_service, "has_next_day_recovery_feedback", lambda *args, **kwargs: True)
@@ -1144,7 +1126,8 @@ def test_deliver_next_day_recovery_prompt_skips_when_feedback_already_exists(mon
     assert result["prompt_log"] is None
 
 
-def test_deliver_next_day_recovery_prompt_prevents_duplicate_prompt(monkeypatch):
+@pytest.mark.parametrize("has_training", [True, False])
+def test_deliver_next_day_recovery_prompt_prevents_duplicate_prompt(monkeypatch, has_training):
     monkeypatch.setattr(
         feedback_service,
         "_load_recovery_prompt_context",
@@ -1152,10 +1135,10 @@ def test_deliver_next_day_recovery_prompt_prevents_duplicate_prompt(monkeypatch)
             "user_id": user_id,
             "target_date": "2026-05-15",
             "previous_date": "2026-05-14",
-            "activities_count": 1,
-            "previous_training_load": 47.0,
-            "linked_activity_ids": [17855535922],
-            "has_training": True,
+            "activities_count": 1 if has_training else 0,
+            "previous_training_load": 47.0 if has_training else 0.0,
+            "linked_activity_ids": [17855535922] if has_training else [],
+            "has_training": has_training,
         },
     )
     monkeypatch.setattr(feedback_service, "has_next_day_recovery_feedback", lambda *args, **kwargs: False)
@@ -1188,7 +1171,7 @@ def test_deliver_next_day_recovery_prompt_prevents_duplicate_prompt(monkeypatch)
     assert result["prompt_log"]["delivery_status"] == "sent"
 
 
-def test_schedule_next_day_recovery_prompts_sends_prompt_after_training_day(monkeypatch):
+def test_schedule_next_day_recovery_prompts_sends_daily_prompt(monkeypatch):
     monkeypatch.setattr(
         feedback_service,
         "list_recovery_prompt_candidate_users",
@@ -1214,25 +1197,22 @@ def test_schedule_next_day_recovery_prompts_sends_prompt_after_training_day(monk
     }
 
 
-def test_schedule_next_day_recovery_prompts_skips_users_without_load_activity(monkeypatch):
+def test_schedule_next_day_recovery_prompts_reaches_configured_user_without_history(monkeypatch):
+    monkeypatch.setattr(feedback_service.settings, "daily_readiness_user_id", "configured-user")
+    calls = []
     monkeypatch.setattr(
         feedback_service,
-        "list_recovery_prompt_candidate_users",
-        lambda target_date: [],
+        "deliver_next_day_recovery_prompt",
+        lambda **kwargs: calls.append(kwargs) or {"ok": True, "skipped": False, "reason": None},
     )
 
-    result = feedback_service.schedule_next_day_recovery_prompts(target_date="2026-05-15")
+    for target_date in ("2026-05-15", "2026-05-16"):
+        result = feedback_service.schedule_next_day_recovery_prompts(target_date=target_date)
+        assert result["candidate_users"] == ["configured-user"]
+        assert result["sent_count"] == 1
 
-    assert result == {
-        "ok": True,
-        "target_date": "2026-05-15",
-        "candidate_users": [],
-        "processed_users": 0,
-        "sent_count": 0,
-        "skipped_count": 0,
-        "failed_count": 0,
-        "results": [],
-    }
+    assert [call["user_id"] for call in calls] == ["configured-user", "configured-user"]
+    assert [call["recovery_date"].isoformat() for call in calls] == ["2026-05-15", "2026-05-16"]
 
 
 def test_schedule_next_day_recovery_prompts_is_idempotent_across_repeated_runs(monkeypatch):

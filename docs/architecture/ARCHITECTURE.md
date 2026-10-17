@@ -503,7 +503,7 @@ worker loop
 ↓
 UTC hour gate (`NEXT_DAY_RECOVERY_PROMPT_HOUR_UTC`)
 ↓
-candidate users from previous-day load/activity
+configured DAILY_READINESS_USER_ID (every day, including rest days)
 ↓
 feedback exists? -> skip
 ↓

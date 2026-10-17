@@ -224,7 +224,8 @@ re-entry instruction. They do not write a 1–10 observation.
 
 ## 7. Next-day recovery prompt
 
-Next-day recovery prompt собирает delayed outcome после предыдущего training day.
+Ежедневный recovery prompt собирает самочувствие на текущую дату, включая дни отдыха.
+После тренировочного дня эта же запись служит delayed outcome.
 
 Почему этот signal важен:
 
@@ -240,11 +241,11 @@ Current MVP behavior:
 - prompt можно отправить через backend service / debug endpoint
 - batch scheduling можно проверить через debug endpoint
 
-Prompt usefulness conditions:
+Daily recipient:
 
-- предыдущий день имеет `daily_training_load.tss > 0`
-- или предыдущий день имеет `daily_training_load.activities_count > 0`
-- или есть activities в `strava_activity_raw` за предыдущую дату
+- configured `DAILY_READINESS_USER_ID`, using the existing backend-wide Telegram chat
+- no previous-day training requirement, including users without training history
+- existing recovery feedback for the target date suppresses delivery
 
 Callback format:
 
@@ -359,5 +360,5 @@ Current idempotency guarantees:
 
 Current operational limitation:
 
-- prompt scheduling is UTC-based rather than user-timezone-based
+- the hour gate uses UTC; the target date uses `WHATTE_TIMEZONE`
 - Telegram delivery still uses the current backend-wide chat configuration, which matches the existing notification architecture

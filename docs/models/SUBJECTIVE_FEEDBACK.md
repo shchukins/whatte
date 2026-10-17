@@ -126,7 +126,7 @@ Callback format:
 
 Purpose:
 
-- capture delayed recovery state after the previous training day
+- capture daily subjective recovery, including rest days; after training it also provides a delayed recovery outcome
 
 Semantics:
 
@@ -500,13 +500,14 @@ These are roadmap items, not current behavior.
 
 ## 6. Next-day recovery scheduling
 
-The backend now owns automated next-day recovery prompt scheduling.
+The backend owns automated daily recovery check-in scheduling, including rest days.
+Existing `next_day_recovery` identifiers and date-level persistence are retained.
 
 Current V1 flow:
 
 1. the worker checks once per loop whether the current UTC hour matches `NEXT_DAY_RECOVERY_PROMPT_HOUR_UTC`
-2. target date is the current UTC date
-3. candidate users are discovered from the previous day via `daily_training_load` and `strava_activity_raw`
+2. target date is the current date in `WHATTE_TIMEZONE`
+3. the recipient is `DAILY_READINESS_USER_ID`, independently of previous-day training or any training history
 4. backend skips users who already have `next_day_recovery` feedback for the target date
 5. backend claims a prompt-log row in `subjective_feedback_prompt_log` before sending Telegram
 6. successful delivery updates the same row to `delivery_status = sent` and stores `telegram_message_id` when available
@@ -514,12 +515,11 @@ Current V1 flow:
 
 Skip reasons currently include:
 
-- `no_previous_training_day`
 - `feedback_already_exists`
 - `prompt_already_sent`
 - `prompt_delivery_in_progress`
 
 Current limitation:
 
-- scheduling is UTC-based, not per-user timezone-based yet
-- this is intentional for V1 because user timezone orchestration is not yet modeled consistently across the backend
+- the hour gate uses UTC; the target date uses the backend-wide `WHATTE_TIMEZONE`
+- Telegram uses one configured chat, without per-user delivery routing
