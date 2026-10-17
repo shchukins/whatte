@@ -1,6 +1,27 @@
 # Whatte — CURRENT STATE
 
-Last updated: 2026-09-02
+Last updated: 2026-10-17 (Europe/Moscow)
+
+Сверка: `main` / `9013921a0e2a53e2b694114ed74ee8a53fb3966f`, код,
+контракты, тесты и актуальные GitHub issues. `Implemented` ниже означает
+реализацию в репозитории; это не самостоятельное доказательство production.
+В этом обзоре production и персональные данные не читались, эксперименты не запускались.
+
+| Возможность | Реализация и проверки | Production / граница знания |
+| --- | --- | --- |
+| Wearable-independent morning loop | Load/response/feeling → readiness → decision; [контракт модели](../models/READINESS_MODEL.md), [тесты orchestration](../../backend/tests/test_daily_readiness_pipeline.py) | [Приёмка #108, 2026-09-23](https://github.com/shchukins/whatte/issues/108#issuecomment-5802313089): два перекрывающихся 14-дневных окна; rendered-согласованность поверхностей и эффект на исходы не установлены |
+| Recommendation / briefing | Общий [decision_engine](../../backend/backend/services/decision_engine.py) используется [readiness API](../../backend/backend/services/readiness_query.py) и [Telegram](../../backend/backend/services/notification_service.py); [тесты](../../backend/tests/test_notification_service.py) | Pilot подтверждает persisted delivery, но не точное историческое содержимое каждого экрана/сообщения |
+| Today / Profile / Diary | [UX-контракт](../ui/READINESS_TODAY_SCREEN.md), [профиль](USER_PROFILE.md), [Today tests](../../backend/tests/test_today.py), [Diary tests](../../backend/tests/test_today_diary.py), [Profile tests](../../backend/tests/test_user_profile.py); #153/#169 закрыты | Закрытие UX-issues не доказывает отдельную live-проверку каждого сценария. [#195, 2026-10-15](https://github.com/shchukins/whatte/issues/195#issuecomment-6197434981) фиксирует production PED и Diary smoke, не полную повторную UX-приёмку |
+| Optional manual physiology | API, Telegram, Web, personal-relative features и immutable research inputs: [контракт](../models/PERSONAL_PHYSIOLOGY_FEATURES.md), [тесты](../../backend/tests/test_today_physiology.py) | Отдельная production-приёмка всех entry surfaces здесь не подтверждена; manual inputs не подменяют historical physiology score, достаточность наблюдений не доказана |
+| Research infrastructure / recovery predictor | Версионированные snapshots/datasets/evaluator/audit/runner и offline predictor реализованы; [приёмка и CI-свидетельство 2026-10-08](RECOVERY_RESEARCH_ACCEPTANCE.md) | #150/#136 открыты: нужна достаточная реальная выборка и отдельная home-server приёмка; research MVP #138 не принят |
+| Descriptive calibration analytics | [#77 records и summary](../data/CALIBRATION_RECORDS.md), [тесты](../../backend/tests/test_calibration_records.py); joins, denominators и review cases реализованы | [#77 delivery record, 2026-09-29](https://github.com/shchukins/whatte/issues/77) фиксирует CI и read-only production smoke; numerical model-error verdict остаётся `not_measurable`, #77/#95 открыты |
+| RPE history / PED / PED study | [История](../api/RPE_HISTORY.md), [PED](../models/PERCEIVED_EFFORT_DEVIATION.md), [offline study](PED_RESEARCH.md); #194–#196 закрыты | [#196: delivery verification 2026-10-16](https://github.com/shchukins/whatte/issues/196#issuecomment-6203497055) подтверждает выпуск `d9f62bf`; исследовательский вывод остаётся `insufficient evidence`, не эффективность PED |
+
+Фокусные unit/fixture-проверки при сверке 2026-10-17: 382 passed (decision,
+notification, Today, Diary, physiology form, Profile/pending, recovery predictor,
+data readiness и PED study). Docker/PostgreSQL локально не перепроверялись;
+сохранённое [Backend CI для `d9f62bf`](https://github.com/shchukins/whatte/actions/runs/38808135511)
+подтверждает unit и DB integration jobs. Это разные уровни проверки.
 
 ---
 
@@ -112,6 +133,15 @@ Pipeline:
 - `readiness_daily.explanation_json` теперь включает recovery breakdown из `health_recovery_daily.recovery_explanation_json`
 - daily Telegram notification строится от `readiness_daily`, а не от legacy freshness-only summary
 
+### 2.4 Optional manual physiology и research inputs
+
+Web Today, Telegram и API сохраняют общие versioned manual observations;
+`personal_physiology_feature_daily` содержит отдельные personal-relative features.
+Это исследовательские inputs с явной missingness, без автоматической подстановки
+в `health_recovery_daily` или изменения production readiness.
+См. [manual physiology API](../api/MANUAL_PHYSIOLOGY.md) и
+[daily feature vector v1/v2](../models/DAILY_FEATURE_VECTOR.md).
+
 ---
 
 ## 3. Data pipeline
@@ -216,6 +246,16 @@ scored signals; точная формула зафиксирована в `docs/
 - `readiness_daily` работает без physiology
 - historical exact-date physiology продолжает обогащать старые даты
 - recommendation и briefing доступны через API, Web Today и Telegram
+- Today показывает единый ответ с раскрываемым объяснением; формы сохраняют ввод
+  при ошибках, используют backend-owned effective RPE и явное сохранение
+- Profile ведёт датированные FTP/HR max/weight, отдельно сохраняет и пересчитывает;
+  pending status виден также в Today и Diary
+- Diary `/today/diary` показывает 14 локальных дней, фильтр по effective RPE,
+  возврат к историческому дню, пригодность нагрузки и фактическую 7-дневную сводку
+- stale-date guards и lifecycle-восстановление Today/Profile не повторяют POST;
+  завершённый UX scope: [#153](https://github.com/shchukins/whatte/issues/153),
+  [#169](https://github.com/shchukins/whatte/issues/169),
+  [контракт и ограничения](../ui/READINESS_TODAY_SCREEN.md)
 
 Публичный API уже проксируется через VPS / Caddy через `api.shchukin.de`.
 
@@ -289,8 +329,10 @@ Operational monitoring status:
 
 Важно:
 
-- feedback не меняет deterministic core calculations
-- feedback сохраняется как evaluation / calibration dataset
+- morning feeling и usable RPE-derived response могут влиять на readiness через
+  существующий [signal-family contract](../models/READINESS_MODEL.md)
+- feedback сохраняется также как evaluation evidence; он не меняет веса,
+  thresholds или формулы и не запускает скрытое обучение
 
 ## 7. Основные ограничения текущей версии
 
@@ -298,8 +340,11 @@ Operational monitoring status:
 2. `load_input_nonlinear` пока фактически линейный.
 3. `good_day_probability` пока является простым mapping от readiness score.
 4. Decision layer уже реализован, но пока остается узким baseline mapping без time-aware planning и duration guidance.
-5. В notification / briefing flows сохраняется риск архитектурного дрейфа: часть legacy formatting logic еще живет вне `decision_engine`, что может со временем разъехать тексты и правила.
-6. Персонализация и calibration остаются следующим этапом.
+5. Общий decision/briefing contract уже используется API и Telegram; presentation
+   wrappers остаются разными. Историческая rendered-согласованность всех delivery
+   surfaces не измерена, это не задача заново объединить decision logic.
+6. Outcome calibration и принятие research MVP ждут evidence/операционной приёмки;
+   наличие personal baselines и offline predictor не доказывает качество модели.
 
 ## 8. Ключевые архитектурные решения
 
@@ -315,48 +360,49 @@ Operational monitoring status:
 
 ---
 
-## 8. Текущие источники данных
+## 9. Текущие источники данных
 
 ### Реальные
 
 - Strava
 - Web/Telegram subjective feedback
+- optional manual physiology через API/Web/Telegram (отдельный research contour)
+- датированный профиль FTP/HR max/weight
 - preserved historical HealthKit rows (read-only, exact-date only)
 
 ### Planned
 
 - optional provider integrations behind the physiology boundary
-- decision / recommendation outputs
+- calendar/equipment context для более широкого planning layer
 
 ---
 
-## 9. Следующие шаги (приоритет)
+## 10. Research status и следующие шаги
 
-### P1 — Calibration
+[#150](https://github.com/shchukins/whatte/issues/150) — реализованный offline
+predictor next-day recovery 1–5 с train-only fitting и MAE;
+[#136](https://github.com/shchukins/whatte/issues/136) — реализованная изоляция
+и audit path. Обе задачи открыты до real-data/home-server приёмки по
+[acceptance runbook](RECOVERY_RESEARCH_ACCEPTANCE.md), а не из-за отсутствия
+predictor-кода. Legacy v1 snapshots нельзя дополнять текущим mutable состоянием.
 
-- readiness / probability calibration
-- проверка recovery baseline на реальных данных
-- уточнение readiness zones
+Последний специализированный acceptance record от 2026-10-08 ещё не подтверждал
+natural v2 capture. Более новый [PED report от 2026-10-15](PED_RESEARCH.md#observed-result-2026-10-15-europemoscow)
+фиксирует в рассмотренном окне 0 eligible train days, 2 validation rows и 1 compatible recovery target.
+Это более позднее свидетельство v2 inputs, но не проверка всей связи natural
+delivery → snapshot, не новый readiness report #150 и не успешный реальный runner.
+Данных после этой даты в этом обзоре нет.
 
-### P2 — Decision layer
-
-- recommendation layer поверх readiness
-- rule-based decision mapping
-
-### P3 — UX / Product integration
-
-- развитие Web Today
-- объяснения на основе уже существующих breakdown payloads
-
-### P4 — Model improvements
-
-- nonlinear load transform
-- personalization
-- расширение feature layer
+Следующая зависимость: prospective evidence → readiness/preparation gates →
+достаточно покрытый реальный запуск и приёмка #150/#136 →
+[#138](https://github.com/shchukins/whatte/issues/138). Инфраструктура и закрытая
+#196 не означают завершение [#125](https://github.com/shchukins/whatte/issues/125)
+или доказанную эффективность модели. Конкретные действия сейчас, блокеры и
+отложенный backlog перечислены в [Current priorities](../ai/CURRENT_PRIORITIES.md).
 
 ---
 
-## 10. Definition of Done для текущей стадии
+## 11. Definition of Done для текущей стадии
 
 Система считается рабочей на текущем этапе, если:
 

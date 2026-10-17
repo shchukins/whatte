@@ -1,10 +1,11 @@
 # System Map
 
-Change summary:
-
-- Reframed the product as a deterministic physiological decision system, not just a backend pipeline.
-- Split the map into source, storage, model, decision, delivery, feedback, and calibration layers.
-- Marked each major layer as `implemented`, `partial`, `planned`, `historical`, or `future` based on current repository state as of 2026-09-10.
+As of 2026-10-17 (Europe/Moscow), reviewed against `main` / `9013921` and
+live GitHub issue metadata. `Implemented` describes repository capability;
+`partial` describes remaining scope, not absence of the baseline. Tests and
+documented production evidence are distinguished in the
+[current-state evidence table](../product/CURRENT_STATE.md).
+No production data or experiments were accessed for this review.
 
 ## 1. Executive overview
 
@@ -28,7 +29,8 @@ Core boundary:
 
 ```mermaid
 flowchart LR
-    A[Active sources<br/>Strava<br/>Subjective feedback<br/>User profile]
+    A[Active sources<br/>Strava<br/>Subjective feedback<br/>Dated user profile]
+    M[Optional manual physiology<br/>API, Web, Telegram]
     AH[Historical optional source<br/>stored HealthKit physiology]
     B[Ingestion<br/>Strava webhooks and feedback]
     C[Raw storage<br/>immutable source payloads]
@@ -44,6 +46,7 @@ flowchart LR
 
     A --> B --> C --> D --> E --> F --> G --> H --> I --> J
     AH --> G
+    M --> L
     J --> K --> L
     G --> L
     I --> L
@@ -71,10 +74,15 @@ sources
 ### Implemented
 
 - Strava: workout/activity ingestion and daily load inputs
-- Dated user profile: FTP and weight histories are managed through protected
+- Dated user profile: FTP, HR max and weight histories are managed through protected
   Web Today forms. FTP is resolved on or before each activity's local date;
   profile edits can trigger an explicit stored-data-only recomputation.
-- Subjective feedback: Telegram-based post-ride RPE and next-day recovery collection
+- Subjective feedback: Web/Telegram recovery and source-aware effective RPE;
+  current 1–10 RPE stays separate from legacy 1–5.
+- Optional manual sleep/HRV/RHR observations: API, Telegram and Web share one
+  backend contract; personal-relative derived features feed research, not an
+  implicit replacement for historical physiology in readiness. See
+  [manual physiology](../models/PERSONAL_PHYSIOLOGY_FEATURES.md).
 
 ### Historical
 
@@ -110,7 +118,7 @@ Status: `implemented`
 Status: `implemented`
 
 - Strava webhook + ingest jobs
-- feedback callback ingestion for Telegram prompts
+- Web/API and Telegram feedback persistence, dated profile and optional manual observations
 
 ### Raw tables
 
@@ -156,7 +164,10 @@ Status: `implemented`
 
 Status: `partial`
 
-- deterministic recommendation and briefing logic exists in backend code and readiness API responses
+- narrow baseline is implemented in [decision_engine](../../backend/backend/services/decision_engine.py)
+- [readiness_query](../../backend/backend/services/readiness_query.py) and
+  [notification_service](../../backend/backend/services/notification_service.py)
+  use the shared persisted-readiness briefing contract
 - current implementation is still a narrow readiness-to-zone mapping, not a full ride preparation system
 - important separation:
   - readiness calculates physiological state
@@ -169,7 +180,9 @@ Status: `partial`
 - Telegram daily readiness delivery exists
 - Telegram post-ride and next-day recovery prompts exist
 - readiness briefing exists as deterministic text formatting
-- broader multi-surface morning briefing orchestration is still incomplete
+- delivery formatting is surface-specific; this is not a missing shared decision layer
+- [#108 production pilot](https://github.com/shchukins/whatte/issues/108#issuecomment-5802313089)
+  verifies persisted delivery; historical rendered consistency remains unmeasurable
 
 ### Web Today interaction surface
 
@@ -183,6 +196,28 @@ Status: `implemented`
 - recovery submission triggers backend readiness recomputation; frontend code
   contains no readiness or recommendation formula
 - missing physiology is rendered as unavailable rather than as an error
+- unified answer/disclosure, explicit score save, retained failed input, server-day
+  guards and Today/Profile BFCache/tab-return recovery are implemented
+- optional physiology collection remains separate from readiness recomputation
+
+### Profile and Diary interaction surfaces
+
+Status: `implemented baseline`
+
+- `/today/profile`: dated FTP/HR max/weight, separate save/recompute, retained
+  errors and pending notices shared with Today/Diary
+- `/today/diary`: 14 local dates, effective-RPE filter, historical activity return,
+  readable date/week sections and factual seven-day summary
+- load eligibility is backend-owned; eligibility does not prove current readiness
+  has already incorporated that activity
+- [UX contract and validation](../ui/READINESS_TODAY_SCREEN.md),
+  [profile contract](../product/USER_PROFILE.md),
+  [Diary tests](../../backend/tests/test_today_diary.py);
+  [#153](https://github.com/shchukins/whatte/issues/153) and
+  [#169](https://github.com/shchukins/whatte/issues/169) are closed
+- RPE guidance, independent selection before personal-history comparison, and
+  descriptive PED are implemented; [history](../api/RPE_HISTORY.md),
+  [PED](../models/PERCEIVED_EFFORT_DEVIATION.md). PED does not affect readiness.
 
 ### Observability
 
@@ -216,9 +251,12 @@ Current storage examples by layer:
   - `health_resting_hr_daily`
   - `health_hrv_sample`
   - `health_weight_measurement`
+  - `manual_physiology_observation` (with revision evidence)
 - Derived:
   - `daily_training_load`
   - `health_recovery_daily`
+  - `activity_response_metrics`
+  - `personal_physiology_feature_daily` (research)
 - State:
   - `load_state_daily_v2`
   - `readiness_daily`
@@ -226,13 +264,16 @@ Current storage examples by layer:
   - `activity_subjective_feedback`
   - `subjective_feedback_prompt_log`
   - `decision_context_snapshot`
+  - `research_feature_snapshot` (immutable v1/v2 inputs)
+  - `research_experiment` (metadata/audit, not personal datasets)
 
 Design intent:
 
 - raw data is preserved
 - normalized and derived layers are explicitly separated
 - state models are recomputable from stored upstream layers
-- feedback is stored as outcome evidence, not as a silent modifier of production logic
+- feeling and usable RPE-derived response affect readiness only through the existing
+  versioned composition; outcome evidence never silently retunes that composition
 
 ## 6. Model layers
 
@@ -259,7 +300,8 @@ Materialized in:
 
 Current role:
 
-- converts sleep, HRV, resting HR, and weight-derived context into a daily recovery contour
+- converts preserved historical sleep/HRV/resting-HR evidence into a daily recovery contour
+- manual personal-relative physiology remains a separate research feature path
 - stores both the aggregate score and explanation payload
 
 ### Readiness
@@ -361,9 +403,11 @@ System map slice:
 
 Current state:
 
-- core recompute path exists
-- morning answer exists
-- freshness-aware delivery/orchestration is not yet complete
+- local-day recompute, persisted-readiness answer, explicit freshness states and
+  scheduled delivery are implemented ([pipeline tests](../../backend/tests/test_daily_readiness_pipeline.py))
+- [#108](https://github.com/shchukins/whatte/issues/108) is complete; broader
+  [#91](https://github.com/shchukins/whatte/issues/91) remains open, and the pilot
+  did not establish rendered-surface consistency or outcome benefit
 
 ### 7.2 Explainable Readiness Experience
 
@@ -379,9 +423,10 @@ System map slice:
 
 Current state:
 
-- explanation structure exists
-- Today screen UX is documented
-- final compact multi-surface explanation experience is still incomplete
+- Today unified answer and expandable factors, 7-day overview and 14-day Diary
+  exist; [#154–#161 scope](https://github.com/shchukins/whatte/issues/153) is complete
+- [#92](https://github.com/shchukins/whatte/issues/92) remains a broader open
+  scenario; completed UI is not evidence of a calibrated confidence model
 
 ### 7.3 Ride Preparation and Recommendation Loop
 
@@ -414,7 +459,8 @@ System map slice:
 Current state:
 
 - feedback storage and prompt orchestration exist
-- additional surfaces and richer flows remain planned
+- Web/Telegram entry, source precedence, explicit editing and RPE history/PED exist
+- [#94](https://github.com/shchukins/whatte/issues/94) remains broader scenario scope
 
 ### 7.5 Readiness Calibration Loop
 
@@ -431,29 +477,46 @@ System map slice:
 Current state:
 
 - the feedback dataset layer exists
-- calibration as reproducible analytics is the next step
+- [#77 records/summary](../data/CALIBRATION_RECORDS.md), immutable feature snapshots,
+  temporal exports and frozen evaluator exist
+- numerical model-error verdicts and outcome benefit remain unestablished;
+  [#95](https://github.com/shchukins/whatte/issues/95) and
+  [#77](https://github.com/shchukins/whatte/issues/77) remain open
 - production decision logic is not auto-adapting from feedback
 
 ### 7.6 Research Sandbox
 
-Status: `future`
+Status: `partial` — implemented infrastructure and offline models; acceptance pending
 
-System map slice:
+- [feature v1/v2](../models/DAILY_FEATURE_VECTOR.md),
+  [temporal datasets](../data/TEMPORAL_DAY_DATASET.md),
+  [frozen evaluator](../product/RESEARCH_EVALUATOR.md),
+  [audit](../product/RESEARCH_EXPERIMENTS.md) and
+  [bounded parameter space](../product/RESEARCH_PARAMETER_SPACE.md) exist
+- [runner](../product/RESEARCH_RUNNER.md) isolates fixed candidate/evaluator
+  containers, with bounded resources, no network/DB credentials in workers,
+  private receipts and a separate audit writer
+- [recovery predictor](../models/RECOVERY_PREDICTION.md) implements train-only
+  affine prediction of next-day recovery, immutable replay and paired MAE;
+  this is separate from production readiness and broader product prediction #55
+- [#150](https://github.com/shchukins/whatte/issues/150) and
+  [#136](https://github.com/shchukins/whatte/issues/136) remain open pending
+  natural capture linkage, adequate real evidence and home-server acceptance
+  under the [runbook](../product/RECOVERY_RESEARCH_ACCEPTANCE.md)
+- [PED study #196](../product/PED_RESEARCH.md) is implemented, with documented
+  delivery verification on 2026-10-16; its 2026-10-15 availability report remains
+  `insufficient evidence` (0 eligible train days in the inspected window).
+  It does not accept #150/#136
+- [#138 search](https://github.com/shchukins/whatte/issues/138) is planned and
+  blocked by #150/#136 acceptance; #139–#143 LLM planning, promotion governance,
+  scheduling and research UI remain backlog under
+  [#125](https://github.com/shchukins/whatte/issues/125)
 
-- offline dataset export
-- experimentation
-- model comparison
-- research-only validation
-
-Constraint:
-
-- research remains separate from production decision logic
-- no hidden online ML loop should be introduced into readiness or recommendation
-
-Note on GitHub issues `#91-#96`:
-
-- direct issue metadata was not accessible from this environment during this update
-- this section therefore uses the current repo-local scenario-epic proposal as the source of truth
+Boundary: offline reproducible evidence, protected test partition, no automatic
+promotion or production tuning. Infrastructure, successful synthetic tests and
+closed child issues do not establish an accepted research MVP or model benefit.
+GitHub scenario issues #91–#96 were accessible and reviewed on 2026-10-17;
+they remain open and describe broader scenarios than their implemented slices.
 
 ## 8. UI and delivery surfaces
 
@@ -504,8 +567,9 @@ Status: `implemented baseline`
 
 Status: `planned` / `future`
 
-- product dashboards for readiness history, calibration summaries, or research views are discussed indirectly in docs
-- current dashboards are operational observability dashboards, not product analytics surfaces
+- readiness history is already available in Today/Diary
+- broader calibration UI (#80) and research summary UI (#143) remain planned
+- `/dashboard` remains operational observability, separate from these product views
 
 ## 9. Feedback and calibration
 
@@ -530,7 +594,8 @@ How these relate to calibration:
 Why feedback does not directly mutate the model:
 
 - production readiness must remain deterministic and reproducible
-- feedback is currently an observed outcome layer
+- feedback is also an observed outcome layer; existing feeling/response inputs
+  can affect scores without changing model rules
 - calibration should produce explicit research or rule-change decisions, not hidden online adaptation
 
 What must be stored for future validation:
@@ -569,13 +634,13 @@ Status: `implemented baseline`
 - request tracing via request IDs
 - feedback prompt delivery persistence in `subjective_feedback_prompt_log`
 
-### Future validation jobs
+### Offline validation
 
-Status: `planned`
+Status: `implemented / partial`
 
-- explicit calibration joins
-- dataset export validation
-- mismatch detection and model-version comparisons
+- calibration joins, dataset export validation and frozen model comparison exist
+- #77 descriptive review cases are not numerical over/underestimation verdicts
+- bounded batch search (#138) and scheduled research (#142) remain planned
 
 Important boundary:
 
@@ -588,7 +653,8 @@ Important boundary:
 - Data confidence, freshness, and trust semantics are important but not yet formalized into one consistent production model.
 - `good_day_probability` exists, but it is not yet a calibrated probability model.
 - Calibration is not production ML; current feedback storage supports validation, not online adaptation.
-- Research Sandbox remains future-only and should stay offline and review-gated.
+- Research Sandbox has implemented infrastructure/models; #150/#136 real-data and
+  operational acceptance remains pending, blocking #138. Offline review gates remain.
 
 ## 12. Simplification rule
 
