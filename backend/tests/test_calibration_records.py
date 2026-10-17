@@ -1,4 +1,10 @@
 from datetime import date, datetime, timedelta, timezone
+import json
+import sys
+from zoneinfo import ZoneInfo
+
+import pytest
+from psycopg import OperationalError
 
 from backend.services.calibration_records import (
     ACTIVITY_QUERY,
@@ -273,3 +279,208 @@ def test_snapshot_physio_availability_is_preserved_as_stratum():
     evaluation = calibration_records.build_evaluation([record])
     assert evaluation["rpe_distributions"][0]["physiology_availability"] == "unavailable"
     assert evaluation["recovery_distributions"][0]["physiology_availability"] == "unavailable"
+
+
+def completeness_report(rows, *, now=datetime(2026, 9, 3, tzinfo=UTC),
+                        zone="Europe/Moscow", gap_limit=20):
+    return build_calibration_records(
+        user_id="synthetic", date_from=date(2026, 9, 1), date_to=date(2026, 9, 2),
+        timezone=zone, activities=rows, snapshots=[], generated_at=now,
+        gap_limit=gap_limit,
+    )
+
+
+def test_completeness_empty_period_has_unavailable_fractions():
+    result = completeness_report([])["feedback_completeness"]
+    assert result["status"] == "ok"
+    assert result["canonical_workout_count"] == result["training_day_count"] == 0
+    for rate in (result["rpe"]["current_coverage"], result["next_day_recovery"]["coverage"]):
+        assert rate == {"numerator": 0, "denominator": 0, "fraction": None}
+    assert result["gaps"]["activities"] == result["gaps"]["training_days"] == []
+
+
+def test_completeness_denominators_ignore_snapshot_sport_and_power():
+    no_power = list(activity(2, current_rpe=6))
+    no_power[6] = None
+    result = completeness_report([
+        activity(1, current_rpe=7, sport="Run", metrics_id=None), tuple(no_power),
+        activity(3, rpe_id=None, recovery_id=31),
+    ])["feedback_completeness"]
+    assert result["canonical_workout_count"] == 3
+    assert result["rpe"]["current_coverage"] == {
+        "numerator": 2, "denominator": 3, "fraction": 2 / 3,
+    }
+    assert result["training_day_count"] == 1
+    assert result["next_day_recovery"]["coverage"] == {
+        "numerator": 1, "denominator": 1, "fraction": 1.0,
+    }
+
+
+def test_completeness_preserves_effective_source_and_separate_legacy():
+    conflict = list(activity(1, current_rpe=8))
+    conflict[15] = True
+    incompatible = list(activity(2, current_rpe=9))
+    incompatible[18] = 2  # Selected observation differs from persisted resolution.
+    bad_scale = list(activity(3, current_rpe=7))
+    bad_scale[19] = "legacy_scale"
+    bad_legacy = list(activity(4))
+    bad_legacy[11] = "future"
+    result = completeness_report([
+        tuple(conflict), tuple(incompatible), tuple(bad_scale), tuple(bad_legacy),
+        activity(5), activity(6, rpe_id=None),
+    ])
+    counts = result["feedback_completeness"]["rpe"]
+    assert (counts["usable_current"], counts["incompatible"],
+            counts["legacy_only"], counts["missing"]) == (1, 3, 1, 1)
+    assert counts["compatible_legacy_observation_count"] == 4
+    assert counts["source_disagreement_count"] == 1
+    assert result["records"][0]["post_ride_rpe"]["score"] == 8
+    assert result["records"][0]["post_ride_rpe"]["source"] == "strava"
+    assert [gap["reason_code"] for gap in result["feedback_completeness"]["gaps"]["activities"]] == [
+        "incompatible_scale_or_resolution", "incompatible_scale_or_resolution",
+        "incompatible_scale_or_version", "legacy_rpe_only", "missing_rpe",
+    ]
+
+
+@pytest.mark.parametrize("now,expected", [
+    (datetime(2026, 9, 2, 20, 59, 59, tzinfo=UTC), "window_open"),
+    (datetime(2026, 9, 2, 21, tzinfo=UTC), "missing"),
+])
+def test_completeness_window_closes_exactly_at_local_d_plus_2(now, expected):
+    result = completeness_report([activity(recovery_id=None)], now=now)["feedback_completeness"]
+    assert result["next_day_recovery"][expected] == 1
+    assert result["gaps"]["training_days"][0]["window_closes_at"] == "2026-09-03T00:00:00+03:00"
+
+
+@pytest.mark.parametrize("column,value", [(25, "fresh"), (26, "future_schema")])
+def test_completeness_recovery_incompatibility_is_not_missing_or_pending(column, value):
+    bad = list(activity())
+    bad[column] = value
+    result = completeness_report([tuple(bad)], now=datetime(2026, 9, 1, tzinfo=UTC))
+    recovery = result["feedback_completeness"]["next_day_recovery"]
+    assert (recovery["incompatible"], recovery["missing"], recovery["window_open"]) == (1, 0, 0)
+    assert result["feedback_completeness"]["gaps"]["training_days"][0]["reason_code"] == "incompatible_scale_or_version"
+
+
+def test_completeness_compatible_feedback_counts_before_window_closure():
+    result = completeness_report([activity()], now=datetime(2026, 9, 2, 10, tzinfo=UTC))
+    assert result["feedback_completeness"]["next_day_recovery"]["usable"] == 1
+
+
+@pytest.mark.parametrize("day,hours", [(date(2026, 3, 28), 23), (date(2026, 10, 24), 25)])
+def test_completeness_dst_uses_calendar_dates_and_local_midnight(day, hours):
+    zone = ZoneInfo("Europe/Berlin")
+    start = datetime.combine(day, datetime.min.time(), tzinfo=zone).astimezone(UTC)
+    row = list(activity(start=start, recovery_id=None))
+    row[3] = day  # Local-date column is produced by PostgreSQL in production.
+    closes = datetime.combine(day + timedelta(days=2), datetime.min.time(), tzinfo=zone)
+    target_start = datetime.combine(day + timedelta(days=1), datetime.min.time(), tzinfo=zone)
+    assert (closes.astimezone(UTC) - target_start.astimezone(UTC)).total_seconds() == hours * 3600
+    for offset, state in ((-1, "window_open"), (0, "missing")):
+        result = completeness_report([tuple(row)], zone="Europe/Berlin",
+                                     now=closes.astimezone(UTC) + timedelta(seconds=offset))
+        gap = result["feedback_completeness"]["gaps"]["training_days"][0]
+        assert gap["state"] == state
+        assert gap["target_local_date"] == day + timedelta(days=1)
+        assert gap["window_closes_at"] == closes.isoformat()
+
+
+def test_completeness_bounded_gaps_do_not_limit_counts_and_are_deterministic():
+    rows = [activity(i, start=datetime(2026, 9, i, 7, tzinfo=UTC),
+                     rpe_id=None, recovery_id=None) for i in (1, 2)]
+    result = completeness_report(rows, gap_limit=1)["feedback_completeness"]
+    assert result == completeness_report(list(reversed(rows)), gap_limit=1)["feedback_completeness"]
+    assert result["rpe"]["missing"] == 2
+    assert result["next_day_recovery"]["missing"] == 1
+    assert result["next_day_recovery"]["window_open"] == 1
+    assert len(result["gaps"]["activities"]) == len(result["gaps"]["training_days"]) == 1
+    assert result["gaps"]["activity_gaps_truncated"] is True
+    assert result["gaps"]["training_day_gaps_truncated"] is True
+    assert completeness_report(rows) == completeness_report(rows)
+    assert completeness_report(rows, gap_limit=0)["feedback_completeness"]["gaps"]["activities"] == []
+
+
+@pytest.mark.parametrize("options", [
+    {"gap_limit": -1}, {"gap_limit": 101}, {"generated_at": datetime(2026, 9, 1)},
+    {"date_to": date(2026, 8, 31)}, {"timezone": "Unknown/Zone"},
+])
+def test_completeness_invalid_options_fail_before_database_read(monkeypatch, options):
+    def forbidden():
+        pytest.fail("invalid options must not read database")
+    monkeypatch.setattr(calibration_records, "get_conn", forbidden)
+    kwargs = dict(user_id="synthetic", date_from=date(2026, 9, 1),
+                  date_to=date(2026, 9, 2), timezone="Europe/Moscow")
+    kwargs.update(options)
+    with pytest.raises((ValueError, KeyError)):
+        generate_calibration_records(**kwargs)
+
+
+@pytest.mark.parametrize("mode", ["calibration", "feedback-completeness"])
+def test_cli_read_error_is_json_failure_without_false_zero_counts(monkeypatch, capsys, mode):
+    from scripts import calibration_records as cli
+
+    def failed_read():
+        raise OperationalError("private connection information")
+
+    monkeypatch.setattr(calibration_records, "get_conn", failed_read)
+    monkeypatch.setattr(sys, "argv", ["calibration_records", "--user-id", "synthetic",
+                        "--date-from", "2026-09-01", "--date-to", "2026-09-02", "--report", mode])
+    with pytest.raises(SystemExit) as error:
+        cli.main()
+    assert error.value.code == 1
+    assert json.loads(capsys.readouterr().out) == {
+        "status": "read_error", "reason_code": "database_read_failed",
+    }
+
+
+def test_cli_completeness_projection_and_metadata(monkeypatch, capsys):
+    from scripts import calibration_records as cli
+
+    monkeypatch.setattr(cli, "generate_calibration_records", lambda **kwargs: completeness_report([]))
+    monkeypatch.setattr(sys, "argv", ["calibration_records", "--user-id", "synthetic",
+                        "--date-from", "2026-09-01", "--date-to", "2026-09-02",
+                        "--report", "feedback-completeness"])
+    cli.main()
+    result = json.loads(capsys.readouterr().out)
+    assert result["date_from"] == "2026-09-01"
+    assert result["date_to"] == "2026-09-02"
+    assert result["timezone"] == "Europe/Moscow"
+    assert result["generated_at"] == "2026-09-03 00:00:00+00:00"
+    assert result["contract_version"] == "feedback_completeness_v1"
+    assert "records" not in result
+
+
+@pytest.mark.parametrize("failed_fetch", [1, 2])
+def test_completeness_query_failure_never_returns_partial_report(monkeypatch, failed_fetch):
+    class Cursor:
+        reads = 0
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def execute(self, *args):
+            pass
+
+        def fetchall(self):
+            self.reads += 1
+            if self.reads == failed_fetch:
+                raise OperationalError("synthetic read failure")
+            return [activity()]
+
+    class Connection:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def cursor(self):
+            return Cursor()
+
+    monkeypatch.setattr(calibration_records, "get_conn", Connection)
+    with pytest.raises(OperationalError, match="synthetic read failure"):
+        generate_calibration_records(user_id="synthetic", date_from=date(2026, 9, 1),
+                                     date_to=date(2026, 9, 2))

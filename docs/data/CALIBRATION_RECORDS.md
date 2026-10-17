@@ -1,5 +1,89 @@
 # Decision-to-outcome records and evaluation (#77)
 
+## Feedback completeness: first bounded stage of #80
+
+Use the existing CLI from `backend/`, with the normal backend environment:
+
+```bash
+python -m scripts.calibration_records --report feedback-completeness --user-id USER --date-from 2026-09-01 --date-to 2026-09-14 --timezone Europe/Moscow --gap-limit 20
+```
+
+The inclusive range selects **training local dates**. Timezone defaults to
+`WHATTE_TIMEZONE`. Output includes `user_id`, `date_from`, `date_to`, `timezone`,
+`generated_at`, `contract_version = feedback_completeness_v1`, and `status = ok`.
+The default calibration mode also includes this same summary under
+`feedback_completeness`; there is no separate SQL selection or source resolver.
+The compact mode omits raw records and the existing descriptive review cases.
+Both modes remain repeatable-read/read-only and perform no backfill/recompute.
+
+| Field | Counting contract |
+| --- | --- |
+| `canonical_workout_count` | All current nondeleted, nonexcluded, nonduplicate canonical activities selected by #77. No snapshot, sport, load, or power eligibility filter. |
+| `rpe.usable_current` | Effective compatible RPE 1–10 from the persisted backend resolution and its selected observation. Source disagreement alone does not invalidate the selected score. |
+| `rpe.legacy_only` | Compatible effective historical 1–5 feedback, with no current RPE. Kept outside current coverage. |
+| `rpe.missing` | No effective current or legacy RPE. |
+| `rpe.incompatible` | Present effective observation fails the existing scale/version/resolution checks. Never replaced with a lower-priority or legacy observation to improve coverage. |
+| `rpe.compatible_legacy_observation_count` | Compatible 1–5 rows, including legacy stored alongside current RPE. Overlaps other counts; never added to usable current RPE. |
+| `rpe.source_disagreement_count` | Persisted disagreement on effective current resolution, including incompatible resolution. Diagnostic count, not an additional partition. |
+| `training_day_count` | Unique local training dates, regardless of number of activities. |
+| `next_day_recovery.usable` | Compatible date-level subjective `next_day_recovery` 1–5 feedback for D+1, counted once per training day D. No computed recovery, sleep, or physiology substitution. |
+| `next_day_recovery.missing` | No D+1 feedback and the observation window is closed. |
+| `next_day_recovery.incompatible` | Present D+1 feedback fails #77 score/value/version checks, even when the observation window is still open. |
+| `next_day_recovery.window_open` | No D+1 feedback, but its local calendar date has not ended. |
+
+The four RPE categories sum to `canonical_workout_count`; the four recovery
+categories sum to `training_day_count`. `rpe.current_coverage` and recovery
+`coverage` each expose `numerator`, `denominator`, and `fraction`. Their
+denominators include every selected workout / training day, respectively,
+including open recovery windows. A zero denominator produces JSON `null` for
+the fraction. No quality threshold or research sufficiency gate is applied.
+
+The feedback contract has no existing completeness deadline. This report's
+`window_rule = missing_after_start_of_local_D_plus_2` allows the whole D+1 local
+date. Absence becomes a missing observation **at local midnight starting D+2**,
+inclusive. This is a reporting rule, not a collection/edit cutoff. Already
+available feedback counts immediately; incompatible feedback remains
+incompatible. D+1 for the final training date is read outside the requested
+period. Calendar arithmetic and local midnight handle 23/25-hour DST dates;
+no 24-hour elapsed-time approximation is used.
+
+`gaps.activities` and `gaps.training_days` contain up to `--gap-limit` entries
+**each** (default 20, permitted 0–100). Full counters are unaffected by the
+limit. Each list has a total gap count and a truncation flag. Activity order
+is start time then canonical ID; day order is local date. Entries expose the
+activity/date, state, source ID (and effective source for RPE), and stable
+`reason_code`; recovery entries also expose D+1 and `window_closes_at` with UTC
+offset. An empty list with limit zero is not evidence of complete coverage.
+
+| Reason code | Meaning |
+| --- | --- |
+| `missing_rpe` | No effective RPE in either supported series. |
+| `legacy_rpe_only` | Only historical 1–5 is available; current 1–10 is unavailable. |
+| `incompatible_scale_or_resolution` | Current RPE resolution or selected observation is incompatible. |
+| `incompatible_scale_or_version` | Legacy RPE or recovery score/value/schema is incompatible. |
+| `missing_next_day_recovery` | D+1 feedback absent after window closure. |
+| `next_day_recovery_window_open` | D+1 feedback absent before window closure. |
+
+A PostgreSQL read/connection failure emits only
+`{"status":"read_error","reason_code":"database_read_failed"}` and exits 1;
+it never returns successful zero counters or a partial report. Other unexpected
+failures also fail the command rather than returning empty observations.
+
+Activity identity/membership, effective RPE, source disagreement, feedback
+compatibility/values and all resulting counts/gaps reflect **current mutable
+state**. They can change after feedback editing, deduplication or source
+resolution updates. `generated_at` is report time, not a historical as-of query.
+The Python service accepts a fixed aware `generated_at` for deterministic tests;
+it does not rewind mutable data. With unchanged inputs and fixed report time,
+the result is deterministic. Immutable decision snapshots do not make mutable
+feedback historically reproducible. Never commit personal report output.
+
+This stage measures observation completeness only. It does not prove model
+quality, calibration, research readiness or causal relationships. Correlations,
+readiness/RPE comparisons, trend summaries, numerical error and over/underestimate
+verdicts remain outside this stage of #80, as do UI, notifications, scheduling,
+schema changes and general export infrastructure.
+
 ## Versioned outcome contract (#132)
 
 Each activity record has `outcome.contract_version = workout_outcome_v1` and

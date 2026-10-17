@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections import Counter
-from datetime import date, datetime, timedelta, timezone as utc_timezone
+from datetime import date, datetime, time, timedelta, timezone as utc_timezone
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -72,6 +72,107 @@ FEEDBACK_VERSIONS = {"v1", "v1_extensible"}
 CURRENT_RPE_SCALE = "rpe_1_10"
 CURRENT_RPE_SCHEMA = "rpe_observation_v1"
 OUTCOME_CONTRACT_VERSION = "workout_outcome_v1"
+COMPLETENESS_CONTRACT_VERSION = "feedback_completeness_v1"
+DEFAULT_GAP_LIMIT = 20
+MAX_GAP_LIMIT = 100
+
+
+def build_feedback_completeness(
+    records: list[dict[str, Any]], *, timezone: str, generated_at: datetime,
+    gap_limit: int = DEFAULT_GAP_LIMIT,
+) -> dict[str, Any]:
+    """Count current feedback independently of prediction/load eligibility."""
+    if generated_at.tzinfo is None or generated_at.utcoffset() is None:
+        raise ValueError("generated_at must be timezone-aware")
+    if not 0 <= gap_limit <= MAX_GAP_LIMIT:
+        raise ValueError(f"gap_limit must be between 0 and {MAX_GAP_LIMIT}")
+    zone = ZoneInfo(timezone)
+    rpe_counts = dict.fromkeys(("usable_current", "legacy_only", "missing", "incompatible"), 0)
+    recovery_counts = dict.fromkeys(("usable", "missing", "incompatible", "window_open"), 0)
+    legacy_count = disagreement_count = 0
+    activity_gaps: list[dict[str, Any]] = []
+    day_gaps: list[dict[str, Any]] = []
+    by_day: dict[date, dict[str, Any]] = {}
+    ordered = sorted(records, key=lambda r: (r["activity_start_at"], r["activity_id"]))
+    for record in ordered:
+        rpe = record["post_ride_rpe"]
+        legacy = record["legacy_post_ride_rpe"] or rpe
+        legacy_count += int(legacy["status"] == "available" and legacy.get("scale") == "1-5")
+        disagreement_count += int(bool(rpe.get("disagreement")))
+        if rpe["status"] == "available":
+            state = "usable_current" if rpe["scale"] == "1-10" else "legacy_only"
+            reason = "legacy_rpe_only" if state == "legacy_only" else None
+        elif rpe["status"] == "missing":
+            state, reason = "missing", "missing_rpe"
+        else:
+            state, reason = "incompatible", rpe["status"]
+        rpe_counts[state] += 1
+        if reason and len(activity_gaps) < gap_limit:
+            activity_gaps.append({
+                "activity_id": record["activity_id"],
+                "activity_local_date": record["activity_local_date"],
+                "state": state, "reason_code": reason,
+                "source_id": rpe["source_id"], "source": rpe.get("source"),
+            })
+        by_day.setdefault(record["activity_local_date"], record["next_day_recovery"])
+
+    for day, recovery in sorted(by_day.items()):
+        # The entire D+1 calendar date is allowed for feedback. Construct local
+        # D+2 midnight rather than adding 24 hours; DST days may be 23/25 hours.
+        closes_at = datetime.combine(day + timedelta(days=2), time.min, tzinfo=zone)
+        if recovery["status"] == "available":
+            state, reason = "usable", None
+        elif recovery["status"] != "missing":
+            state, reason = "incompatible", recovery["status"]
+        elif generated_at < closes_at:
+            state, reason = "window_open", "next_day_recovery_window_open"
+        else:
+            state, reason = "missing", "missing_next_day_recovery"
+        recovery_counts[state] += 1
+        if reason and len(day_gaps) < gap_limit:
+            day_gaps.append({
+                "training_local_date": day,
+                "target_local_date": recovery["target_local_date"],
+                "window_closes_at": closes_at.isoformat(),
+                "state": state, "reason_code": reason,
+                "source_id": recovery["source_id"],
+            })
+
+    def coverage(numerator: int, denominator: int) -> dict[str, Any]:
+        return {"numerator": numerator, "denominator": denominator,
+                "fraction": numerator / denominator if denominator else None}
+
+    activity_gap_count = len(records) - rpe_counts["usable_current"]
+    day_gap_count = len(by_day) - recovery_counts["usable"]
+    return {
+        "contract_version": COMPLETENESS_CONTRACT_VERSION,
+        "status": "ok",
+        "canonical_workout_count": len(records),
+        "rpe": {
+            **rpe_counts,
+            "current_scale": "1-10", "legacy_scale": "1-5",
+            "compatible_legacy_observation_count": legacy_count,
+            "source_disagreement_count": disagreement_count,
+            "current_coverage": coverage(rpe_counts["usable_current"], len(records)),
+        },
+        "training_day_count": len(by_day),
+        "next_day_recovery": {
+            **recovery_counts, "scale": "1-5",
+            "window_rule": "missing_after_start_of_local_D_plus_2",
+            "coverage": coverage(recovery_counts["usable"], len(by_day)),
+        },
+        "gaps": {
+            "limit_per_list": gap_limit,
+            "activity_gap_count": activity_gap_count,
+            "activity_gaps_truncated": activity_gap_count > len(activity_gaps),
+            "activities": activity_gaps,
+            "training_day_gap_count": day_gap_count,
+            "training_day_gaps_truncated": day_gap_count > len(day_gaps),
+            "training_days": day_gaps,
+        },
+        "state_semantics": "current_mutable_canonical_activity_and_feedback_not_historical_as_of",
+        "interpretation": "observation_completeness_only_not_model_quality_or_research_sufficiency",
+    }
 
 
 def _feedback(record_id: Any, score: Any, value: Any, version: Any,
@@ -360,7 +461,10 @@ def build_outcome_evaluation(records: list[dict[str, Any]]) -> dict[str, Any]:
 def build_calibration_records(*, user_id: str, date_from: date, date_to: date,
                               timezone: str, activities: list[tuple[Any, ...]],
                               snapshots: list[tuple[Any, ...]],
-                              generated_at: datetime) -> dict[str, Any]:
+                              generated_at: datetime,
+                              gap_limit: int = DEFAULT_GAP_LIMIT) -> dict[str, Any]:
+    if date_to < date_from:
+        raise ValueError("date_to must be on or after date_from")
     zone = ZoneInfo(timezone)
     records = []
     for row in activities:
@@ -428,15 +532,24 @@ def build_calibration_records(*, user_id: str, date_from: date, date_to: date,
     }
     report["evaluation"] = build_evaluation(records)
     report["outcome_evaluation"] = build_outcome_evaluation(records)
+    report["feedback_completeness"] = build_feedback_completeness(
+        records, timezone=timezone, generated_at=generated_at, gap_limit=gap_limit,
+    )
     return report
 
 
 def generate_calibration_records(*, user_id: str, date_from: date,
-                                 date_to: date, timezone: str | None = None) -> dict[str, Any]:
+                                 date_to: date, timezone: str | None = None,
+                                 generated_at: datetime | None = None,
+                                 gap_limit: int = DEFAULT_GAP_LIMIT) -> dict[str, Any]:
     if date_to < date_from:
         raise ValueError("date_to must be on or after date_from")
     report_timezone = timezone or settings.whatte_timezone
     ZoneInfo(report_timezone)
+    report_time = generated_at if generated_at is not None else datetime.now(utc_timezone.utc)
+    # Validate options before opening a database connection, including empty ranges.
+    build_feedback_completeness([], timezone=report_timezone,
+                                generated_at=report_time, gap_limit=gap_limit)
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute("set transaction isolation level repeatable read, read only")
@@ -448,5 +561,5 @@ def generate_calibration_records(*, user_id: str, date_from: date,
     return build_calibration_records(
         user_id=user_id, date_from=date_from, date_to=date_to,
         timezone=report_timezone, activities=activities, snapshots=snapshots,
-        generated_at=datetime.now(utc_timezone.utc),
+        generated_at=report_time, gap_limit=gap_limit,
     )
