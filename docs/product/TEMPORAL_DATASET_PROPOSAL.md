@@ -1,5 +1,12 @@
 # Versioned temporal research dataset (#133)
 
+> Priority update, 2026-10-21: further work on this research/calibration
+> direction is **paused** under [current priorities](../ai/CURRENT_PRIORITIES.md).
+> This document preserves its technical contract, dated evidence and acceptance
+> gates; internal “next steps” apply only if the workstream is explicitly resumed.
+> This does not disable existing runtime or change GitHub issue status.
+> It is not a prerequisite for the [training decision MVP](TRAINING_DECISION_MVP.md).
+
 ## Status
 
 Implemented as an offline, read-only export contract. It does not train a

@@ -1,6 +1,28 @@
 # Whatte — CURRENT STATE
 
-Last updated: 2026-10-17 (Europe/Moscow)
+Product direction updated: 2026-10-21 (Europe/Moscow).
+Implementation/evidence review below: 2026-10-17; it was not rerun for this docs change.
+
+## Product direction and implementation gap
+
+[Product context](../ai/PRODUCT_CONTEXT.md) now defines WHATTE as an Adaptive
+Training Decision Engine. The [bounded MVP](TRAINING_DECISION_MVP.md) uses a
+manual cycling plan and changing available time.
+
+| Capability | Status after this documentation update |
+| --- | --- |
+| Readiness-to-category baseline and existing delivery | Implemented; unchanged |
+| Goal/weekly plan/time-window inputs for workout choice | Planned; contract to be defined |
+| Compare shortening, replacement, rescheduling and rest | Planned; not supplied by existing mapping |
+| Explain lost stimulus and propose remaining-week changes | Planned |
+| Block-level progress and decision-value evaluation | Planned trial; no validated causal claim |
+| Further readiness/recovery research and tuning | Paused development priority; retained contracts/evidence |
+
+Readiness calibration and recovery research acceptance do not block this MVP.
+Existing jobs, feedback collection, data and GitHub issue statuses are unchanged.
+The historical evidence below must not be read as a fresh production audit.
+
+## Dated implementation evidence
 
 Сверка: `main` / `9013921a0e2a53e2b694114ed74ee8a53fb3966f`, код,
 контракты, тесты и актуальные GitHub issues. `Implemented` ниже означает
@@ -378,7 +400,7 @@ Operational monitoring status:
 
 ---
 
-## 10. Research status и следующие шаги
+## 10. Research status — preserved, development paused
 
 [#150](https://github.com/shchukins/whatte/issues/150) — реализованный offline
 predictor next-day recovery 1–5 с train-only fitting и MAE;
@@ -394,18 +416,18 @@ natural v2 capture. Более новый [PED report от 2026-10-15](PED_RESEA
 delivery → snapshot, не новый readiness report #150 и не успешный реальный runner.
 Данных после этой даты в этом обзоре нет.
 
-Следующая зависимость: prospective evidence → readiness/preparation gates →
-достаточно покрытый реальный запуск и приёмка #150/#136 →
-[#138](https://github.com/shchukins/whatte/issues/138). Инфраструктура и закрытая
-#196 не означают завершение [#125](https://github.com/shchukins/whatte/issues/125)
-или доказанную эффективность модели. Конкретные действия сейчас, блокеры и
-отложенный backlog перечислены в [Current priorities](../ai/CURRENT_PRIORITIES.md).
+При отдельном возобновлении исследования сохраняется зависимость:
+prospective evidence → readiness/preparation gates → реальная приёмка #150/#136 →
+[#138](https://github.com/shchukins/whatte/issues/138). Это не текущая продуктовая
+очередность и не prerequisite time-adaptation MVP. Инфраструктура и закрытая
+#196 не доказывают пользу модели. Приоритеты:
+[Current priorities](../ai/CURRENT_PRIORITIES.md).
 
 ---
 
-## 11. Definition of Done для текущей стадии
+## 11. Existing baseline checks
 
-Система считается рабочей на текущем этапе, если:
+Проверки существующего baseline (не критерии успеха нового MVP):
 
 - training data приходит из Strava, feedback — из Web/Telegram
 - считается `load_state_daily_v2`

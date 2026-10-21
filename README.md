@@ -15,70 +15,56 @@
   <strong>What today?</strong>
 </p>
 
-Whatte is an application and backend system that combines training load, recovery, and user context to help answer a practical daily question: should today be for high intensity, easy training, recovery, or rest?
+**WHATTE — Adaptive Training Decision Engine.**
+
+The product direction is to help choose today's most useful workout given a
+long-term goal, completed training and the time actually available across the week.
 
 ## The problem
 
-Static training plans cannot account for real life. Sleep, work, fatigue, and previous sessions change what the body is ready for, even when the calendar says otherwise.
-
-The useful question is not only what the plan prescribed, but what load is appropriate today.
-
-## Whatte's answer
-
-Whatte:
-
-- collects training data from Strava and subjective recovery feedback from Web/Telegram
-- calculates load, recovery, and readiness in separate, traceable layers
-- explains which factors influenced the result
-- maps readiness to a deterministic recommendation for the day
+A plan calls for a two-hour endurance ride, but only 50 minutes remain.
+Shorten, replace, reschedule or rest? WHATTE should explain the compromise and
+help preserve the purpose of the training week. More TSS or higher readiness
+alone does not establish better training progress.
 
 ## What it already does
 
-- Strava activity ingestion and webhook processing
-- preserved historical HealthKit data as optional exact-date physiology evidence
-- daily load and recovery models
-- versioned training-response metrics and personal comparable-session baselines
-- explainable daily readiness
-- deterministic recommendation categories: `recovery`, `endurance`, `moderate`, and `high_intensity`
-- compact briefing output for API, Telegram, and Web Today
-- a read-only internal operational dashboard
+The current prototype ingests Strava activities and Web/Telegram feedback,
+calculates load, response and readiness, and produces deterministic categories
+`recovery`, `endurance`, `moderate` and `high_intensity` with a shared briefing.
+It includes a dated profile, RPE guidance/history, Today/Diary and a read-only
+operational dashboard. Historical HealthKit rows are preserved; collection and
+the iOS client are retired. Optional manual physiology is a separate research path.
 
-## What is planned
+The category is still derived from readiness. Comparing alternatives against a
+goal, time budget and remaining week is **not implemented**. The baseline is not
+a complete coach or automated training planner.
 
-- a broader decision layer beyond the current readiness-to-category mapping
-- calendar-aware recommendations
-- recommendations for training duration and timing
-- readiness calibration and explicit personalization
+## Next experiment — planned
 
-Planned capabilities are not part of the current production baseline.
+One cyclist, one block, a manual plan, and available time as the first changing
+constraint. Simple rules compare shortening, replacement, rescheduling and rest,
+explain preserved/lost stimulus, and propose any weekly-plan changes.
+See the [bounded MVP](docs/product/TRAINING_DECISION_MVP.md).
 
-## How it works
+Success means useful decisions when circumstances change and observed progress
+on agreed comparable tasks. Plan compliance and load-model `fitness` are not
+proof of improved sporting capability; one block cannot establish WHATTE's effect.
 
-```text
-Strava + subjective feedback + optional historical physiology
-        ↓
-load + freshness + response + feeling + optional physiology
-        ↓
-readiness
-        ↓
-deterministic recommendation
-        ↓
-daily briefing
-```
+## Priorities
+
+Readiness/recovery remain supporting context. Expansion of HRV/RHR/sleep models,
+recovery prediction and autoresearch is paused as a development priority;
+calibration does not block the first experiment. This decision does not alter
+running processes or stored data.
 
 ## Principles
 
-- **Deterministic core.** The same inputs produce the same result.
-- **Explainability.** Recommendations can be traced to data, metrics, and rules.
-- **Reproducibility.** Raw inputs are preserved and derived state can be recomputed.
-- **Ecosystem independence.** The core daily loop does not require a wearable or mobile application.
-- **AI is auxiliary.** It may help with explanation and text, but it is not the calculation or decision engine.
-
-## Current status
-
-Whatte is an active prototype. The end-to-end backend pipeline is working from Strava load, activity response, subjective feeling, optional exact-date historical physiology, readiness, deterministic recommendation categories, and briefing output. HealthKit collection and the iOS client are retired; stored historical records remain intact.
-
-The current recommendation layer is deliberately narrow. It supports daily decision-making, but it is not yet a full training planner.
+- Deterministic core and backend-owned decisions.
+- Explained tradeoffs, versioned rules and reproducibility.
+- Explicit missingness; missing data is not good recovery.
+- No required wearable, LLM or mobile application.
+- Simple rules and comparison to a simple baseline before further complexity.
 
 ## Operational surfaces
 
@@ -89,6 +75,10 @@ The current recommendation layer is deliberately narrow. It supports daily decis
 The dashboard shows local backend and database state for System, Connection, Ingest Jobs, and Strava Activities. It is read-only, does not call Strava or refresh tokens, and is protected at the edge with Caddy Basic Auth.
 
 ## Documentation
+
+- [Product direction](docs/ai/PRODUCT_CONTEXT.md)
+- [Current priorities](docs/ai/CURRENT_PRIORITIES.md)
+- [Training decision MVP](docs/product/TRAINING_DECISION_MVP.md)
 
 - [Architecture](docs/architecture/ARCHITECTURE.md)
 - [Readiness model](docs/models/READINESS_MODEL.md)

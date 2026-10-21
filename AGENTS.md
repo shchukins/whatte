@@ -2,7 +2,10 @@
 
 ## Purpose
 
-Whatte is an engineering-first system for analyzing training data and supporting workout decisions.
+Whatte's product direction is an Adaptive Training Decision Engine: help choose
+today's most useful workout under time and weekly-plan constraints, in service
+of long-term training progress. The current runtime is a narrower readiness-to-category
+baseline; goal-aware time adaptation is planned, not implemented.
 
 Current product priority:
 
@@ -16,15 +19,21 @@ This file is a short entrypoint for agents. Detailed workflow, style, Git, optio
 Whatte is:
 
 - a data pipeline
-- a physiology-informed model
-- a readiness evaluation system
-- a deterministic decision-support system
+- a deterministic training decision-support system
+- a source of training history, load and response context
+- an existing readiness baseline supporting, rather than defining, the product goal
 
 Whatte is not:
 
 - an AI-driven product core
 - a black-box decision engine
 - a generative substitute for domain logic
+
+Product scope and the next bounded experiment are defined in
+`docs/ai/PRODUCT_CONTEXT.md`, `docs/ai/CURRENT_PRIORITIES.md` and
+`docs/product/TRAINING_DECISION_MVP.md`. Do not treat calibration or recovery
+research acceptance as prerequisites for that experiment. Do not expand physiology,
+autoresearch or planning scope without a concrete decision benefit.
 
 ## Non-negotiable rules
 

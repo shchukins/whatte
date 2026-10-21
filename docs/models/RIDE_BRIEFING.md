@@ -1,5 +1,11 @@
 # Ride Briefing
 
+> Scope note, 2026-10-21: this document specifies the **implemented readiness
+> baseline**, unchanged by the new [product direction](../ai/PRODUCT_CONTEXT.md).
+> Goal-aware comparison of workout alternatives under time constraints is
+> [planned](../product/TRAINING_DECISION_MVP.md), not a capability of this contract.
+> A high readiness category does not establish which workout best serves a block.
+
 ## 1. Purpose
 
 Этот документ описывает, как Whatte должен формировать ride briefing поверх текущей readiness layer.

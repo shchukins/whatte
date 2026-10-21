@@ -4,7 +4,14 @@
 
 Whatte is a deterministic training decision support system.
 
-The goal is to recommend the right training on the right day using measurable physiological signals. AI assists with explanation and implementation but must not replace deterministic decision logic.
+The product goal is to help choose today's most useful workout given the block
+goal, actual training and available time across the week. Long-term progress is
+the outcome; readiness is supporting context. The implemented baseline still maps
+readiness to a category. Time-aware adaptation is planned:
+[bounded MVP](../product/TRAINING_DECISION_MVP.md).
+AI assists with explanation and implementation but must not replace deterministic
+decision logic. Recovery research and calibration expansion are paused product
+priorities, not prerequisites for the MVP.
 
 ---
 

@@ -9,11 +9,15 @@ No production data or experiments were accessed for this review.
 
 ## 1. Executive overview
 
-Whatte is a deterministic training readiness and recovery system.
+Product direction updated 2026-10-21: Whatte is an Adaptive Training Decision
+Engine. Its target is to choose today's useful workout under goal, time and
+weekly-plan constraints. See [Product context](PRODUCT_CONTEXT.md) and
+[bounded MVP](../product/TRAINING_DECISION_MVP.md).
 
-It solves one core problem:
-
-> given mixed real-world training and recovery data, determine current physiological readiness and turn that into an explainable daily training decision
+This map describes the **implemented readiness baseline** and preserves the
+dated evidence review below. Goal-aware time adaptation and progress evaluation
+are planned, not implemented. Research expansion is paused as a product priority.
+No runtime or model behavior changes with this documentation update.
 
 The active core uses Strava load plus response and subjective feeling. Preserved
 HealthKit history can enrich the matching historical date, but wearable data is
@@ -25,7 +29,7 @@ Core boundary:
 - AI is auxiliary for explanation, formatting, and developer workflows
 - AI does not define readiness, recovery, or recommendation logic
 
-## 2. End-to-end system flow
+## 2. Implemented baseline flow
 
 ```mermaid
 flowchart LR
@@ -371,7 +375,8 @@ This is a cross-cutting concern, not a separate model:
 Status: `partial`
 
 - currently implemented as deterministic mapping and briefing templates
-- should remain downstream from readiness
+- the current mapping is downstream from readiness; the planned goal/time-aware
+  decision must also consume plan and training context, not only the score
 - must not recalculate physiology or silently blend in AI reasoning
 
 Current implemented basis:
@@ -384,11 +389,15 @@ Still missing for a fuller production decision system:
 
 - explicit decision objects with richer constraints
 - stable freshness/confidence-aware recommendation policy
-- integrated ride preparation context such as equipment and calendar
+- goal, manual plan, known time windows and comparison of alternatives (planned MVP)
+- equipment and calendar integrations are deferred beyond that MVP
 
 ## 7. Product loops and scenario epics
 
-The current scenario-epic framing is the best product-level view of the system.
+The following loops describe existing capabilities and the earlier scenario epics.
+They are not the current development order. The new product loop is defined in
+[Product context](PRODUCT_CONTEXT.md); the next preparation milestone is the
+[time-change decision MVP](../product/TRAINING_DECISION_MVP.md).
 
 ### 7.1 Morning Readiness Loop
 
@@ -658,13 +667,17 @@ Important boundary:
 
 ## 12. Simplification rule
 
-Any future addition should fit this chain:
+The implemented readiness baseline follows this chain:
 
 ```text
 source -> raw -> normalized -> derived -> state -> readiness -> decision -> delivery -> feedback -> calibration
 ```
 
-If a proposed feature bypasses this chain, it should be challenged:
+This chain describes the current readiness path, not a requirement to reduce
+all future decisions to readiness. Planned goal/plan/time context must enter the
+decision explicitly while existing model meanings remain unchanged.
+
+For any proposed feature, ask:
 
 - does it belong in deterministic production logic
 - is it actually a delivery concern

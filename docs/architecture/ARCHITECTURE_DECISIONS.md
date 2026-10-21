@@ -256,6 +256,39 @@ RAG может быть полезен:
 
 ---
 
+## ADR-008: Goal-directed training decisions under time constraints
+
+**Status:** accepted product direction, 2026-10-21; implementation planned.
+
+### Context
+
+The current readiness-to-category baseline describes today's state but does not
+choose between useful workouts when real available time differs from a plan.
+Further physiological precision alone does not close this product gap.
+
+### Decision
+
+Preserve “What is today?” and evaluate today's choice within the week and block.
+Use long-term, goal-relevant sporting progress as the outcome; readiness and
+recovery are supporting constraints/context, not optimization targets.
+Start with one cyclist, a manual plan and changing available time, using explicit
+deterministic rules and a comparison to a simple baseline.
+
+[Product context](../ai/PRODUCT_CONTEXT.md) defines the direction;
+[Training decision MVP](../product/TRAINING_DECISION_MVP.md) bounds the experiment.
+
+### Consequences
+
+- Readiness formulas, API/storage contracts and current runtime stay unchanged.
+- Calibration, recovery prediction and autoresearch expansion are paused
+  priorities; their acceptance is not a dependency of this MVP.
+- Preserve their code, documentation, raw inputs and evidence gates for any
+  separately approved resumption.
+- Goal/plan/constraint/adaptation responsibilities do not imply new services.
+- No automatic periodization, precise adaptation forecast or LLM decision core.
+- Product and sporting outcomes are assessed separately; one-user progress
+  cannot establish causal superiority.
+
 ## How to add new decisions
 
 При добавлении нового решения:

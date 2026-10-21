@@ -1,5 +1,11 @@
 # Architecture
 
+> Product direction updated 2026-10-21:
+> [Adaptive Training Decision Engine](../ai/PRODUCT_CONTEXT.md).
+> This document describes the implemented readiness baseline. Goal-aware
+> time adaptation is [planned](../product/TRAINING_DECISION_MVP.md).
+> The product change does not alter formulas, storage, services or delivery.
+
 ## 1. Purpose
 
 Этот документ описывает текущую архитектуру Whatte.
@@ -491,10 +497,10 @@ LoadState + Response + Feeling + optional Physiology -> Readiness -> GoodDayProb
 - не ломать границы между слоями
 - явно отделять implemented behavior от несуществующего behavior
 
-Если компонент не вписывается:
-
-- либо он лишний
-- либо архитектура нарушена
+Текущий readiness pipeline не является единственно допустимым входом
+будущего решения. Goal/plan/time context должен учитываться явно в bounded MVP.
+Проверять соответствие ответственности компонента, а не требовать свести
+планирование к readiness. Изменения контрактов фиксируются отдельно.
 
 ## 14. Recovery prompt scheduling flow
 

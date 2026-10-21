@@ -1,5 +1,12 @@
 # Bounded readiness parameter space (#137)
 
+> Priority update, 2026-10-21: further work on this research/calibration
+> direction is **paused** under [current priorities](../ai/CURRENT_PRIORITIES.md).
+> This document preserves its technical contract, dated evidence and acceptance
+> gates; internal “next steps” apply only if the workstream is explicitly resumed.
+> This does not disable existing runtime or change GitHub issue status.
+> It is not a prerequisite for the [training decision MVP](TRAINING_DECISION_MVP.md).
+
 ## Implemented contract
 
 `readiness_parameter_space_v1` defines a strict, data-only candidate configuration

@@ -1,5 +1,12 @@
 # Workout outcome contract proposal (#132)
 
+> Priority update, 2026-10-21: further work on this research/calibration
+> direction is **paused** under [current priorities](../ai/CURRENT_PRIORITIES.md).
+> This document preserves its technical contract, dated evidence and acceptance
+> gates; internal “next steps” apply only if the workstream is explicitly resumed.
+> This does not disable existing runtime or change GitHub issue status.
+> It is not a prerequisite for the [training decision MVP](TRAINING_DECISION_MVP.md).
+
 Version `workout_outcome_v1` extends the existing read-only decision-to-outcome
 report. One activity record is emitted for each current canonical, nondeleted,
 nonexcluded Strava activity. The record contains independent targets; absence of

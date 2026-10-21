@@ -1,5 +1,19 @@
 # Glossary
 
+## Product terms
+
+Product direction: [Product context](PRODUCT_CONTEXT.md).
+The following decision concepts are **planned**, not existing API/storage entities.
+
+- **Goal:** the capability or sporting result a training block aims to improve.
+- **Stimulus:** the intended kind of training work; equal load/TSS does not imply equal stimulus.
+- **Constraints:** available time and explicit limits on acceptable options; unknown is not unconstrained.
+- **Adaptation:** observed change in sporting capability over time; neither readiness nor plan compliance proves it.
+- **Training decision:** an explained choice in the context of the remaining week,
+  including a compromise and any proposed plan changes.
+- **Progress:** goal-relevant change assessed with agreed comparable tasks.
+  This is distinct from engineering progress and from the load-model `fitness` field.
+
 ## 1. Data layer
 
 ### Data Engine
@@ -100,7 +114,7 @@ Recovery не заменяет fatigue, а корректирует readiness п
 ### Fitness / Fatigue
 Компоненты load state:
 
-- Fitness: долгосрочная адаптация
+- Fitness: долгосрочный модельный отклик на нагрузку; не измеренная форма и не доказанная адаптация
 - Fatigue Fast: быстрый отклик усталости
 - Fatigue Slow: более инерционное накопление усталости
 - Fatigue Total: взвешенная смесь fast и slow fatigue
@@ -160,7 +174,7 @@ HealthKit.
 ---
 
 ### Recommendation
-Результат decision layer.
+Результат decision layer. Сейчас — readiness-to-category mapping; в целевом MVP — выбор с учётом цели и времени, пока planned.
 
 Определяет:
 
@@ -179,7 +193,7 @@ HealthKit.
 
 - это baseline decision support, а не полноценный training planner
 - recommendation не пересчитывает readiness, а использует уже сохраненный readiness output
-- более широкий planning layer остается planned
+- более широкий planning layer остается planned; текущий score не определяет ценность занятия для цели блока
 
 ---
 
@@ -190,7 +204,8 @@ HealthKit.
 
 - детерминированным
 - стабильным
-- опираться на readiness layer, а не на свободный текст
+- в текущем baseline опираться на readiness layer, а не на свободный текст;
+  будущий decision briefing должен отражать также цель, ограничения и компромисс
 
 В текущем backend baseline ride briefing уже реализован как deterministic formatting layer поверх:
 

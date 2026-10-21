@@ -1,33 +1,36 @@
 # Backend Roadmap
 
+Product direction as of 2026-10-21:
+[Product context](../docs/ai/PRODUCT_CONTEXT.md) and
+[Current priorities](../docs/ai/CURRENT_PRIORITIES.md) are authoritative.
+
 ## Already implemented
 
-- Strava ingestion baseline
-- preserved historical HealthKit raw and normalized tables
-- `health_recovery_daily`
-- baseline-aware recovery scoring
-- `recovery_explanation_json`
-- `load_state_daily_v2`
-- `readiness_daily`
-- `good_day_probability` baseline
-- wearable-independent daily readiness pipeline
-- Web Today feedback and dated profile management
-- Telegram daily readiness, post-ride RPE, and next-day recovery flows
-- deterministic recommendation and shared briefing contract for API, Web Today,
-  and Telegram delivery
-- pilot-report and decision-context snapshot storage for calibration evidence
+- Strava ingestion, raw history and explicit activity load eligibility
+- dated profile, effective RPE, response metrics and comparable-session baselines
+- daily load, recovery and readiness; preserved historical HealthKit rows
+- Web Today/Profile/Diary, Telegram feedback and shared deterministic briefing
+- snapshots, datasets and offline research infrastructure with documented
+  acceptance limits; implementation is not evidence of model benefit
 
-## Next steps
+Detailed implementation and dated evidence:
+[Current state](../docs/product/CURRENT_STATE.md).
 
-- complete and review the 14-day morning-loop pilot before changing model
-  weights or thresholds
-- readiness / probability calibration from stored evidence; the current
-  `good_day_probability` remains `readiness_score / 100`, not a calibrated
-  probability
-- resolve the remaining notification-formatting drift so delivery code consumes
-  only the canonical decision contract
-- define a bounded first non-cycling Strava load slice; unsupported activities
-  must remain explicit rather than estimated
-- expand derived features only when a concrete deterministic consumer exists
-- evaluate personalization or prediction only after calibration criteria and
-  validation data are agreed
+## Next bounded product step — planned
+
+Prepare the contract and reuse audit for a cycling-only, single-user time-change
+decision using a manual weekly plan. Define minimum goal/plan/time context,
+completed-work matching, allowable alternatives, missing-data behavior,
+tradeoff explanations and comparison to a simple baseline.
+See [Training decision MVP](../docs/product/TRAINING_DECISION_MVP.md).
+
+Implementation follows in a separate task. No architecture, service, model
+formula, API or schema change is implied by this roadmap.
+
+## Paused / deferred
+
+Readiness tuning, probability calibration, recovery prediction, autoresearch
+expansion, additional sports/providers, calendar/equipment integrations and
+automatic periodization are not current milestones. Existing contracts and
+acceptance gates remain valid if those workstreams are explicitly resumed.
+The completed morning-loop pilot is existing evidence, not a pending prerequisite.

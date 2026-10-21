@@ -1,254 +1,78 @@
 # Scenarios
 
-## 1. Purpose
-
-Этот документ описывает пользовательские сценарии Whatte.
-
-Цель:
-
-- связать систему с реальным использованием
-- показать, как формируется ценность
-- зафиксировать ключевые user flows
-
----
-
-## 2. Core scenario
-
-### Daily training decision
-
-Основной сценарий системы:
-
-> пользователь хочет понять, в каком состоянии он находится сегодня и насколько день выглядит подходящим для нагрузки
-
-### Flow
-
-1. Пользователь открывает систему
-2. Worker продлевает load state до текущей локальной даты
-3. Readiness использует response, morning feeling и optional exact-date physiology
-4. Система возвращает status / score / probability и explanation
-5. Decision layer возвращает recommendation / reason / briefing
-6. Пользователь принимает решение
-
-### Output
-
-Пользователь получает:
-
-- текущий статус готовности
-- readiness score
-- good day probability
-- recommendation
-- краткое объяснение
-
-Комментарий:
-
-- readiness output уже реализован в backend
-- history endpoint отдает последние daily points для trend UI
-
----
-
-## 3. Daily usage (MVP)
-
-### Flow
-
-1. Пользователь открывает Web Today
-2. Backend читает materialized readiness за текущую локальную дату
-3. Пользователь при необходимости отправляет one-tap morning feeling
-4. Backend выполняет deterministic daily recompute
-5. Пользователь видит:
-
-- readiness
-- explanation
-- recommendation
-- 7-day trend
-
-### Notes
-
-- trend строится из `readiness_daily` history
-- history endpoint не делает recompute
-- load state должен продолжаться по календарю без зависимости от wearable sync
-- recommendation строится из текущего `readiness_score`
-
----
-
-## 4. Scenario: Today screen
-
-### Context
-
-- пользователь открывает mobile-friendly Web Today
-- экран читает daily readiness и backend-owned recommendation
-- отсутствие physiology показывается как optional unavailable
-
-### User sees
-
-- readiness score
-- status text
-- recommendation
-- compact 14-local-day table of persisted readiness, recommendation category,
-  and morning recovery feedback
-- freshness signal
-- optional physiology signal
-- historical physiology breakdown when the same-date record exists:
-  - sleep score
-  - HRV score
-  - resting HR score
-
-### Implemented data sources
-
-- `GET /api/v1/model/readiness-daily/{user_id}/{date}`
-- internal calendar-window read of `readiness_daily` and
-  `activity_subjective_feedback` for the protected Today page
-- `readiness_daily`
-- `explanation.recovery_explanation`
-
-### Notes
-
-- Web Today displays current backend state
-- recommendation is deterministic
-- UI does not run model logic locally
-- history covers today and the preceding 13 dates in the configured local
-  timezone; missing dates and feedback remain visible as missing
-- the table is current persisted history, which may change after recomputation;
-  it is not an immutable record of morning decisions or delivered messages
-- model versions are shown separately, and recommendation categories are mapped
-  only for the supported current version through the shared decision contract
-- a history read failure affects only the history section
-
----
-
-## 5. Scenario: After hard training block
-
-### Context
-
-- несколько дней высокой нагрузки
-- накопленная усталость
-
-### Expected system behavior
-
-- снижение readiness
-- снижение `good_day_probability`
-- explanation через load + recovery breakdown
-
----
-
-## 6. Scenario: After recovery
-
-### Context
-
-- период снижения нагрузки
-- восстановление
-
-### Expected system behavior
-
-- рост readiness
-- рост `good_day_probability`
-
----
-
-## 7. Scenario: Stable training
-
-### Context
-
-- регулярные тренировки
-- умеренная нагрузка
-
-### Expected system behavior
-
-- стабильный readiness
-- стабильный readiness output без скрытой логики
-
----
-
-## 8. Scenario: Load spike
-
-### Context
-
-- резкий рост нагрузки
-
-### Expected system behavior
-
-- корректировка readiness вниз
-- корректировка probability вниз
-
----
-
-## 9. Scenario: No recent data
-
-### Context
-
-- нет тренировок
-- недостаточно данных
-
-### Expected system behavior
-
-- ограниченная уверенность
-- fallback на доступные слои readiness
-
----
-
-## 10. Scenario: Incomplete data
-
-### Context
-
-- отсутствуют некоторые метрики
-- нет power / HR
-
-### Expected system behavior
-
-- использовать доступные данные
-- не ломать модель
-- явно ограничивать точность
-
----
-
-## 11. Scenario: Long break
-
-### Context
-
-- длительный перерыв
-
-### Expected system behavior
-
-- формально возможен рост readiness за счет текущего baseline
-- decision layer использует текущий readiness-to-recommendation mapping
-
----
-
-## 12. System behavior expectations
-
-Во всех сценариях система должна:
-
-- быть предсказуемой
-- быть объяснимой
-- не давать противоречивые outputs между score, probability и status
-
----
-
-## 13. Not in scope
-
-Система пока не делает:
-
-- долгосрочное планирование
-- автоматическое построение тренировочных программ
-- персонализированный coaching
-- ML-based recommendation
-
----
-
-## 14. Usage
-
-Этот документ используется для:
-
-- проверки логики модели
-- тестирования
-- проектирования UI
-- работы с AI
-
----
-
-## 15. Validation
-
-Сценарии должны:
-
-- соответствовать реальному поведению системы
-- использоваться в тестах
-- обновляться при изменениях логики
+Обновлено: 2026-10-21. Направление:
+[Product context](../ai/PRODUCT_CONTEXT.md), граница:
+[Training decision MVP](TRAINING_DECISION_MVP.md).
+
+## 1. Главный сценарий — planned
+
+По плану двухчасовая длительная, сегодня есть 50 минут. WHATTE должен помочь
+выбрать занятие, сохранив смысл недели и блока, и объяснить компромисс.
+Это ещё не реализованный flow: текущий backend выдаёт категорию по readiness.
+
+Целевой flow: известный план и цель → изменение времени → проверка фактической
+работы и ограничений → допустимые альтернативы → объяснимое предложение →
+выбор пользователя → фактическое выполнение и feedback.
+
+## 2. Один лимит времени, разные решения — planned acceptance cases
+
+Примеры условные: они задают требования к контексту, а не универсальные
+тренировочные предписания или пороги интенсивных дней.
+
+| Контекст | Требуемое поведение | Компромисс / запрет |
+| --- | --- | --- |
+| 120 → 50 минут, приоритетная интенсивная работа уже выполнена, аэробного объёма мало | Рассмотреть сокращённое лёгкое занятие | Не компенсировать недостающие минуты интервалами; полный длительный стимул теряется |
+| 120 → 50 минут, приоритетная интенсивная работа не выполнена, перенос длительной возможен, переносимость приемлема | Сравнить подходящий короткий шаблон интенсивной работы с лёгким вариантом | Интенсивность не назначается только из-за нехватки времени; нужен смысл для цели |
+| Сегодня выраженная усталость, завтра ключевое занятие | Рассмотреть отдых, облегчение и при необходимости пересмотр завтрашнего задания | Не обещать, что отдых гарантирует успешную тренировку завтра |
+| Окно для длительной позже подтверждено | Предложить перенос с проверкой соседних занятий и бюджета недели | Перенос не должен скрыто создать цепочку тяжёлых дней |
+| Будущие окна неизвестны | Ограничить решение известным контекстом либо уточнить конкретное окно | Не выдумывать свободное воскресенье |
+| Пропущено занятие, оставшаяся неделя заполнена | Явно допустить потерю части стимула | Пропуск не становится обязательным долгом |
+| План помещается во время и нет причины менять | Сохранить план и объяснить отсутствие необходимости коррекции | Не создавать изменения ради активности движка |
+
+## 3. Неполные данные и границы — planned acceptance cases
+
+- Нет цели или приоритета занятия: не объявлять вариант оптимальным для блока;
+  запросить недостающий факт или дать ограниченные альтернативы.
+- Есть activity, но нет пригодной мощности/load: показать unknown/unsupported;
+  не считать это отдыхом и не дорисовывать нулевую нагрузку.
+- Выполнение планового стимула неоднозначно: не засчитывать его автоматически.
+- Нет RPE, HRV/RHR или morning feeling: не подменять отсутствие хорошим
+  восстановлением; physiology не становится обязательным условием выбора.
+- Высокий readiness после перерыва: не назначать тяжёлую работу только по score;
+  учитывать недавнюю тренировочную историю.
+- Низкий readiness без надёжного контекста: показать ограничения; число само
+  по себе не доказывает, что отдых — лучший вклад в цель.
+- Время включает разминку и заминку: интервальный шаблон должен целиком помещаться.
+- Пользователь отклоняет рекомендацию: сохранить его выбор и причину, не
+  переписывать исходное предложение или план скрыто.
+- Результат устарел: обозначить дату/контекст, не показывать его как свежий выбор.
+
+## 4. Недельный обзор и блок — planned
+
+Недельный обзор различает запланированное, выбранное и фактически выполненное,
+приоритетные стимулы и потерянную работу. RPE и незавершённые задания помогают
+оценивать переносимость. Пропуски не компенсируются автоматически.
+
+Контроль блока сопоставляет заранее определённые задания в похожих условиях.
+Больше выполненных минут, выше readiness или load-model `fitness` не равны
+доказанному спортивному прогрессу. Причинный эффект WHATTE не устанавливается
+одним блоком у одного пользователя.
+
+## 5. Что работает сейчас — implemented baseline
+
+- Web Today читает materialized readiness текущей локальной даты, показывает
+  recommendation/reason/briefing и availability; UI не рассчитывает модель.
+- Morning feeling и effective RPE сохраняются через backend-owned контракты.
+- Diary показывает 14 локальных дат и фактическую семидневную сводку; отсутствующие
+  даты и значения остаются отсутствующими.
+- Readiness history — текущее persisted state, которое может меняться после
+  recompute; это не immutable история ранее доставленных рекомендаций.
+- Historical physiology применяется только к соответствующей дате.
+- Нет goal-aware альтернатив по времени, ручного недельного планирования
+  или доказанной оценки адаптации.
+
+Подробности текущего UI: [Today contract](../ui/READINESS_TODAY_SCREEN.md).
+Модельные ожидания: [readiness](../models/READINESS_MODEL.md),
+[decision mapping](../models/DECISION_RULES.md). Старые сценарии «readiness
+снизился после нагрузки / вырос после отдыха» не используются как критерий
+продуктового успеха.
