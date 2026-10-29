@@ -22,6 +22,15 @@ Readiness calibration and recovery research acceptance do not block this MVP.
 Existing jobs, feedback collection, data and GitHub issue statuses are unchanged.
 The historical evidence below must not be read as a fresh production audit.
 
+## Backend policy increment, 2026-10-29
+
+Implemented: pure [training time policy](../models/TRAINING_DECISION_POLICY.md)
+for supplied goal/weekly-plan context: KEEP, SHORTEN, SUBSTITUTE, RESCHEDULE,
+SKIP or explicit uncertainty, with stimulus tradeoffs and unit scenarios.
+The planned rows above describe the full product flow: input collection, Today /
+Telegram integration, persistence and user confirmation remain planned. No new
+readiness model or evidence of sporting benefit is introduced. Issue #93 stays open.
+
 ## Dated implementation evidence
 
 Сверка: `main` / `9013921a0e2a53e2b694114ed74ee8a53fb3966f`, код,

@@ -1,7 +1,9 @@
 # Training decision MVP
 
 Статус: **planned / продуктовая граница эксперимента**, 2026-10-21.
-Это не API/schema specification и не описание работающего функционала.
+Полный пользовательский эксперимент остаётся planned. Первый backend-only
+инкремент реализован 2026-10-29: [policy contract](../models/TRAINING_DECISION_POLICY.md).
+Ниже — продуктовая граница эксперимента, не API/schema specification.
 Источник направления: [Product context](../ai/PRODUCT_CONTEXT.md).
 
 ## Проверяемая гипотеза

@@ -2,8 +2,9 @@
 
 > Scope note, 2026-10-21: this document specifies the **implemented readiness
 > baseline**, unchanged by the new [product direction](../ai/PRODUCT_CONTEXT.md).
-> Goal-aware comparison of workout alternatives under time constraints is
-> [planned](../product/TRAINING_DECISION_MVP.md), not a capability of this contract.
+> The separate backend-only [training time policy](TRAINING_DECISION_POLICY.md)
+> implements a first bounded comparison of supplied workout alternatives. It is
+> not connected to this readiness/delivery contract.
 > A high readiness category does not establish which workout best serves a block.
 
 ## 1. Purpose
