@@ -209,6 +209,13 @@ execution and issue closure remain inactive.
 
 ## V2: manual training context
 
+Preflight `validate` explicitly tolerates declared pending versions while preserving
+Flyway's default future-version tolerance and applied-migration validation. It
+does not apply SQL. Production `migrate` still requires the exact reviewed receipt
+and fresh restore-verified backup. The lifecycle suite rehearses real V2 pending
+validation, rejection without approval, approved upgrade and data preservation;
+applied checksum corruption remains rejected even with a pending migration.
+
 [V2__training_context.sql](../../migrations/sql/V2__training_context.sql) adds two
 independent manual-input tables, with no historical data changes. See the
 [context contract](TRAINING_CONTEXT.md). `verify-baseline` remains an exact V1

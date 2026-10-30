@@ -123,6 +123,11 @@ def flyway(root, action, baseline_hash=None):
             '-initSql=SET lock_timeout = \'5s\'; SET statement_timeout = \'120s\'']
     if baseline_hash:
         args.append(f'-baselineDescription=Whatte V1 sha256={baseline_hash}')
+    if action == 'validate':
+        # Preflight runs before migrate: declared pending versions are expected.
+        # Keep Flyway's default future-version tolerance and all applied checksum,
+        # missing-file and failed-migration checks; only add pending to validation.
+        args.append('-ignoreMigrationPatterns=*:future,*:pending')
     args.append(action)
     output = docker_run(FLYWAY_IMAGE, args, mounts=[(root / 'migrations/sql', '/flyway/sql')],
                         variables={**{k: os.environ[k] for k in ('FLYWAY_URL', 'FLYWAY_USER', 'FLYWAY_PASSWORD')},

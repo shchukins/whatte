@@ -98,6 +98,20 @@ def test_changed_verification_query_is_rejected(root):
         migrate.artifacts(root)
 
 
+@pytest.mark.parametrize('action', ['validate', 'info', 'migrate'])
+def test_only_preflight_validation_tolerates_pending_versions(root, monkeypatch, action):
+    for key in ('FLYWAY_URL', 'FLYWAY_USER', 'FLYWAY_PASSWORD'):
+        monkeypatch.setenv(key, 'test')
+    calls = []
+    def docker_run(image, args, **kwargs):
+        calls.append(args)
+        return json.dumps({'validationSuccessful': True})
+    monkeypatch.setattr(migrate, 'docker_run', docker_run)
+    migrate.flyway(root, action)
+    patterns = [arg for arg in calls[0] if arg.startswith('-ignoreMigrationPatterns=')]
+    assert patterns == (['-ignoreMigrationPatterns=*:future,*:pending'] if action == 'validate' else [])
+
+
 def test_valid_cached_approval_cannot_bypass_live_nas_failure(root, monkeypatch):
     import subprocess
     monkeypatch.setenv('FLYWAY_URL', 'jdbc:postgresql://127.0.0.1:5432/test')

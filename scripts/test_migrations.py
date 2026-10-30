@@ -101,6 +101,7 @@ class MigrationLifecycle(unittest.TestCase):
 
     def test_checksum_changes_block_validation_and_migrate(self):
         self.command('migrate')
+        self.add_migration('CREATE TABLE pending_probe(id integer);')
         path = self.root / 'migrations/sql/V1__baseline.sql'
         path.write_text(path.read_text() + '\n-- illicit applied-history edit\n')
         manifest_path = self.root / 'migrations/manifest.json'
@@ -109,6 +110,34 @@ class MigrationLifecycle(unittest.TestCase):
         manifest_path.write_text(json.dumps(manifest))
         self.command('validate', good=False)
         self.command('migrate', good=False)
+
+    def test_real_v2_pending_validation_and_approved_upgrade(self):
+        self.command('migrate')
+        self.sql("insert into notification_log(user_id,notification_type,notification_date) values ('preserved','daily_readiness',current_date);")
+        before = self.sql('select row_to_json(n) from notification_log n;')
+        # Use the actual application migration, not a synthetic substitute.
+        current_manifest = json.loads((ROOT / 'migrations/manifest.json').read_text())
+        item = next(m for m in current_manifest['migrations'] if m['file'] == 'V2__training_context.sql')
+        shutil.copy(ROOT / 'migrations/sql' / item['file'], self.root / 'migrations/sql' / item['file'])
+        path = self.root / 'migrations/manifest.json'
+        manifest = json.loads(path.read_text())
+        manifest['migrations'].append(item)
+        path.write_text(json.dumps(manifest))
+        self.env['MIGRATION_ENVIRONMENT'] = 'production'
+        history = self.sql('select row_to_json(h) from flyway_schema_history h;')
+        self.command('validate')
+        self.assertEqual(history, self.sql('select row_to_json(h) from flyway_schema_history h;'))
+        pending = self.command('info')['migrations']
+        self.assertTrue(any(m['version'] == '2' and m['state'] == 'Pending' for m in pending))
+        self.assertEqual(self.sql("select to_regclass('user_training_context') is null;"), 't')
+        # Accepting pending during reads never authorizes production writes.
+        self.command('migrate', good=False)
+        self.assertEqual(history, self.sql('select row_to_json(h) from flyway_schema_history h;'))
+        receipt_path, _ = self.receipt('migrate')
+        self.assertEqual(self.command('migrate', extra=['--approval-file', str(receipt_path)])['migrationsExecuted'], 1)
+        self.command('validate')
+        self.assertEqual(self.sql('select row_to_json(n) from notification_log n;'), before)
+        self.assertEqual(self.sql("select count(*) from flyway_schema_history where version='2' and success;"), '1')
 
     def test_failed_transaction_rolls_back_and_blocks_repeat(self):
         self.command('migrate')
