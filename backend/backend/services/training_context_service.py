@@ -226,4 +226,9 @@ def save_today_availability(user_id: str, *, today: date, revision: int,
                          confirmed=duration_minutes is not None)
     windows = tuple(w for w in edit.plan.windows if w.day != today) + (window,)
     plan = WeekPlan.model_validate({**edit.plan.model_dump(), "windows": windows})
-    save_training_context(user_id, edit.model_copy(update={"plan": plan}), today=local_today())
+    # The read can straddle midnight within the same ISO week; the weekly store
+    # alone cannot detect that today's narrow patch has become yesterday's.
+    current_day = local_today()
+    if today != current_day:
+        raise HTTPException(409, "Наступил новый день. Обновите Сегодня перед сохранением.")
+    save_training_context(user_id, edit.model_copy(update={"plan": plan}), today=current_day)

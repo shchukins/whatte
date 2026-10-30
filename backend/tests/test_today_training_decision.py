@@ -176,3 +176,12 @@ def test_planned_decision_is_primary_and_readiness_is_supporting(state, monkeypa
     fallback = TestClient(app).get('/today').text
     assert 'Базовая сводка по состоянию. Планового решения пока нет.' in fallback
     assert '<h1 id="readiness-title">' in fallback
+
+
+def test_midnight_during_storage_read_rejects_previous_day_patch(state, monkeypatch):
+    days = iter([TODAY, TODAY + timedelta(days=1)])
+    monkeypatch.setattr(store, 'local_today', lambda: next(days))
+    with pytest.raises(HTTPException) as error:
+        store.save_today_availability('athlete', today=TODAY, revision=0, duration_minutes=50)
+    assert error.value.status_code == 409
+    assert not state['writes']
