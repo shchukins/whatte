@@ -15,6 +15,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
 from starlette.concurrency import run_in_threadpool
+from starlette.datastructures import FormData
 
 from backend.config import settings
 from backend.services.manual_physiology_service import (
@@ -32,6 +33,7 @@ from backend.services.subjective_feedback_service import (
 )
 
 from . import service as today_service
+from . import training as training_view
 from .history_service import get_diary_data
 from .presentation import (
     diary_date_label, diary_week_label, diary_week_start, physiology_error, today_label,
@@ -43,6 +45,7 @@ router = APIRouter(prefix="/today", tags=["today"])
 templates = Jinja2Templates(
     directory=str(Path(__file__).resolve().parents[1] / "templates")
 )
+templates.env.filters["decision_text"] = training_view.decision_text
 templates.env.filters["today_label"] = today_label
 templates.env.filters["diary_date"] = diary_date_label
 templates.env.filters["diary_week_start"] = diary_week_start
@@ -51,6 +54,8 @@ templates.env.filters["today_timestamp"] = today_service.format_readiness_timest
 FeedbackScore = Annotated[int, FastAPIPath(ge=1, le=5)]
 RpeScore = Annotated[int, FastAPIPath(ge=1, le=10)]
 RECOVERY_FORM_MAX_BYTES = 128
+TRAINING_DECISION_FORM_MAX_BYTES = 16 * 1024
+TRAINING_DECISION_FORM_MAX_FIELDS = 100
 
 
 def _reject_cross_site_request(request: Request) -> None:
@@ -200,7 +205,17 @@ def _today_page(
     physiology_errors: dict[str, str] | None = None,
     physiology_clears: set[str] | tuple[str, ...] = (),
     status_code: int = 200,
+    training_error: str | None = None,
+    training_draft: dict | None = None,
 ):
+    training = None
+    try:
+        training = training_view.today_decision(settings.daily_readiness_user_id, request.query_params)
+    except ValueError:
+        training_error = training_error or "Контекст предложения изменился. Откройте Сегодня заново и проверьте ввод."
+    except Exception:
+        logging.getLogger(__name__).exception("today_training_context_failed")
+        training_error = training_error or "Тренировочный контекст временно недоступен. Обновите страницу."
     data = today_service.get_today_data(
         settings.daily_readiness_user_id,
         preferred_activity_id=activity_id,
@@ -211,6 +226,10 @@ def _today_page(
         status_code=status_code,
         context={
             "page_title": "Сегодня · Whatte",
+            "training": training, "training_error": training_error,
+            "training_draft": training_draft,
+            "training_primary": bool(training and training["primary"]),
+            "training_types": training_view.TYPES, "training_actions": training_view.ACTIONS,
             "selected_activity": activity_id is not None,
             "return_day": _validated_return_day(return_day, data.activity),
             "rpe_error": rpe_error,
@@ -223,7 +242,7 @@ def _today_page(
             "physiology_clears": physiology_clears,
             "rpe_options": list(RPE_LABELS.items()),
             **asdict(data),
-        },
+        }, headers={"Cache-Control": "no-store"},
     )
 
 
@@ -611,3 +630,48 @@ async def save_training_plan(request: Request):
             error=exc.detail if isinstance(exc, HTTPException) else "Не удалось сохранить план. Ваш ввод оставлен в форме.",
             status_code=exc.status_code if isinstance(exc, HTTPException) else 503)
     return RedirectResponse("/today/plan?saved=true", status_code=303)
+
+
+@router.post("/training-decision")
+async def preview_training_decision(request: Request):
+    """Save capacity only; all other fields are temporary proposal constraints."""
+    _reject_cross_site_request(request)
+    if request.headers.get("content-type", "").split(";")[0] != "application/x-www-form-urlencoded":
+        raise HTTPException(415, "Ожидается URL-encoded форма")
+    body = bytearray()
+    async for chunk in request.stream():
+        if len(body) + len(chunk) > TRAINING_DECISION_FORM_MAX_BYTES:
+            raise HTTPException(413, "Форма слишком большая")
+        body.extend(chunk)
+    draft = {}
+    try:
+        fields = parse_qs(body.decode("utf-8"), keep_blank_values=True, max_num_fields=TRAINING_DECISION_FORM_MAX_FIELDS)
+        if set(fields) - (training_view.REVIEW_FIELDS | {"minutes", "revision"}):
+            raise ValueError("Неизвестное поле")
+        if any(len(v) != 1 for k, v in fields.items() if k not in {"reviewed_window", "substitute"}):
+            raise ValueError("Повторяющееся поле")
+        draft = {k: (v if k in {"reviewed_window", "substitute"} else v[0]) for k, v in fields.items()}
+        today = date.fromisoformat(draft["decision_day"])
+        if today != training_context.local_today():
+            raise HTTPException(409, "Наступил новый день. Обновите Сегодня перед сохранением.")
+        minutes = draft["minutes"].strip()
+        # Bound the native numeric control without adding a policy duration limit.
+        if minutes and not re.fullmatch(r"[0-9]{1,6}", minutes):
+            raise ValueError("Введите целые неотрицательные минуты")
+        revision = int(draft["revision"])
+        edit = await run_in_threadpool(training_context.get_training_context, settings.daily_readiness_user_id, today)
+        form_data = FormData([(k, v) for k, values in fields.items() for v in values])
+        training_view.review_inputs(form_data, edit, today)
+        await run_in_threadpool(training_context.save_today_availability, settings.daily_readiness_user_id,
+            today=today, revision=revision, duration_minutes=int(minutes) if minutes else None)
+    except (ValueError, KeyError):
+        return await run_in_threadpool(_today_page, request, training_draft=draft, status_code=422,
+            training_error="Проверьте целые минуты и выбранные ограничения. Время не сохранено.")
+    except Exception as exc:
+        if not isinstance(exc, HTTPException):
+            logging.getLogger(__name__).exception("today_availability_save_failed")
+        return await run_in_threadpool(_today_page, request, training_draft=draft,
+            status_code=exc.status_code if isinstance(exc, HTTPException) else 503,
+            training_error=exc.detail if isinstance(exc, HTTPException) else "Не удалось сохранить время. Проверьте состояние перед повтором.")
+    return RedirectResponse(training_view.preview_url(form_data), status_code=303,
+                            headers={"Cache-Control": "no-store"})

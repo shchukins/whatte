@@ -36,9 +36,12 @@ It includes a dated profile, RPE guidance/history, Today/Diary and a read-only
 operational dashboard. Historical HealthKit rows are preserved; collection and
 the iOS client are retired. Optional manual physiology is a separate research path.
 
-The category is still derived from readiness. Comparing alternatives against a
-goal, time budget and remaining week is **not implemented**. The baseline is not
-a complete coach or automated training planner.
+The readiness category remains unchanged. Today also uses the deterministic
+`training_time_policy_v1` with a saved manual block priority, weekly plan, activity
+facts and confirmed time windows. Changing today’s available minutes produces
+a proposal with stimulus tradeoffs and alternatives; it never applies plan changes.
+Permissions and compatibility reviews are explicit. Acceptance and activity-to-plan
+linkage remain planned. This is not a complete coach or automated planner.
 
 ## Next experiment — planned
 

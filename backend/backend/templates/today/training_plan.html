@@ -41,7 +41,7 @@
 {% for day in days %}<div class="plan-day"><label>{{ ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'][loop.index0] }} {{ day }} <input type="number" min="0" step="1" name="minutes_{{ day }}" value="{{ form.get('minutes_' ~ day, '') }}" aria-label="Минуты {{ day }}"></label>
 <label><input type="checkbox" name="confirmed_{{ day }}" aria-label="Подтверждаю окно {{ day }}" value="1" {% if form.get('confirmed_' ~ day) %}checked{% endif %}> Подтверждаю окно</label></div>{% endfor %}
 </section><button type="submit" class="profile-save">Сохранить контекст</button>
-<p>Сверка плана со Strava и рекомендации в «Сегодня» будут подключены следующим шагом.</p>
+<p>Предложение по плану доступно в «Сегодня». Связь занятия с фактической активностью и принятие решения пока недоступны.</p>
 </form></main><script>
 let nextIndex = {{ form.sessions|length + 1 }};
 document.querySelector('#add-session').addEventListener('click', () => {

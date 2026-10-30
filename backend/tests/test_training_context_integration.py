@@ -123,3 +123,32 @@ def test_v2_upgrade_preserves_existing_activity(db):
         db.execute((Path(__file__).parents[2] / 'migrations/sql/V2__training_context.sql').read_text(), prepare=False)
         assert db.execute('select row_to_json(r) from pg_temp.strava_activity_raw r').fetchall() == before
         db.execute('drop schema training_context_upgrade_probe cascade')
+
+
+def test_today_http_uses_persisted_plan_and_only_patches_capacity(db, monkeypatch):
+    from fastapi.testclient import TestClient
+    from backend.app import app
+    from backend.today import service as today_service
+
+    monkeypatch.setattr(service, 'local_today', lambda *a: MONDAY)
+    monkeypatch.setattr(service.settings, 'daily_readiness_user_id', 'athlete')
+    section = today_service.TodaySection('ok', None)
+    monkeypatch.setattr(today_service, 'get_today_data', lambda *a, **kw: today_service.TodayData(
+        'athlete', str(MONDAY), None, section, [], None, section, None, section, [], section))
+    service.save_training_context('athlete', make_edit(sessions=[dict(id='long', day=MONDAY,
+        session_type='long_z2', duration_minutes=120, priority='key', minimum_shortened_minutes=40)]), today=MONDAY)
+    before = service.get_training_context('athlete', MONDAY)
+    client = TestClient(app)
+    response = client.post('/today/training-decision', data=dict(decision_day=str(MONDAY),
+        revision=str(before.revision), minutes='50', session_id='long', training_allowed='yes'),
+        follow_redirects=False)
+    assert response.status_code == 303
+    first = client.get(response.headers['location'])
+    assert first.status_code == 200 and '>SHORTEN</span>' in first.text
+    assert first.text == client.get(response.headers['location']).text
+    after = service.get_training_context('athlete', MONDAY)
+    assert after.plan.sessions == before.plan.sessions
+    assert after.block_priority == before.block_priority
+    assert after.plan.windows[0].duration_minutes == 50
+    assert after.revision == before.revision + 1
+    assert service.get_training_context('athlete', MONDAY) == after

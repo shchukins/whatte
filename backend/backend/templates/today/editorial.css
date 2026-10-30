@@ -327,3 +327,16 @@ h2 {
 .profile-pending-notice p { margin: 0 0 8px; line-height: 1.5; }
 .profile-pending-notice a { display: inline-flex; align-items: center; min-height: 44px; }
 .profile-pending-notice a:focus-visible { outline: 2px solid var(--olive); outline-offset: 3px; }
+
+/* Native time-adaptation form shares Today typography and controls. */
+.training-form {display:grid;gap:12px;margin:24px 0;max-width:640px}
+.training-form label {display:grid;gap:8px}
+.training-form input:not([type=checkbox]), .training-form select {width:100%;min-height:44px;padding:10px;border:1px solid var(--line);background:var(--paper);color:var(--ink);font:16px var(--mono);box-sizing:border-box}
+.training-form .training-check {display:flex;align-items:flex-start;gap:10px;margin:16px 0}
+.training-check input {flex:0 0 auto;margin-top:5px}
+.training-option {border-top:1px solid var(--line);margin-top:24px;padding-top:16px}
+.training-tradeoff {display:grid;grid-template-columns:140px minmax(0,1fr);gap:12px}
+.training-tradeoff dd {margin:0}.training-tradeoff dd p {margin:0 0 8px}
+.training-decision {overflow-wrap:anywhere}.training-decision summary {cursor:pointer;padding:12px 0}
+@media(max-width:600px) {.training-tradeoff {grid-template-columns:1fr;gap:8px}.training-tradeoff dt {font-weight:600}.training-tradeoff dd {margin-bottom:12px}}
+.training-option h2 .badge, .training-option h3 .badge {font:12px var(--mono);letter-spacing:0.04em;vertical-align:middle}

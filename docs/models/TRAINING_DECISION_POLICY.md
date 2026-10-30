@@ -4,7 +4,8 @@ Implemented backend-only increment of [#93](https://github.com/shchukins/whatte/
 2026-10-29. Rule version: `training_time_policy_v1`.
 [Source](../../backend/backend/services/training_decision_policy.py),
 [unit scenarios](../../backend/tests/test_training_decision_policy.py).
-This is a pure proposal function, not an active Today/Telegram flow or a planner.
+This is a pure proposal function, consumed by Today since 2026-10-31.
+Telegram still uses the readiness baseline; this is not a planner.
 
 ## Contract
 
@@ -90,10 +91,9 @@ context remain separate. No numeric benefit, optimality or guaranteed recovery.
 
 Readiness mapping and its shared `recommendation/reason/briefing` delivery contract
 are unchanged. Those categories do not encode plan actions, so coercing this policy
-into them would break the baseline contract. Future adapters can consume this
-backend-owned result in Today/Telegram without reimplementing the rules. No API,
-UI, storage, automatic mutation, calendar integration or physiological model is
-introduced. Input provenance/freshness, user confirmation/persistence, richer
+into them would break the baseline contract. Today consumes this backend-owned result through the stored-context adapter
+without reimplementing the rules. No automatic plan mutation, calendar integration
+or physiological model is introduced. Input provenance/freshness, user confirmation/persistence, richer
 explanations and outcome evaluation remain subsequent work under #93.
 
 ## Stored context adapter
@@ -102,3 +102,18 @@ The second increment provides `/today/plan` and `get_policy_context` to assemble
 real saved and Strava inputs. See the [storage/adapter contract](../data/TRAINING_CONTEXT.md)
 for missing capacity, undated sessions, RPE, history completeness and remaining
 permission/confirmation boundaries. Policy rules and version are unchanged.
+
+## Today delivery, 2026-10-31
+
+The native Today flow consumes the same `TrainingDecision` / `TrainingOption`
+models. `today/training.py` formats codes, collects explicit training/intensity
+permissions, selected same-day session, reviewed future windows and whitelisted
+substitutes. It does not rank options or derive permissions from readiness.
+`reviewed_window_ids` on the context adapter fills existing
+`FutureWindow.compatible_session_ids` for the selected target only; capacity,
+occupied dates and other feasibility checks remain owned by the policy.
+
+Review inputs are date-scoped URL preview state, retained on reload of that URL;
+a bare Today visit starts with unknown permissions. A different local day clears
+permissions. They are neither stored consent nor decision acceptance. Activity
+matching, accepted proposals and Telegram delivery of plan actions remain future work.

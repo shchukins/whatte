@@ -2,8 +2,8 @@
 
 > Scope note, 2026-10-21: this document specifies the **implemented readiness
 > baseline**, unchanged by the new [product direction](../ai/PRODUCT_CONTEXT.md).
-> Goal-aware comparison of workout alternatives under time constraints is
-> [planned](../product/TRAINING_DECISION_MVP.md), not a capability of this contract.
+> Since 2026-10-31 Today also consumes the existing [training time policy](../models/TRAINING_DECISION_POLICY.md)
+> and [persisted context](../data/TRAINING_CONTEXT.md), as a separate proposal contract.
 > A high readiness category does not establish which workout best serves a block.
 
 ## Purpose
@@ -16,7 +16,31 @@ Its visual language follows [Whatte visual identity](VISUAL_IDENTITY.md):
 the daily reading is presented as an editorial issue, with the stored
 decision first, supporting signals and feedback next, and a compact 7-day overview linking to the 14-day diary.
 
-## Current behavior
+## Training proposal, 2026-10-31
+
+The first block shows today's saved session (type, minutes, key/supporting),
+block priority and a native time editor. Known capacity is prefilled. Unknown
+capacity, absent goal/plan and multiple same-day sessions remain explicit.
+Training permission is a separate explicit input. A disclosure collects intensity
+permission, future compatibility reviews and permitted existing-plan substitutes.
+
+The shared backend policy owns KEEP/SHORTEN/SUBSTITUTE/RESCHEDULE/SKIP, reasons,
+stimulus tradeoffs, week consequences and alternatives. Insufficient context
+produces uncertainty. Unknown load is visible without opening a disclosure;
+activities, RPE, missing optional physiology and data limitations remain available.
+
+When today's plan and block priority exist, this is the primary workout answer.
+The unchanged readiness surface is collapsed as supporting state; its historical
+category/briefing remains available and is explicitly distinguished from workout
+choice. Without that plan context the readiness baseline remains visible with a
+clear fallback label. Failures of the plan read are displayed, never empty history.
+
+Only available time is persisted. Preview constraints live in a local-date-scoped
+URL and are cleared for another day. Viewing/reloading never accepts proposals,
+changes the plan, creates assignments or records decision history. Confirmation
+and plan/activity linkage remain Task 4.
+
+## Existing readiness behavior
 
 - Presents one main answer for the stored result date: backend recommendation,
   shared briefing, and readiness labeled N/100. `good_day_probability` remains

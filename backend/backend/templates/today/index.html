@@ -20,6 +20,8 @@
     <div class="edition-note"><span>Тренировки / личный обзор</span><span>Сохранённые данные</span></div>
 
     <div class="stack">
+        {% include "today/training_decision.html" %}
+        {% if training_primary %}<details class="card"><summary>Готовность и восстановление · дополнительный контекст</summary>{% endif %}
         <section class="card hero" aria-labelledby="readiness-title">
             {% if readiness %}
             {% set historical = readiness.date != today %}
@@ -29,9 +31,9 @@
             {% endif %}
             <div class="hero-layout">
                 <div>
-                    <h1 id="readiness-title">{{ readiness.recommendation | today_label('recommendation') }}</h1>
+                    {% if training_primary %}<h2 id="readiness-title">Готовность</h2><details><summary>Сводка модели готовности</summary><p class="hint">Категория по состоянию; занятие выбирается в предложении WHATTE выше.</p>{% else %}<p class="hint">Базовая сводка по состоянию. Планового решения пока нет.</p><h1 id="readiness-title">{{ readiness.recommendation | today_label('recommendation') }}</h1>{% endif %}
                     {% if historical %}<p class="hint">Сохранённая сводка за {{ readiness.date }}:</p>{% endif %}
-                    <p class="briefing">{{ readiness.briefing_text or "Краткая рекомендация недоступна." }}</p>
+                    <p class="briefing">{{ readiness.briefing_text or "Краткая рекомендация недоступна." }}</p>{% if training_primary %}</details>{% endif %}
                 </div>
                 <div class="hero-metric">
                     <span class="metric-label">Готовность</span>
@@ -77,6 +79,7 @@
             <p class="empty">Рекомендация появится, когда будет рассчитана готовность.</p>
             {% endif %}
         </section>
+        {% if training_primary %}</details>{% endif %}
 
         <section id="recovery" data-feedback-section class="card recovery" aria-labelledby="recovery-title">
             <p class="section-index">02 / Утренний отчёт</p>

@@ -139,7 +139,8 @@ def _activities(cur, user_id: str, today: date, zone: ZoneInfo) -> list[dict]:
 def assemble_policy_context(edit: TrainingContextEdit, activities: list[dict], *, today: date,
                             today_session_id: str | None = None,
                             constraints: ActionConstraints | None = None,
-                            physiology_available: bool = False) -> dict:
+                            physiology_available: bool = False,
+                            reviewed_window_ids: tuple[str, ...] = ()) -> dict:
     """No invented capacity, completion matching or permissions from readiness.
 
     V1 requires numeric today's capacity: until confirmed, return context=None
@@ -172,7 +173,8 @@ def assemble_policy_context(edit: TrainingContextEdit, activities: list[dict], *
         missing.append("today_session_unknown_or_ambiguous")
     future_confirmed = [w for w in edit.plan.windows if w.day > today and w.confirmed]
     future_windows = tuple(FutureWindow(id=w.day.isoformat(), day=w.day,
-        duration_minutes=w.duration_minutes, confirmed=True)
+        duration_minutes=w.duration_minutes, confirmed=True,
+        compatible_session_ids=(today_session_id,) if w.day.isoformat() in reviewed_window_ids and today_session_id else None)
         for w in future_confirmed if w.duration_minutes > 0)
     if not future_confirmed and today.weekday() < 6:
         future_windows = None
@@ -189,7 +191,7 @@ def assemble_policy_context(edit: TrainingContextEdit, activities: list[dict], *
         )
         decision = choose_training_action(context)
         missing.extend(decision.missing_context)
-    return dict(saved_context=edit, activities=activities, context=context, decision=decision,
+    return dict(today=today, saved_context=edit, activities=activities, context=context, decision=decision,
                 missing_context=tuple(dict.fromkeys(missing)),
                 history_scope="locally_stored_strava_week_to_date",
                 limitations=("strava_sync_completeness_unverified", "plan_completion_not_linked",
@@ -198,7 +200,8 @@ def assemble_policy_context(edit: TrainingContextEdit, activities: list[dict], *
 
 def get_policy_context(user_id: str, *, now: datetime | None = None,
                        today_session_id: str | None = None,
-                       constraints: ActionConstraints | None = None) -> dict:
+                       constraints: ActionConstraints | None = None,
+                       reviewed_window_ids: tuple[str, ...] = ()) -> dict:
     today = local_today(now)
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("set transaction isolation level repeatable read read only")
@@ -207,4 +210,20 @@ def get_policy_context(user_id: str, *, now: datetime | None = None,
         physiology = load_physiology_signal(cur, user_id=user_id, target_date=str(today))
     return assemble_policy_context(edit, activities, today=today,
         today_session_id=today_session_id, constraints=constraints,
-        physiology_available=physiology["availability"] == "available")
+        physiology_available=physiology["availability"] == "available",
+        reviewed_window_ids=reviewed_window_ids)
+
+
+def save_today_availability(user_id: str, *, today: date, revision: int,
+                            duration_minutes: int | None) -> None:
+    """Patch only today's window through the existing atomic revisioned store."""
+    if today != local_today():
+        raise HTTPException(409, "Наступил новый день. Обновите Сегодня перед сохранением.")
+    edit = get_training_context(user_id, today)
+    if edit.revision != revision:
+        raise HTTPException(409, "Контекст уже изменён. Обновите страницу перед сохранением.")
+    window = DailyWindow(day=today, duration_minutes=duration_minutes,
+                         confirmed=duration_minutes is not None)
+    windows = tuple(w for w in edit.plan.windows if w.day != today) + (window,)
+    plan = WeekPlan.model_validate({**edit.plan.model_dump(), "windows": windows})
+    save_training_context(user_id, edit.model_copy(update={"plan": plan}), today=local_today())

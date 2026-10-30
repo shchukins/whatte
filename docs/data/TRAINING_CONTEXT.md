@@ -2,8 +2,8 @@
 
 Implemented second increment of [#93](https://github.com/shchukins/whatte/issues/93),
 2026-10-30. The existing `training_time_policy_v1` rules and readiness meanings
-are unchanged. Today recommendations, plan/activity linking and acceptance remain
-planned.
+are unchanged. Today recommendations are integrated as of 2026-10-31; plan/activity linking
+and acceptance remain planned.
 
 ## Manual input and storage
 
@@ -79,14 +79,34 @@ duration or power resembles it. No training permission, substitute eligibility
 or future session compatibility is inferred from readiness. Optional supplied
 `ActionConstraints` is the existing policy contract, not persisted permissions.
 
-## Remaining Today integration
+## Today integration, 2026-10-31
 
-The next increment must consume this adapter, show missingness/limitations,
-collect explicit current training constraints and any compatibility review, let
-the athlete select among multiple same-day sessions, and implement explicitly
-confirmed plan/activity linkage and recommendation acceptance. It must not treat
-known capacity or locally empty history as confirmation of those missing facts.
-This increment adds no recommendation UI or automatic plan mutations.
+Today reads `get_policy_context` and presents the existing policy output. The
+adapter also returns the exact local `today` used for its snapshot. Optional
+`reviewed_window_ids` carries explicit user compatibility review for the selected
+today session into the existing future-window contract. No capacity or readiness
+is interpreted as permission.
+
+`POST /today/training-decision` accepts native URL-encoded form data: local
+`decision_day`, current `revision`, `minutes` (empty unknown, 0 unavailable),
+optional `session_id`, training/intensity permission (`yes`, `no`, empty unknown),
+repeated `reviewed_window` dates and `substitute` session IDs. All IDs/dates are
+validated against the saved context before writing. `save_today_availability`
+patches only today's window, retaining block priority, all sessions and all other
+windows through the existing atomic revision check. Stale local day/revision is
+409; invalid form 422; failed storage 503. Input remains available for correction.
+The body is bounded to 16 KiB, uses the existing same-origin boundary and returns
+no-store responses. No migration is needed.
+
+A successful POST redirects to `/today` with date-scoped preview constraints.
+GET reads one real snapshot and computes a proposal without writes. Unknown
+time is never fabricated as zero. Permissions and compatibility reviews are
+preview state, not accepted decisions; opening the bare URL requires explicit
+permission again. No future-window carryover or automatic plan rewrite occurs.
+
+Plan/activity linkage, confirmed stimulus completion and decision acceptance
+remain Task 4. Local activity facts and load coverage are shown with explicit
+completeness/matching limitations; RPE remains context without new thresholds.
 
 Tests: [unit/form cases](../../backend/tests/test_training_context.py),
 [PostgreSQL storage, boundaries and upgrade](../../backend/tests/test_training_context_integration.py),
