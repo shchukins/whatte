@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>План недели · Whatte</title><style>{% include "today/editorial.css" %}{% include "today/profile.css" %}
+.plan-session {margin: 1.5rem 0; padding: 1rem; border: 1px solid var(--line, #ccc)}
+.plan-session .profile-fields > label {min-width:0;display:flex;flex-direction:column;gap:8px}
+.plan-session .profile-fields > label:last-child {flex-direction:row;align-items:center}
+.plan-session input:not([type=checkbox]), .plan-session select, #block-priority {width:100%;min-height:44px;padding:8px;border:1px solid var(--line);background:var(--paper);color:var(--ink);font:16px var(--mono)}
+.plan-day input[type=number] {min-height:44px;border:1px solid var(--line);background:var(--paper);font:16px var(--mono)} .plan-day {display:flex;gap:1rem;flex-wrap:wrap;align-items:center;margin:1rem 0}
+.plan-day input[type=number] {width:7rem} .plan-session input, .plan-session select {max-width:100%}
+</style></head><body><main class="shell profile-shell">
+{% set active_page = 'plan' %}{% include "today/navigation.html" %}
+<div class="profile-intro"><h1>План недели</h1><p>{{ days[0] }} — {{ days[6] }}. Даты и границы недели: локальное время WHATTE.</p></div>
+{% if saved %}<p role="status" class="saved">Контекст сохранён.</p>{% endif %}
+{% if error %}<p role="alert" class="error">{{ error }}</p>{% endif %}
+<form action="/today/plan" method="post">
+<input type="hidden" name="week_start" value="{{ form.get('week_start', days[0]) }}">
+<input type="hidden" name="revision" value="{{ form.get('revision', '0') }}">
+<section class="card"><h2>Приоритет блока</h2><label for="block-priority">Основной стимул</label>
+<select id="block-priority" name="block_priority"><option value="">Пока не задан</option>
+{% for value, label in training_types.items() %}<option value="{{ value }}" {% if form.get('block_priority') == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+<p>Сохраняется между неделями, пока вы его не измените.</p></section>
+<section class="card"><h2>Занятия</h2>
+<label><input type="checkbox" name="plan_known" value="1" {% if form.get('plan_known') %}checked{% endif %}> План задан (пустой список означает неделю без занятий)</label>
+<p>Дата необязательна. Минуты включают разминку и заминку. Минимум для сокращения задавайте только явно: он должен быть меньше полной длительности; для интенсивной работы сокращение пока недоступно.</p>
+{% macro session_row(s, i) %}
+<fieldset class="plan-session"><legend>Занятие</legend><input type="hidden" name="session_{{ i }}_id" value="{{ s.get('id', '') }}">
+<div class="profile-fields">
+<label>Тип <select name="session_{{ i }}_session_type">{% for value, label in training_types.items() %}<option value="{{ value }}" {% if s.get('session_type', 'z2') == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+<label>Минуты <input type="number" min="1" step="1" name="session_{{ i }}_duration_minutes" value="{{ s.get('duration_minutes', '') }}"></label>
+<label>Приоритет <select name="session_{{ i }}_priority"><option value="supporting" {% if s.get('priority') != 'key' %}selected{% endif %}>Поддерживающее</option><option value="key" {% if s.get('priority') == 'key' %}selected{% endif %}>Ключевое</option></select></label>
+<label>День <input type="date" min="{{ days[0] }}" max="{{ days[6] }}" name="session_{{ i }}_day" value="{{ s.get('day') or '' }}"></label>
+<label>Минимум сокращения, мин <input type="number" min="1" step="1" name="session_{{ i }}_minimum_shortened_minutes" value="{{ s.get('minimum_shortened_minutes') or '' }}"></label>
+<label><input type="checkbox" name="session_{{ i }}_remove" value="1" {% if s.get('remove') == '1' %}checked{% endif %}> Удалить</label>
+</div></fieldset>{% endmacro %}
+<div id="sessions">{% for s in form.sessions %}{{ session_row(s, loop.index0) }}{% endfor %}{{ session_row({}, form.sessions|length) }}</div>
+<button type="button" id="add-session">Добавить занятие</button>
+<noscript><p>Для добавления следующего занятия сохраните форму: появится новая пустая строка.</p></noscript>
+<template id="session-template">{{ session_row({}, 'INDEX') }}</template>
+</section><section class="card"><h2>Доступное время</h2>
+<p>Одно суммарное окно в день. Пусто или без подтверждения — доступность неизвестна. Подтверждённые 0 минут — времени нет. Подтверждение времени само по себе не подтверждает допустимость переноса занятия.</p>
+{% for day in days %}<div class="plan-day"><label>{{ ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'][loop.index0] }} {{ day }} <input type="number" min="0" step="1" name="minutes_{{ day }}" value="{{ form.get('minutes_' ~ day, '') }}" aria-label="Минуты {{ day }}"></label>
+<label><input type="checkbox" name="confirmed_{{ day }}" aria-label="Подтверждаю окно {{ day }}" value="1" {% if form.get('confirmed_' ~ day) %}checked{% endif %}> Подтверждаю окно</label></div>{% endfor %}
+</section><button type="submit" class="profile-save">Сохранить контекст</button>
+<p>Сверка плана со Strava и рекомендации в «Сегодня» будут подключены следующим шагом.</p>
+</form></main><script>
+let nextIndex = {{ form.sessions|length + 1 }};
+document.querySelector('#add-session').addEventListener('click', () => {
+ const fragment = document.querySelector('#session-template').content.cloneNode(true);
+ fragment.querySelectorAll('[name]').forEach(el => el.name = el.name.replace('INDEX', String(nextIndex)));
+ document.querySelector('#sessions').append(fragment); nextIndex++;
+});
+</script></body></html>

@@ -26,6 +26,14 @@ class MigrationLifecycle(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.root = Path(self.tmp.name)
         shutil.copytree(ROOT / 'migrations', self.root / 'migrations')
+        # Safety/adoption rehearsals intentionally exercise the immutable V1
+        # baseline; application migrations are applied in the CI database job.
+        manifest_path = self.root / 'migrations/manifest.json'
+        manifest = json.loads(manifest_path.read_text())
+        for item in manifest['migrations'][1:]:
+            (self.root / 'migrations/sql' / item['file']).unlink()
+        manifest['migrations'] = manifest['migrations'][:1]
+        manifest_path.write_text(json.dumps(manifest))
         (self.root / 'scripts').mkdir()
         shutil.copy(ROOT / 'scripts/migrate.py', self.root / 'scripts/migrate.py')
         # Synthetic NAS adapter exists only in the disposable test checkout.

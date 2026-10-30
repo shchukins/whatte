@@ -3,6 +3,9 @@
 Статус: **planned / продуктовая граница эксперимента**, 2026-10-21.
 Полный пользовательский эксперимент остаётся planned. Первый backend-only
 инкремент реализован 2026-10-29: [policy contract](../models/TRAINING_DECISION_POLICY.md).
+Второй инкремент — [сохраняемый недельный контекст](../data/TRAINING_CONTEXT.md)
+и форма `/today/plan` — реализован 2026-10-30. Интеграция рекомендаций с Today
+и подтверждение выполнения остаются planned.
 Ниже — продуктовая граница эксперимента, не API/schema specification.
 Источник направления: [Product context](../ai/PRODUCT_CONTEXT.md).
 

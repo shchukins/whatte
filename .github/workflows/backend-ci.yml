@@ -115,8 +115,9 @@ jobs:
       - name: Apply versioned DB schema
         run: python3 ../scripts/migrate.py migrate
 
-      - name: Verify baseline catalog and historical backfill postconditions
-        run: python3 ../scripts/migrate.py verify-baseline
+      # Exact V1 catalog/backfill checks run in the isolated lifecycle suite.
+      - name: Validate all applied migrations
+        run: python3 ../scripts/migrate.py validate
 
       - name: Verify migration failure, checksum, concurrency and interruption safety
         run: python3 ../scripts/test_migrations.py
@@ -129,6 +130,7 @@ jobs:
           pytest tests/test_pipeline_idempotency_integration.py -v
           pytest tests/test_user_profile_integration.py -v
           pytest tests/test_today_history_integration.py -v
+          pytest tests/test_training_context_integration.py -v
           pytest tests/test_calibration_records_integration.py -v
           pytest tests/test_research_writer_integration.py -v
 

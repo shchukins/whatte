@@ -9,6 +9,14 @@
       "transactional": true,
       "old_app_compatible": true,
       "review": "#187: full ordered bootstrap with explicitly audited production variants and preserved legacy objects"
+    },
+    {
+      "file": "V2__training_context.sql",
+      "sha256": "f26b1d318aad031278ee23009372215542be117b16d5899659b93e158065b831",
+      "risk": "compatible",
+      "transactional": true,
+      "old_app_compatible": true,
+      "review": "#93: independent manual context tables; no existing data or privileges changed; old API/worker ignore them"
     }
   ],
   "verification_sha256": {

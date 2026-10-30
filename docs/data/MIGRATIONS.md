@@ -206,3 +206,12 @@ migrations, all 822 catalog elements still matched and backfill violations remai
 zero. Backend, worker and PostgreSQL container identities/start times were unchanged;
 local health and DB checks passed. Automatic production deployment, migration
 execution and issue closure remain inactive.
+
+## V2: manual training context
+
+[V2__training_context.sql](../../migrations/sql/V2__training_context.sql) adds two
+independent manual-input tables, with no historical data changes. See the
+[context contract](TRAINING_CONTEXT.md). `verify-baseline` remains an exact V1
+adoption check; after V2 use `validate`. CI rehearses exact V1 adoption separately
+and applies the full chain before application integration tests. Production
+pending-migration backup/approval requirements remain unchanged.

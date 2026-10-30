@@ -204,6 +204,17 @@ Status: `implemented`
   guards and Today/Profile BFCache/tab-return recovery are implemented
 - optional physiology collection remains separate from readiness recomputation
 
+### Manual training context
+
+Status: `implemented bounded input slice`
+
+- `/today/plan`: saved block priority, manual current-week sessions and confirmed
+  daily capacity; stable session IDs and stale-form protection
+- read-only adapter joins current ISO-week Strava facts, existing load coverage
+  and effective RPE for the pure training-time policy
+- [contract and remaining Today integration](../data/TRAINING_CONTEXT.md); no
+  automatic activity matching, recommendation UI or plan generation
+
 ### Profile and Diary interaction surfaces
 
 Status: `implemented baseline`

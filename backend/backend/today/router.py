@@ -7,6 +7,7 @@ from datetime import date, timedelta
 from pathlib import Path
 from typing import Annotated
 from urllib.parse import parse_qs, urlsplit
+from uuid import uuid4
 
 from fastapi.encoders import jsonable_encoder
 from fastapi import APIRouter, HTTPException, Path as FastAPIPath, Query, Request
@@ -36,6 +37,7 @@ from .presentation import (
     diary_date_label, diary_week_label, diary_week_start, physiology_error, today_label,
 )
 from backend.services import user_profile_service as profile_service
+from backend.services import training_context_service as training_context
 
 router = APIRouter(prefix="/today", tags=["today"])
 templates = Jinja2Templates(
@@ -506,3 +508,106 @@ async def submit_physiology(request: Request):
             physiology_clears=clears, status_code=503,
         )
     return _redirect_to_today(saved="physiology")
+
+
+# Manual context uses the existing Today edge boundary and native forms.
+TRAINING_TYPES = {"long_z2": "Длительная Z2", "z2": "Z2", "intensity": "Интенсивная", "recovery": "Восстановительная"}
+
+
+def _training_plan_page(request, *, edit=None, form=None, error=None, status_code=200, saved=False):
+    today = training_context.local_today()
+    edit = edit or training_context.get_training_context(settings.daily_readiness_user_id, today)
+    if form is None:
+        form = {"week_start": str(edit.plan.week_start), "revision": str(edit.revision),
+                "block_priority": edit.block_priority or "", "plan_known": edit.plan.sessions is not None,
+                "sessions": [s.model_dump(mode="json") for s in edit.plan.sessions or ()]}
+        for w in edit.plan.windows:
+            form[f"minutes_{w.day}"] = w.duration_minutes if w.duration_minutes is not None else ""
+            form[f"confirmed_{w.day}"] = w.confirmed
+    form.setdefault("sessions", [])
+    return templates.TemplateResponse(request=request, name="today/training_plan.html", status_code=status_code,
+        context={"today": today, "form": form, "error": error, "saved": saved,
+                 "days": [training_context.week_start(today) + timedelta(days=i) for i in range(7)],
+                 "training_types": TRAINING_TYPES}, headers={"Cache-Control": "no-store"})
+
+
+@router.get("/plan")
+def training_plan_page(request: Request, saved: bool = False):
+    try:
+        return _training_plan_page(request, saved=saved)
+    except Exception:
+        logging.getLogger(__name__).exception("training_plan_read_failed")
+        raise HTTPException(503, "Не удалось прочитать план. Повторите позже.")
+
+
+@router.post("/plan")
+async def save_training_plan(request: Request):
+    _reject_cross_site_request(request)
+    if request.headers.get("content-type", "").split(";")[0] != "application/x-www-form-urlencoded":
+        raise HTTPException(415, "Ожидается URL-encoded форма")
+    body = bytearray()
+    async for chunk in request.stream():
+        if len(body) + len(chunk) > 65536:
+            raise HTTPException(413, "План слишком большой")
+        body.extend(chunk)
+    form = {"sessions": []}
+    try:
+        fields = parse_qs(body.decode("utf-8"), keep_blank_values=True, max_num_fields=1000)
+        if any(len(v) != 1 for v in fields.values()):
+            raise ValueError("Duplicate fields")
+        raw = {k: v[0] for k, v in fields.items()}
+        allowed = {"week_start", "revision", "block_priority", "plan_known"}
+        monday = date.fromisoformat(raw["week_start"])
+        for i in range(7):
+            day = monday + timedelta(days=i)
+            allowed.update((f"minutes_{day}", f"confirmed_{day}"))
+        session_fields = {"id", "day", "session_type", "duration_minutes", "priority", "minimum_shortened_minutes", "remove"}
+        for k in raw:
+            if k in allowed:
+                continue
+            match = re.fullmatch(r"session_([0-9]{1,3})_(\w+)", k)
+            if not match or match[2] not in session_fields:
+                raise ValueError("Unexpected field")
+        indexes = sorted({int(re.fullmatch(r"session_([0-9]{1,3})_\w+", k)[1]) for k in raw if k.startswith("session_")})
+        form = {**raw, "sessions": []}
+        for i in indexes:
+            row = {name: raw.get(f"session_{i}_{name}", "") for name in session_fields}
+            form["sessions"].append(row)
+        sessions = []
+        for row in form["sessions"]:
+            if row["remove"] == "1":
+                continue
+            if not any(row[k] for k in ("duration_minutes", "id", "day", "minimum_shortened_minutes")):
+                continue
+            sessions.append(training_context.SavedSession(
+                id=row["id"] or str(uuid4()), day=row["day"] or None,
+                session_type=row["session_type"], duration_minutes=int(row["duration_minutes"]),
+                priority=row["priority"], minimum_shortened_minutes=(
+                    int(row["minimum_shortened_minutes"]) if row["minimum_shortened_minutes"] else None)))
+        if sessions and raw.get("plan_known") != "1":
+            raise ValueError("Confirm the supplied plan")
+        windows = []
+        for i in range(7):
+            day = monday + timedelta(days=i)
+            minutes = raw.get(f"minutes_{day}", "")
+            confirmed = raw.get(f"confirmed_{day}") == "1"
+            if minutes or confirmed:
+                windows.append(training_context.DailyWindow(day=day,
+                    duration_minutes=int(minutes) if minutes else None, confirmed=confirmed))
+        edit = training_context.TrainingContextEdit(
+            block_priority=raw.get("block_priority") or None, revision=int(raw["revision"]),
+            plan=training_context.WeekPlan(week_start=monday,
+                sessions=tuple(sessions) if raw.get("plan_known") == "1" else None,
+                windows=tuple(windows)))
+    except (ValueError, KeyError):
+        return await run_in_threadpool(_training_plan_page, request, form=form,
+            error="План не сохранён. Проверьте даты, целые минуты и минимум сокращения. Для введённых занятий отметьте «План задан».", status_code=422)
+    try:
+        await run_in_threadpool(training_context.save_training_context,
+            settings.daily_readiness_user_id, edit, today=training_context.local_today())
+    except Exception as exc:
+        logging.getLogger(__name__).exception("training_plan_save_failed")
+        return await run_in_threadpool(_training_plan_page, request, edit=edit, form=form,
+            error=exc.detail if isinstance(exc, HTTPException) else "Не удалось сохранить план. Ваш ввод оставлен в форме.",
+            status_code=exc.status_code if isinstance(exc, HTTPException) else 503)
+    return RedirectResponse("/today/plan?saved=true", status_code=303)

@@ -95,3 +95,10 @@ backend-owned result in Today/Telegram without reimplementing the rules. No API,
 UI, storage, automatic mutation, calendar integration or physiological model is
 introduced. Input provenance/freshness, user confirmation/persistence, richer
 explanations and outcome evaluation remain subsequent work under #93.
+
+## Stored context adapter
+
+The second increment provides `/today/plan` and `get_policy_context` to assemble
+real saved and Strava inputs. See the [storage/adapter contract](../data/TRAINING_CONTEXT.md)
+for missing capacity, undated sessions, RPE, history completeness and remaining
+permission/confirmation boundaries. Policy rules and version are unchanged.
