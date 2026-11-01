@@ -278,6 +278,8 @@ Current storage examples by layer:
 - Feedback / evaluation:
   - `activity_subjective_feedback`
   - `subjective_feedback_prompt_log`
+  - `training_decision` / `training_decision_choice` / `training_session_activity`: explicit
+    [training choice loop](../data/TRAINING_CONTEXT.md#decision-loop-2026-11-01), separate from readiness
   - `decision_context_snapshot`
   - `research_feature_snapshot` (immutable v1/v2 inputs)
   - `research_experiment` (metadata/audit, not personal datasets)

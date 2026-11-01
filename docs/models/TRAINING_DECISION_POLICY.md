@@ -93,8 +93,9 @@ Readiness mapping and its shared `recommendation/reason/briefing` delivery contr
 are unchanged. Those categories do not encode plan actions, so coercing this policy
 into them would break the baseline contract. Today consumes this backend-owned result through the stored-context adapter
 without reimplementing the rules. No automatic plan mutation, calendar integration
-or physiological model is introduced. Input provenance/freshness, user confirmation/persistence, richer
-explanations and outcome evaluation remain subsequent work under #93.
+or physiological model is introduced. User confirmation/persistence and activity
+correspondence are implemented in the separate storage adapter (2026-11-01);
+outcome evaluation and Telegram plan delivery remain subsequent work under #93.
 
 ## Stored context adapter
 
@@ -114,6 +115,10 @@ substitutes. It does not rank options or derive permissions from readiness.
 occupied dates and other feasibility checks remain owned by the policy.
 
 Review inputs are date-scoped URL preview state, retained on reload of that URL;
-a bare Today visit starts with unknown permissions. A different local day clears
-permissions. They are neither stored consent nor decision acceptance. Activity
-matching, accepted proposals and Telegram delivery of plan actions remain future work.
+a bare Today visit starts with unknown permissions unless reloading a still-current
+saved proposal. A different local day clears preview permissions. These inputs
+are not consent: a separate explicit POST accepts or declines a saved proposal.
+The [decision loop](../data/TRAINING_CONTEXT.md#decision-loop-2026-11-01) stores
+choices, applies accepted changes, and passes manually confirmed correspondence
+to `CompletedSession.confirmed_plan_session_id`. The pure policy and rule version
+are unchanged. Telegram delivery of plan actions remains future work.

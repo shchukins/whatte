@@ -17,6 +17,14 @@
       "transactional": true,
       "old_app_compatible": true,
       "review": "#93: independent manual context tables; no existing data or privileges changed; old API/worker ignore them"
+    },
+    {
+      "file": "V3__training_decision_loop.sql",
+      "sha256": "da4c88c5cc535d748b4d7e8ecbb2bc5b2ea50c162b0a8b9aa994953b7bc0dbe3",
+      "risk": "compatible",
+      "transactional": true,
+      "old_app_compatible": true,
+      "review": "#93 Task 4: additive immutable proposals, separate consent and explicit canonical activity links; no existing rows or model meanings changed"
     }
   ],
   "verification_sha256": {

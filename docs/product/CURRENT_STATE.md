@@ -13,8 +13,8 @@ manual cycling plan and changing available time.
 | --- | --- |
 | Readiness-to-category baseline and existing delivery | Implemented; unchanged |
 | Goal/weekly plan/time-window inputs for workout choice | Implemented manual context, 2026-10-30 |
-| Compare shortening, replacement, rescheduling and rest | Implemented bounded policy + Today proposals, 2026-10-31; acceptance/Telegram planned |
-| Explain lost stimulus and propose remaining-week changes | Implemented bounded Today proposals; no automatic mutation |
+| Compare shortening, replacement, rescheduling and rest | Implemented policy + Today decision loop, 2026-11-01; Telegram plan actions planned |
+| Explain lost stimulus and propose remaining-week changes | Implemented proposals + explicit accepted changes; no automatic weekly adaptation |
 | Block-level progress and decision-value evaluation | Planned trial; no validated causal claim |
 | Further readiness/recovery research and tuning | Paused development priority; retained contracts/evidence |
 
@@ -30,7 +30,9 @@ SKIP or explicit uncertainty, with stimulus tradeoffs and unit scenarios.
 Manual goal/plan/windows storage and `/today/plan` followed on 2026-10-30.
 Today policy proposals and capacity editing followed on 2026-10-31, consuming
 [the same policy contract](../models/TRAINING_DECISION_POLICY.md). Telegram plan
-actions, accepted-decision persistence and plan/activity linkage remain planned. No new
+actions remain planned. Persisted proposals, explicit acceptance/decline, identity-preserving
+plan changes and manual activity links followed on 2026-11-01; confirmed fulfillment
+feeds the next policy call ([contract](../data/TRAINING_CONTEXT.md#decision-loop-2026-11-01)). No new
 readiness model or evidence of sporting benefit is introduced. Issue #93 stays open.
 
 ## Dated implementation evidence

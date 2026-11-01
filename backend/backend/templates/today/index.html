@@ -71,11 +71,11 @@
             </details>
             {% elif readiness_section.status == "error" %}
             <p class="eyebrow">01 / Ответ на {{ today }}</p>
-            <h1 id="readiness-title">Готовность недоступна.</h1>
+            {% if training_primary %}<h2 id="readiness-title">Готовность недоступна.</h2>{% else %}<h1 id="readiness-title">Готовность недоступна.</h1>{% endif %}
             <p class="error">Не удалось загрузить готовность. </p><details class="error-details"><summary>Технические подробности</summary>{{ readiness_section.error }}</details>
             {% else %}
             <p class="eyebrow">01 / Ответ на {{ today }}</p>
-            <h1 id="readiness-title">Готовность ещё не рассчитана.</h1>
+            {% if training_primary %}<h2 id="readiness-title">Готовность ещё не рассчитана.</h2>{% else %}<h1 id="readiness-title">Готовность ещё не рассчитана.</h1>{% endif %}
             <p class="empty">Рекомендация появится, когда будет рассчитана готовность.</p>
             {% endif %}
         </section>

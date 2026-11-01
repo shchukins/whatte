@@ -2,7 +2,8 @@
 from urllib.parse import urlencode
 
 from backend.services import training_context_service as store
-from backend.services.training_decision_policy import ActionConstraints
+from backend.services.training_decision_loop import evidence
+from backend.services.training_decision_policy import ActionConstraints, TrainingDecisionContext
 
 TYPES = {"long_z2": "Длительная Z2", "z2": "Z2", "intensity": "Интенсивная", "recovery": "Восстановительная"}
 ACTIONS = {"KEEP": "Выполнить по плану", "SHORTEN": "Сократить", "SUBSTITUTE": "Заменить", "RESCHEDULE": "Предложить перенос", "SKIP": "Пропустить сегодня"}
@@ -50,14 +51,31 @@ def today_decision(user_id, fields):
     edit = snapshot['saved_context']
     today = snapshot['today']
     form, constraints, reviews, selected = review_inputs(fields, edit, today)
+    decisions = snapshot.get('decisions', [])
+    if not fields.get('decision_day') and decisions and decisions[0]['status'] == 'proposed':
+        # Reload the saved proposal on a plain visit without inventing consent.
+        saved = TrainingDecisionContext.model_validate(decisions[0]['input_json']['context'])
+        constraints = saved.constraints
+        selected = saved.today_session_id
+        reviews = tuple(w.id for w in saved.future_windows or () if w.compatible_session_ids)
+        form = dict(training_allowed={True: 'yes', False: 'no'}.get(constraints.training_allowed, ''),
+                    intensity_allowed={True: 'yes', False: 'no'}.get(constraints.intensity_allowed, ''),
+                    session_id=selected, reviewed_window=reviews, substitute=constraints.substitute_session_ids)
     result = store.assemble_policy_context(edit, snapshot['activities'], today=today,
         today_session_id=selected, constraints=constraints, reviewed_window_ids=reviews,
         physiology_available=bool(snapshot['context'] and snapshot['context'].physiology_available))
     targets = [s for s in edit.plan.sessions or () if s.day == today]
     target = next((s for s in targets if s.id == selected), targets[0] if len(targets) == 1 else None)
     window = next((w for w in edit.plan.windows if w.day == today), None)
+    # A recorded workout takes priority over another unconfirmed prescription.
+    today_activities = [a for a in result['activities'] if a.get('local_date') == today]
+    completed_ids = {a['plan_link']['session_id'] for a in result['activities']
+                     if a.get('plan_link') and a['plan_link']['correspondence'] == 'fulfilled'}
     return dict(**result, form=form, targets=targets, target=target,
-        primary=bool(targets and edit.block_priority),
+        decisions=decisions, today_activities=today_activities, delivery=snapshot.get('delivery', {}),
+        proposal_matches=bool(decisions and evidence(result) == decisions[0]['input_json']),
+        link_targets=[s for s in edit.plan.sessions or () if s.day and s.day <= today and s.id not in completed_ids],
+        primary=bool((targets and edit.block_priority) or today_activities or decisions),
         minutes=window.duration_minutes if window and window.confirmed else None,
         future_windows=[w for w in edit.plan.windows if w.day > today and w.confirmed and w.duration_minutes],
         substitutes=[s for s in edit.plan.sessions or () if s.day and s.day >= today and (not target or s.id != target.id)])
@@ -92,7 +110,7 @@ COPY = {
     'future_windows_unknown_no_move_assumed': 'Будущая доступность неизвестна. Возможность переноса не предполагается.',
     'optional_physiology_unavailable_no_recovery_assumption': 'Физиологические данные отсутствуют; это не означает хорошее восстановление.',
     'strava_sync_completeness_unverified': 'Полнота синхронизации Strava не подтверждена; локальная история может быть неполной.',
-    'plan_completion_not_linked': 'Активности ещё не связаны с планом. Выполнение плановых стимулов не подтверждено.',
+    'plan_completion_not_linked': 'Выполнение назначения учитывается только после явного подтверждения связи с активностью.',
     'future_session_compatibility_unreviewed': 'Время в будущем само по себе не подтверждает совместимость переноса с неделей.',
 }
 

@@ -22,6 +22,8 @@ def state(monkeypatch):
         session_type='long_z2', duration_minutes=120, priority='key', minimum_shortened_minutes=40),),
         windows=(store.DailyWindow(day=TODAY, duration_minutes=50, confirmed=True),))),
         'activities': [], 'writes': []}
+    from backend.services import training_decision_loop
+    monkeypatch.setattr(training_decision_loop, 'propose', lambda *a: None)
     monkeypatch.setattr(store, 'local_today', lambda *a: TODAY)
     monkeypatch.setattr(store, 'get_training_context', lambda *a: state['edit'])
     def snapshot(*a, **kw):
@@ -63,7 +65,7 @@ def test_saved_capacity_drives_real_policy_and_repeated_get_is_read_only(state, 
     assert f'>{action}</span>' in first.text
     assert state['edit'].plan.sessions == original.plan.sessions
     assert state['edit'].block_priority == original.block_priority
-    assert len(state['writes']) == 1
+    assert len(state['writes']) == (0 if minutes == 50 else 1)
     assert decision()['decision'].recommendation.action == action
     if action == 'SHORTEN':
         assert '50 мин' in first.text and '70 мин' in first.text

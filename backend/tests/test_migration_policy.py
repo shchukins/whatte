@@ -21,7 +21,7 @@ def root(tmp_path):
 
 def test_declared_baseline_is_valid(root):
     _, declared = migrate.artifacts(root)
-    assert set(declared) == {'V1__baseline.sql', 'V2__training_context.sql'}
+    assert set(declared) == {'V1__baseline.sql', 'V2__training_context.sql', 'V3__training_decision_loop.sql'}
 
 
 @pytest.mark.parametrize('filename', ['V2__unreviewed.sql', 'beforeMigrate.sql', 'V1__baseline.sql.conf'])

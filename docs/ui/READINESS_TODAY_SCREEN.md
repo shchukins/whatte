@@ -315,3 +315,13 @@ panel; no horizontal overflow. Desktop/mobile screenshots were inspected.
 Reduced-motion mode added no animation. Local selector contract tests cover all
 ten descriptions, per-radio accessible links and instance ID uniqueness; existing
 Today/Diary tests cover draft/save/error behavior.
+
+
+## Training choice loop (2026-11-01)
+
+Today adds native accept/decline and explicit activity-to-assignment confirmation
+using the [backend loop contract](../data/TRAINING_CONTEXT.md#decision-loop-2026-11-01).
+GET stays read-only; accepted/declined state survives reload. Recorded work today
+is shown ahead of a new training prescription even without a plan link or metrics.
+Fulfilled/different and pending/complete remain distinct. This is a bounded functional
+addition to the existing screen, not implementation of the #197 visual prototype.

@@ -316,6 +316,22 @@ def _transfer_canonical_metadata(
 ) -> None:
     from backend.services.rpe_service import refresh_rpe_resolution
 
+    cur.execute("""select user_id, week_start, session_id, correspondence
+                   from training_session_activity where canonical_activity_id = %s""", (duplicate_activity_id,))
+    previous_link = cur.fetchone()
+    if previous_link:
+        cur.execute("""select user_id, week_start, session_id, correspondence
+                       from training_session_activity where canonical_activity_id = %s""", (canonical_activity_id,))
+        canonical_link = cur.fetchone()
+        if canonical_link and canonical_link != previous_link:
+            # Abort this merge instead of silently crediting two incompatible assignments.
+            raise ValueError('conflicting_training_assignment_links')
+        if canonical_link:
+            cur.execute('delete from training_session_activity where canonical_activity_id = %s', (duplicate_activity_id,))
+        else:
+            cur.execute("""update training_session_activity set canonical_activity_id = %s
+                           where canonical_activity_id = %s""", (canonical_activity_id, duplicate_activity_id))
+
     cur.execute(
         """
         update activity_rpe_observation observation

@@ -95,6 +95,17 @@ def save_training_context(user_id: str, edit: TrainingContextEdit, *, today: dat
     if edit.plan.week_start != week_start(today):
         raise HTTPException(409, "Неделя изменилась. Обновите страницу перед сохранением.")
     with get_conn() as conn, conn.cursor() as cur:
+        from backend.services.training_decision_loop import lock_user
+        lock_user(cur, user_id)
+        before = _read(cur, user_id, edit.plan.week_start)
+        cur.execute("""select session_id from training_session_activity
+                       where user_id = %s and week_start = %s and correspondence = 'fulfilled'""",
+                    (user_id, edit.plan.week_start))
+        completed = {row[0] for row in cur.fetchall()}
+        old = {s.id: s for s in before.plan.sessions or ()}
+        new = {s.id: s for s in edit.plan.sessions or ()}
+        if any(old.get(id) != new.get(id) for id in completed):
+            raise HTTPException(409, 'Выполненное назначение нельзя заменить или удалить. Добавьте новое занятие с новым ID.')
         # Conditional revision protects both the persistent block goal and weekly
         # document from stale tabs. The whole save rolls back on any conflict.
         cur.execute("""insert into user_training_context (user_id, block_priority, revision)
@@ -126,7 +137,7 @@ def _activities(cur, user_id: str, today: date, zone: ZoneInfo) -> list[dict]:
                    where r.user_id = %s and not r.is_deleted and not r.is_excluded
                      and r.duplicate_of_activity_id is null and r.start_date >= %s and r.start_date < %s
                    order by r.start_date, r.strava_activity_id""", (user_id, start, end))
-    return [dict(activity_id=str(id), local_date=started.astimezone(zone).date(),
+    activities = [dict(activity_id=str(id), local_date=started.astimezone(zone).date(),
                  activity_type=sport, duration_s=duration, tss=tss,
                  normalized_power=np, intensity_factor=ifactor,
                  load=assess_stored_activity_load(has_metrics=has_metrics, activity_type=sport,
@@ -134,6 +145,14 @@ def _activities(cur, user_id: str, today: date, zone: ZoneInfo) -> list[dict]:
                  rpe=score, rpe_source=source, rpe_disagreement=bool(disagreement))
             for id, started, sport, duration, has_metrics, tss, np, ifactor, score, source, disagreement
             in cur.fetchall()]
+    cur.execute("""select canonical_activity_id, session_id, correspondence, decision_id
+                   from training_session_activity where user_id = %s and week_start = %s""",
+                (user_id, week_start(today)))
+    links = {str(id): dict(session_id=session, correspondence=match, decision_id=decision)
+             for id, session, match, decision in cur.fetchall()}
+    for activity in activities:
+        activity['plan_link'] = links.get(activity['activity_id'])
+    return activities
 
 
 def assemble_policy_context(edit: TrainingContextEdit, activities: list[dict], *, today: date,
@@ -178,13 +197,20 @@ def assemble_policy_context(edit: TrainingContextEdit, activities: list[dict], *
         for w in future_confirmed if w.duration_minutes > 0)
     if not future_confirmed and today.weekday() < 6:
         future_windows = None
+    confirmed = {a['plan_link']['session_id']: a['activity_id'] for a in activities
+                 if a.get('plan_link') and a['plan_link']['correspondence'] == 'fulfilled'
+                 and any(s.id == a['plan_link']['session_id'] and s.day <= today for s in dated)}
     context = None
     decision = None
     if current is not None and current.confirmed:
         context = TrainingDecisionContext(
             today=today, block_priority=edit.block_priority, today_session_id=today_session_id,
             week_plan=None if edit.plan.sessions is None else dated,
-            completed=tuple(CompletedSession(activity_id=a["activity_id"], load=a["load"]) for a in activities),
+            completed=tuple(CompletedSession(activity_id=a["activity_id"], load=a["load"],
+                confirmed_plan_session_id=(a['plan_link']['session_id']
+                    if a.get('plan_link') and a['plan_link']['session_id'] in confirmed
+                    and a['plan_link']['correspondence'] == 'fulfilled'
+                    else None)) for a in activities),
             available_minutes=current.duration_minutes,
             future_windows=future_windows,
             constraints=constraints or ActionConstraints(), physiology_available=physiology_available,
@@ -192,6 +218,8 @@ def assemble_policy_context(edit: TrainingContextEdit, activities: list[dict], *
         decision = choose_training_action(context)
         missing.extend(decision.missing_context)
     return dict(today=today, saved_context=edit, activities=activities, context=context, decision=decision,
+                session_statuses={s.id: dict(status='fulfilled' if s.id in confirmed else 'pending',
+                                            activity_id=confirmed.get(s.id)) for s in edit.plan.sessions or ()},
                 missing_context=tuple(dict.fromkeys(missing)),
                 history_scope="locally_stored_strava_week_to_date",
                 limitations=("strava_sync_completeness_unverified", "plan_completion_not_linked",
@@ -208,10 +236,24 @@ def get_policy_context(user_id: str, *, now: datetime | None = None,
         edit = _read(cur, user_id, week_start(today))
         activities = _activities(cur, user_id, today, ZoneInfo(settings.whatte_timezone))
         physiology = load_physiology_signal(cur, user_id=user_id, target_date=str(today))
-    return assemble_policy_context(edit, activities, today=today,
+        from backend.services.training_decision_loop import read_decisions
+        decisions = read_decisions(cur, user_id, today, edit, activities)
+    result = assemble_policy_context(edit, activities, today=today,
         today_session_id=today_session_id, constraints=constraints,
         physiology_available=physiology["availability"] == "available",
         reviewed_window_ids=reviewed_window_ids)
+    result['decisions'] = decisions
+    # Delivery state is distinct from the pure policy candidate. Recorded work
+    # never automatically creates a second training prescription on any consumer.
+    recorded_today = any(a['local_date'] == today for a in activities)
+    latest = decisions[0] if decisions else None
+    result['delivery'] = dict(
+        status=('activity_recorded' if recorded_today else
+                latest['status'] if latest and not latest['stale'] else
+                'stale' if latest else 'preview'),
+        decision_id=latest['id'] if latest else None,
+        offer_training=not recorded_today and not (latest and latest['choice'] and not latest['stale']))
+    return result
 
 
 def save_today_availability(user_id: str, *, today: date, revision: int,
@@ -222,6 +264,7 @@ def save_today_availability(user_id: str, *, today: date, revision: int,
     edit = get_training_context(user_id, today)
     if edit.revision != revision:
         raise HTTPException(409, "Контекст уже изменён. Обновите страницу перед сохранением.")
+    existing = next((w for w in edit.plan.windows if w.day == today), None)
     window = DailyWindow(day=today, duration_minutes=duration_minutes,
                          confirmed=duration_minutes is not None)
     windows = tuple(w for w in edit.plan.windows if w.day != today) + (window,)
@@ -231,4 +274,6 @@ def save_today_availability(user_id: str, *, today: date, revision: int,
     current_day = local_today()
     if today != current_day:
         raise HTTPException(409, "Наступил новый день. Обновите Сегодня перед сохранением.")
+    if existing and existing.duration_minutes == duration_minutes and existing.confirmed == (duration_minutes is not None):
+        return
     save_training_context(user_id, edit.model_copy(update={"plan": plan}), today=current_day)

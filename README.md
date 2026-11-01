@@ -39,9 +39,10 @@ the iOS client are retired. Optional manual physiology is a separate research pa
 The readiness category remains unchanged. Today also uses the deterministic
 `training_time_policy_v1` with a saved manual block priority, weekly plan, activity
 facts and confirmed time windows. Changing today’s available minutes produces
-a proposal with stimulus tradeoffs and alternatives; it never applies plan changes.
-Permissions and compatibility reviews are explicit. Acceptance and activity-to-plan
-linkage remain planned. This is not a complete coach or automated planner.
+a proposal with stimulus tradeoffs and alternatives. Explicit acceptance applies
+the chosen change while retaining assignment identity. Proposals, choices and manual
+activity-to-plan confirmation are persisted; the next decision uses confirmed completion.
+Permissions and compatibility reviews remain explicit. Telegram plan actions are planned. This is not a complete coach or automated planner.
 
 ## Next experiment — planned
 

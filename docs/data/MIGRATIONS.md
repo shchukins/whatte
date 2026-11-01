@@ -222,3 +222,14 @@ independent manual-input tables, with no historical data changes. See the
 adoption check; after V2 use `validate`. CI rehearses exact V1 adoption separately
 and applies the full chain before application integration tests. Production
 pending-migration backup/approval requirements remain unchanged.
+
+
+## V3: explicit training decision loop
+
+[V3__training_decision_loop.sql](../../migrations/sql/V3__training_decision_loop.sql)
+adds immutable training proposals, separate user choices and explicit canonical
+activity correspondence. It does not rewrite existing activity/context/model data.
+The [decision-loop contract](TRAINING_CONTEXT.md#decision-loop-2026-11-01) documents
+ownership, uniqueness, replay and assignment semantics. V1/V2 remain immutable.
+The migration uses the same exact-manifest approval, fresh off-host backup and
+restore-proof gates; additive/old-app-compatible does not bypass production approval.

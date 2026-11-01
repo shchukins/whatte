@@ -34,6 +34,7 @@ from backend.services.subjective_feedback_service import (
 
 from . import service as today_service
 from . import training as training_view
+from backend.services import training_decision_loop as training_loop
 from .history_service import get_diary_data
 from .presentation import (
     diary_date_label, diary_week_label, diary_week_start, physiology_error, today_label,
@@ -634,7 +635,7 @@ async def save_training_plan(request: Request):
 
 @router.post("/training-decision")
 async def preview_training_decision(request: Request):
-    """Save capacity only; all other fields are temporary proposal constraints."""
+    """Save capacity and a deduplicated proposal; never imply acceptance."""
     _reject_cross_site_request(request)
     if request.headers.get("content-type", "").split(";")[0] != "application/x-www-form-urlencoded":
         raise HTTPException(415, "Ожидается URL-encoded форма")
@@ -644,6 +645,7 @@ async def preview_training_decision(request: Request):
             raise HTTPException(413, "Форма слишком большая")
         body.extend(chunk)
     draft = {}
+    capacity_saved = False
     try:
         fields = parse_qs(body.decode("utf-8"), keep_blank_values=True, max_num_fields=TRAINING_DECISION_FORM_MAX_FIELDS)
         if set(fields) - (training_view.REVIEW_FIELDS | {"minutes", "revision"}):
@@ -664,14 +666,74 @@ async def preview_training_decision(request: Request):
         training_view.review_inputs(form_data, edit, today)
         await run_in_threadpool(training_context.save_today_availability, settings.daily_readiness_user_id,
             today=today, revision=revision, duration_minutes=int(minutes) if minutes else None)
+        capacity_saved = True
+        result = await run_in_threadpool(training_view.today_decision, settings.daily_readiness_user_id, form_data)
+        await run_in_threadpool(training_loop.propose, settings.daily_readiness_user_id, result)
     except (ValueError, KeyError):
         return await run_in_threadpool(_today_page, request, training_draft=draft, status_code=422,
-            training_error="Проверьте целые минуты и выбранные ограничения. Время не сохранено.")
+            training_error=("Время сохранено, но предложение не сформировано. Проверьте ограничения." if capacity_saved
+                            else "Проверьте целые минуты и выбранные ограничения. Время не сохранено."))
     except Exception as exc:
         if not isinstance(exc, HTTPException):
             logging.getLogger(__name__).exception("today_availability_save_failed")
         return await run_in_threadpool(_today_page, request, training_draft=draft,
             status_code=exc.status_code if isinstance(exc, HTTPException) else 503,
-            training_error=exc.detail if isinstance(exc, HTTPException) else "Не удалось сохранить время. Проверьте состояние перед повтором.")
+            training_error=exc.detail if isinstance(exc, HTTPException) else
+                "Время сохранено, но предложение не сохранено. Обновите страницу перед повтором." if capacity_saved else
+                "Не удалось сохранить время. Проверьте состояние перед повтором.")
     return RedirectResponse(training_view.preview_url(form_data), status_code=303,
                             headers={"Cache-Control": "no-store"})
+
+
+async def _loop_form(request, allowed):
+    _reject_cross_site_request(request)
+    if request.headers.get('content-type', '').split(';')[0] != 'application/x-www-form-urlencoded':
+        raise HTTPException(415, 'Ожидается URL-encoded форма')
+    body = bytearray()
+    async for chunk in request.stream():
+        if len(body) + len(chunk) > TRAINING_DECISION_FORM_MAX_BYTES:
+            raise HTTPException(413, 'Форма слишком большая')
+        body.extend(chunk)
+    try:
+        fields = parse_qs(body.decode('utf-8'), keep_blank_values=True, max_num_fields=10)
+        if set(fields) != allowed or any(len(v) != 1 for v in fields.values()):
+            raise ValueError()
+        return {k: v[0] for k, v in fields.items()}
+    except (ValueError, UnicodeError):
+        raise HTTPException(422, 'Проверьте поля формы')
+
+
+@router.post('/training-choice')
+async def training_choice(request: Request):
+    fields = await _loop_form(request, {'decision_id', 'choice'})
+    try:
+        await run_in_threadpool(training_loop.choose, settings.daily_readiness_user_id,
+                               int(fields['decision_id']), fields['choice'])
+    except (ValueError, HTTPException) as exc:
+        return await run_in_threadpool(_today_page, request,
+            status_code=exc.status_code if isinstance(exc, HTTPException) else 422,
+            training_error=exc.detail if isinstance(exc, HTTPException) else 'Проверьте ответ')
+    except Exception:
+        logging.getLogger(__name__).exception('training_choice_failed')
+        return await run_in_threadpool(_today_page, request, status_code=503,
+                                      training_error='Не удалось сохранить ответ. Повторите отправку.')
+    return RedirectResponse('/today#training-decision', status_code=303, headers={'Cache-Control': 'no-store'})
+
+
+@router.post('/training-completion')
+async def training_completion(request: Request):
+    fields = await _loop_form(request, {'decision_day', 'revision', 'activity_id', 'session_id', 'correspondence'})
+    try:
+        await run_in_threadpool(training_loop.confirm_activity, settings.daily_readiness_user_id,
+            today=date.fromisoformat(fields['decision_day']), revision=int(fields['revision']),
+            activity_id=int(fields['activity_id']), session_id=fields['session_id'],
+            correspondence=fields['correspondence'])
+    except (ValueError, HTTPException) as exc:
+        return await run_in_threadpool(_today_page, request,
+            status_code=exc.status_code if isinstance(exc, HTTPException) else 422,
+            training_error=exc.detail if isinstance(exc, HTTPException) else 'Проверьте связь с занятием')
+    except Exception:
+        logging.getLogger(__name__).exception('training_completion_failed')
+        return await run_in_threadpool(_today_page, request, status_code=503,
+                                      training_error='Не удалось сохранить связь. Повторите отправку.')
+    return RedirectResponse('/today#training-decision', status_code=303, headers={'Cache-Control': 'no-store'})
