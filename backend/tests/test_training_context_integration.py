@@ -272,7 +272,7 @@ def test_declined_and_unanswered_are_separate_from_plan_and_fact(db, monkeypatch
     assert db.execute('select count(*) from training_session_activity').fetchone() == (0,)
 
 
-@pytest.mark.parametrize('change', ['capacity', 'plan', 'import', 'midnight', 'rules'])
+@pytest.mark.parametrize('change', ['capacity', 'plan', 'import', 'midnight', 'rules', 'physiology'])
 def test_old_proposals_never_apply_to_changed_context(db, monkeypatch, change):
     loop, client = loop_setup(db, monkeypatch)
     proposal(client)
@@ -285,6 +285,9 @@ def test_old_proposals_never_apply_to_changed_context(db, monkeypatch, change):
         service.save_training_context('athlete', edit.model_copy(update={'plan': plan}), today=MONDAY)
     elif change == 'import':
         import_activity(db)
+        assert policy_snapshot()['decisions'][0]['stale']
+    elif change == 'physiology':
+        monkeypatch.setattr(service, 'load_physiology_signal', lambda *a, **kw: dict(availability='available'))
         assert policy_snapshot()['decisions'][0]['stale']
     elif change == 'midnight':
         monkeypatch.setattr(service, 'local_today', lambda *a: MONDAY + timedelta(days=1))

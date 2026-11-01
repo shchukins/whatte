@@ -237,7 +237,7 @@ def get_policy_context(user_id: str, *, now: datetime | None = None,
         activities = _activities(cur, user_id, today, ZoneInfo(settings.whatte_timezone))
         physiology = load_physiology_signal(cur, user_id=user_id, target_date=str(today))
         from backend.services.training_decision_loop import read_decisions
-        decisions = read_decisions(cur, user_id, today, edit, activities)
+        decisions = read_decisions(cur, user_id, today, edit, activities, physiology['availability'] == 'available')
     result = assemble_policy_context(edit, activities, today=today,
         today_session_id=today_session_id, constraints=constraints,
         physiology_available=physiology["availability"] == "available",

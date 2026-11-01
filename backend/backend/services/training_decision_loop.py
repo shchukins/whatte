@@ -30,7 +30,8 @@ def fingerprint(value: dict) -> str:
     return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
 
 
-def read_decisions(cur, user_id: str, today: date, edit: store.TrainingContextEdit, activities: list[dict]) -> list[dict]:
+def read_decisions(cur, user_id: str, today: date, edit: store.TrainingContextEdit,
+                   activities: list[dict], physiology_available: bool) -> list[dict]:
     cur.execute("""select d.id, d.target_session_id, d.input_json, d.decision_json,
                           d.proposed_at, c.choice, c.chosen_at, coalesce(c.applied_revision, d.context_revision)
                    from training_decision d left join training_decision_choice c on c.decision_id = d.id
@@ -49,7 +50,7 @@ def read_decisions(cur, user_id: str, today: date, edit: store.TrainingContextEd
                     s.id == context.today_session_id and s.day == today for s in edit.plan.sessions or ()) else None,
                 constraints=context.constraints,
                 reviewed_window_ids=tuple(w.id for w in context.future_windows or () if w.compatible_session_ids),
-                physiology_available=context.physiology_available)
+                physiology_available=physiology_available)
             row['stale'] = row['stale'] or evidence(result) != row['input_json']
         if not row['choice']:
             if row['target_session_id'] in seen:
@@ -128,10 +129,11 @@ def choose(user_id: str, decision_id: int, choice: str) -> None:
         if day != store.local_today() or edit.revision != inputs['revision']:
             raise HTTPException(409, 'Предложение устарело. Обновите Сегодня и проверьте план.')
         activities = store._activities(cur, user_id, day, ZoneInfo(store.settings.whatte_timezone))
+        physiology = store.load_physiology_signal(cur, user_id=user_id, target_date=str(day))
         current = store.assemble_policy_context(edit, activities, today=day,
             today_session_id=context.today_session_id, constraints=context.constraints,
             reviewed_window_ids=tuple(w.id for w in context.future_windows or () if w.compatible_session_ids),
-            physiology_available=context.physiology_available)
+            physiology_available=physiology['availability'] == 'available')
         cur.execute('''select 1 from training_decision where user_id = %s and decision_day = %s
                        and target_session_id = %s and (presented_at, id) >
                            (select presented_at, id from training_decision where id = %s) limit 1''',
