@@ -187,3 +187,18 @@ def test_independent_fact_survives_in_week_without_fabricating_other_days():
     assert not screen["week"][2]["facts_known"]
     assert not any(day["plan_known"] for day in screen["week"])
     assert screen["facts"][0]["duration_label"] == "52 мин"
+
+
+def test_alternative_tradeoffs_and_ranking_evidence_remain_available(monkeypatch):
+    from backend.today.presentation import editorial_decision_text
+    data, context = example()
+    monkeypatch.setattr(service, "get_today_data", lambda *a, **kw: data)
+    monkeypatch.setattr(training, "today_decision", lambda *a, **kw: context)
+    page = TestClient(app).get("/today").text
+    for alternative in context["decision"].alternatives:
+        for code in (*alternative.preserved_stimulus, *alternative.lost_stimulus,
+                     *alternative.week_consequences):
+            assert editorial_decision_text(code) in page
+    for code in context["decision"].selection_reasons:
+        assert editorial_decision_text(code) in page
+    assert "Блок: Длительная Z2" in page

@@ -1,5 +1,5 @@
 <section class="today-week" aria-label="Контекст недели">
-<div class="week-heading"><span>{{ screen.week[0].date | diary_week(today) }}</span><a href="/today/plan">План недели →</a></div>
+<div class="week-heading"><span>{{ screen.week[0].date | diary_week(today) }}{% if screen.current and training.saved_context.block_priority %} · Блок: {{ training_types[training.saved_context.block_priority] }}{% endif %}</span><a href="/today/plan">План недели →</a></div>
 <div class="week-days">
 {% for day in screen.week %}
 <details class="week-day{% if day.current %} current{% endif %}">

@@ -361,7 +361,7 @@ editorial composition; its persistence and policy contracts are unchanged.
 
 ## #197 validation, 2026-11-02
 
-- Unit regression: 1071 passing checks, including the new presentation cases;
+- Unit regression: 1072 passing checks, including the new presentation cases;
   Today feedback, missing/stale/error, local-day, source precedence and security
   checks retain their behavioral assertions. Removed-figure/title expectations
   now assert the approved hierarchy and Diary link instead.
