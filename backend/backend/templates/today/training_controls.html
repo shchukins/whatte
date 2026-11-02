@@ -1,0 +1,15 @@
+<form action="/today/training-decision" method="post" class="training-form">
+<input type="hidden" name="decision_day" value="{{ t.today }}"><input type="hidden" name="revision" value="{{ edit.revision }}">
+{% if t.targets %}<label>Занятие сегодня<select name="session_id">{% if t.targets|length > 1 %}<option value="">Выберите занятие</option>{% endif %}{% for s in t.targets %}<option value="{{ s.id }}" {% if form.get('session_id', t.target.id if t.target else '') == s.id %}selected{% endif %}>{{ training_types[s.session_type] }} · {{ s.duration_minutes }} мин · {{ 'ключевое' if s.priority == 'key' else 'поддерживающее' }}</option>{% endfor %}</select></label>{% endif %}
+<label for="training-minutes">Доступное время сегодня, мин</label>
+<input id="training-minutes" type="number" min="0" step="1" max="999999" name="minutes" value="{{ training_draft.get('minutes', '') if training_draft else (t.minutes if t.minutes is not none else '') }}" aria-describedby="training-time-help">
+<p class="hint" id="training-time-help">Включая разминку и заминку. 0 — времени нет; пусто — доступность неизвестна. Известное время сохраняется между посещениями.</p>
+<label>Тренировка сегодня допустима?<select name="training_allowed">{% for value, label in [('', 'Пока неизвестно'), ('yes', 'Да'), ('no', 'Нет')] %}<option value="{{ value }}" {% if form.get('training_allowed', '') == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+<details><summary>Ограничения и проверенные альтернативы</summary>
+<p class="hint">Разрешения относятся к этому предложению и дню. Они не выводятся из readiness. Выполнение занятия отмечается отдельно по фактической активности.</p>
+<label>Интенсивная работа допустима?<select name="intensity_allowed">{% for value, label in [('', 'Пока неизвестно'), ('yes', 'Да'), ('no', 'Нет')] %}<option value="{{ value }}" {% if form.get('intensity_allowed', '') == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+{% for w in t.future_windows %}<label class="training-check"><input type="checkbox" name="reviewed_window" value="{{ w.day }}" {% if w.day|string in form.get('reviewed_window', ()) %}checked{% endif %}> Проверил перенос выбранного занятия на {{ w.day }} ({{ w.duration_minutes }} мин): соседние занятия, переносимость и бюджет недели совместимы.</label>{% else %}<p>Подтверждённых будущих окон нет. Неизвестное время не считается свободным.</p>{% endfor %}
+{% for s in t.substitutes %}<label class="training-check"><input type="checkbox" name="substitute" value="{{ s.id }}" {% if s.id in form.get('substitute', ()) %}checked{% endif %}> Разрешаю как замену сегодня: {{ training_types[s.session_type] }} · {{ s.duration_minutes }} мин ({{ s.day }}). Проверил влияние на оставшуюся неделю; занятие ещё не выполнено.</label>{% endfor %}
+</details>
+<button class="physiology-save" type="submit">Сохранить время и получить предложение</button>
+</form>

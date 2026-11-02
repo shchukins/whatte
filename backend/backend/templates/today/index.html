@@ -9,96 +9,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light">
     <title>{{ page_title }}</title>
-    <style>{% include "today/editorial.css" %}{% include "today/history.css" %}{% include "visualizations/editorial.css" %}{% include "today/rpe_selector.css" %}</style>
+    <style>{% include "today/editorial.css" %}{% include "today/history.css" %}{% include "visualizations/editorial.css" %}{% include "today/rpe_selector.css" %}{% include "today/redesign.css" %}</style>
 </head>
-<body>
+<body class="today-editorial">
 <main class="shell">
     {% set active_page = "today" %}
     {% include "today/navigation.html" %}
     {% include "today/lifecycle_notice.html" %}
     {{ profile_pending_notice(profile_pending, profile_pending_section) }}
-    <div class="edition-note"><span>Тренировки / личный обзор</span><span>Сохранённые данные</span></div>
+    {% include "today/training_week.html" %}
 
-    <div class="stack">
-        {% include "today/training_decision.html" %}
-        {% if training_primary %}<details class="card"><summary>Готовность и восстановление · дополнительный контекст</summary>{% endif %}
-        <section class="card hero" aria-labelledby="readiness-title">
-            {% if readiness %}
-            {% set historical = readiness.date != today %}
-            <p class="eyebrow">01 / Ответ на {{ readiness.date }}</p>
-            {% if historical or readiness.freshness_state == "stale" %}
-            <p class="stale-warning" role="status">Результат устарел. Рекомендация относится к {{ readiness.date }}; актуальная готовность на сегодня не подтверждена.</p>
-            {% endif %}
-            <div class="hero-layout">
-                <div>
-                    {% if training_primary %}<h2 id="readiness-title">Готовность</h2><details><summary>Сводка модели готовности</summary><p class="hint">Категория по состоянию; занятие выбирается в предложении WHATTE выше.</p>{% else %}<p class="hint">Базовая сводка по состоянию. Планового решения пока нет.</p><h1 id="readiness-title">{{ readiness.recommendation | today_label('recommendation') }}</h1>{% endif %}
-                    {% if historical %}<p class="hint">Сохранённая сводка за {{ readiness.date }}:</p>{% endif %}
-                    <p class="briefing">{{ readiness.briefing_text or "Краткая рекомендация недоступна." }}</p>{% if training_primary %}</details>{% endif %}
-                </div>
-                <div class="hero-metric">
-                    <span class="metric-label">Готовность</span>
-                    {% if readiness.readiness_score is defined and readiness.readiness_score is not none %}
-                    <p class="score">{{ readiness.readiness_score | round(1) }}<span class="unit">/100</span></p>
-                    {% else %}
-                    <p class="empty">Оценка недоступна</p>
-                    {% endif %}
-                    <p class="readiness-status">{{ readiness.status_text | today_label('status') }}</p>
-                </div>
-            </div>
-            <div class="freshness">
-                <span>Данные <strong>{{ readiness.freshness_state | today_label('freshness') }}</strong></span>
-                <span>Рассчитано <strong>{{ readiness.readiness_computed_at | today_timestamp }}</strong></span>
-            </div>
-            <details class="readiness-explanation">
-                <summary>Почему такая рекомендация</summary>
-                <p class="hint">Доступность и участие сигналов указаны по данным модели.</p>
-                {% if factors %}
-                <div class="factor-list">
-                    {% for factor in factors %}
-                    <div class="factor">
-                        <span class="factor-name">{{ factor.key | today_label('factor') }}</span>
-                        <span class="factor-score">{{ factor.score | round(1) if factor.score is not none else "—" }}</span>
-                        <span class="badge {{ 'badge-used' if factor.used else '' }}">{{ 'учтено' if factor.used else (factor.availability | today_label('availability')) }}</span>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% else %}<p class="empty">Факторы недоступны.</p>{% endif %}
-                <div class="freshness">
-                    <span>Источник тренировок <strong>{{ readiness.training_source_at | today_timestamp }}</strong></span>
-                    <span>Источник восстановления <strong>{{ readiness.recovery_source_at | today_timestamp }}</strong></span>
-                </div>
-                <details class="story-copy"><summary>Технические подробности рекомендации</summary>{{ readiness.reason }}</details>
-            </details>
-            {% elif readiness_section.status == "error" %}
-            <p class="eyebrow">01 / Ответ на {{ today }}</p>
-            {% if training_primary %}<h2 id="readiness-title">Готовность недоступна.</h2>{% else %}<h1 id="readiness-title">Готовность недоступна.</h1>{% endif %}
-            <p class="error">Не удалось загрузить готовность. </p><details class="error-details"><summary>Технические подробности</summary>{{ readiness_section.error }}</details>
-            {% else %}
-            <p class="eyebrow">01 / Ответ на {{ today }}</p>
-            {% if training_primary %}<h2 id="readiness-title">Готовность ещё не рассчитана.</h2>{% else %}<h1 id="readiness-title">Готовность ещё не рассчитана.</h1>{% endif %}
-            <p class="empty">Рекомендация появится, когда будет рассчитана готовность.</p>
-            {% endif %}
-        </section>
-        {% if training_primary %}</details>{% endif %}
+    {% include "today/training_decision.html" %}
+    <div class="today-context">
+        {% include "today/readiness_note.html" %}
+        <section id="recovery" data-feedback-section class="context-note recovery" aria-labelledby="recovery-title">
 
-        <section id="recovery" data-feedback-section class="card recovery" aria-labelledby="recovery-title">
-            <p class="section-index">02 / Утренний отчёт</p>
-            <p class="eyebrow">Самочувствие / сегодня</p>
-            <div class="section-head">
-                <div>
-                    <h2 id="recovery-title">Как вы себя чувствуете сегодня?</h2>
-                    <p class="hint">Выберите оценку. Ответ можно изменить позже.</p>
-                </div>
-                {% if recovery %}<span class="badge badge-used">Сохранено</span>{% endif %}
-            </div>
+            <p class="metric-label">Самочувствие / сегодня</p>
+            <h2 id="recovery-title" class="sr-only">Как вы себя чувствуете сегодня?</h2>
+            {% if recovery_section.status != 'error' %}<p class="context-value">{% if recovery %}{{ recovery.score }} / 5 · {{ recovery.value | today_label('recovery') }}{% else %}Сегодня не оценено{% endif %}</p>{% endif %}
             <p class="saved feedback-status" role="status" aria-live="polite" aria-atomic="true">{% if saved == "recovery" %}{% if recovery_section.status == "ok" and recovery %}Самочувствие сохранено.{% else %}Не удалось подтвердить сохранение. Проверьте сохранённое состояние.{% endif %}{% endif %}</p>
             <div class="feedback-actions" hidden><a href="/today#recovery">Проверить сохранённое состояние</a> · <button type="button" data-feedback-retry>Повторить отправку</button></div>
             {% if recovery_error %}<p class="error" role="alert" data-recovery-error>{{ recovery_error }} <a href="/today#recovery">Обновить «Сегодня»</a></p>{% endif %}
             {% if recovery_section.status == "error" %}
             <p class="error">Оценка самочувствия временно недоступна. </p><details class="error-details"><summary>Технические подробности</summary>{{ recovery_section.error }}</details>
             {% else %}
-            <details class="feedback-editor" {% if not recovery or saved == "recovery" %}open{% endif %}>
+            <details class="feedback-editor" {% if recovery_error or saved == "recovery" %}open{% endif %}>
                 <summary>{% if recovery %}Самочувствие: {{ recovery.score }}/5 · <span>Изменить</span>{% else %}Оценить самочувствие{% endif %}</summary>
+            <p class="hint">Выберите оценку. Ответ можно изменить позже.</p>
             <div class="scale recovery-control viz-system viz-paper viz-texture-subtle" aria-label="Оценка самочувствия от одного до пяти">
                 <svg class="rpe-grid" viewBox="0 0 300 160" preserveAspectRatio="none" aria-hidden="true">
                     {{ ink_grid('recovery-grid', 0, 0, 300, 160, minor=20, major=100) }}
@@ -123,13 +60,12 @@
             {% endif %}
         </section>
 
-        <section id="rpe" data-feedback-section class="card activity" aria-labelledby="rpe-title">
-            <p class="section-index">03 / {{ "Выбранная тренировка" if selected_activity else "Последняя тренировка" }}</p>
-            <p class="eyebrow">Тренировка / оценка</p>
+        <section id="rpe" data-feedback-section class="context-note activity" aria-labelledby="rpe-title">
+
+            <p class="metric-label">{{ "Выбранная тренировка" if selected_activity else "Последняя тренировка" }} / RPE</p>
             <div class="section-head">
                 <div>
-                    <h2 id="rpe-title">{% if selected_activity %}Оценка тренировки{% if activity and activity.local_date %} за {{ activity.local_date }}{% endif %}{% else %}Как прошла тренировка?{% endif %}</h2>
-                    <p class="hint">{% if selected_activity %}Выбранная тренировка. Готовность выше относится к сегодняшнему дню.{% else %}Последняя подходящая тренировка.{% endif %} Оценку RPE можно изменить.</p>
+                    <h2 id="rpe-title"{% if not selected_activity %} class="sr-only"{% endif %}>{% if selected_activity %}Оценка тренировки{% if activity and activity.local_date %} за {{ activity.local_date }}{% endif %}{% else %}Как прошла тренировка?{% endif %}</h2>
                 </div>
                 {% if activity and activity.rpe_score %}<span class="badge badge-used">Итоговый RPE {{ activity.rpe_score }}/10 · {% if activity.rpe_value == 'strava' %}Strava{% elif activity.rpe_value == 'telegram' %}Telegram · резервный источник{% elif activity.rpe_value == 'web' %}Web · резервный источник{% endif %}</span>{% endif %}
             </div>
@@ -151,10 +87,11 @@
                 <li>{{ activity.distance }}</li>
             </ul>
             <p class="hint">{{ activity.load_status }}</p>
+            <details class="feedback-editor" {% if selected_activity or saved == "rpe" or rpe_error or rpe_history %}open{% endif %}>
+                <summary>{% if activity.rpe_web_score is not none %}Web RPE: {{ activity.rpe_web_score }}/10 · <span>Изменить</span>{% else %}Оценить нагрузку в Web{% endif %}</summary>
+                    <p class="hint">{% if selected_activity %}Выбранная тренировка. Готовность выше относится к сегодняшнему дню.{% else %}Последняя подходящая тренировка.{% endif %} Оценку RPE можно изменить.</p>
             <p class="hint">Ваша оценка в Web: {% if activity.rpe_web_score is not none %}{{ activity.rpe_web_score }}/10{% else %}не выбрана{% endif %}.</p>
             {% if activity.rpe_score is not none %}<p class="hint">Дополнительный ввод не нужен.</p>{% endif %}
-            <details class="feedback-editor" {% if activity.rpe_score is none or saved == "rpe" or rpe_error or rpe_history %}open{% endif %}>
-                <summary>{% if activity.rpe_web_score is not none %}Web RPE: {{ activity.rpe_web_score }}/10 · <span>Изменить</span>{% else %}Оценить нагрузку в Web{% endif %}</summary>
                 <p class="hint">Web-оценка сохраняется отдельно и не заменяет оценку Strava или Telegram, если она доступна. Приоритет итогового RPE: Strava → Telegram → Web.</p>
             <form method="post" action="/today/rpe/{{ activity.activity_id }}{% if return_day %}?return_day={{ return_day }}{% endif %}" data-feedback-form data-rpe-form>
                 {{ rpe_selector('workout-rpe', rpe_draft if rpe_draft is not none else activity.rpe_web_score, rpe_options, rpe_error) }}
@@ -170,6 +107,8 @@
             {% endif %}
         </section>
 
+    </div>
+    <details class="today-observations" {% if physiology_errors or saved == 'physiology' %}open{% endif %}><summary>Сон и другие наблюдения · Необязательно</summary>
         <section class="card manual-physiology" aria-labelledby="manual-physiology-title">
             <p class="section-index">04 / Необязательные наблюдения</p>
             <h2 id="manual-physiology-title" class="sr-only">Необязательные наблюдения</h2>
@@ -185,7 +124,7 @@
                 {% endfor %}
             </div>
             <details class="physiology-editor" {% if physiology_errors %}open{% endif %}>
-                <summary>Сон и другие наблюдения · Необязательно</summary>
+                <summary>Изменить наблюдения</summary>
                 <p class="hint">Наблюдения записываются отдельно от готовности. Их ввод не меняет рекомендацию на сегодня.</p>
                 {% if manual_physiology %}<p class="physiology-meta">Источник {{ manual_physiology.source | today_label('source') }} / обновлено {{ manual_physiology.updated_at | today_timestamp }}</p>{% endif %}
                 <p class="hint">Оставьте поле пустым, чтобы сохранить прежнее значение. Отметьте «Очистить», чтобы удалить его.</p>
@@ -230,30 +169,8 @@
             {% endif %}
         </section>
 
-        <section class="card history" aria-labelledby="history-title">
-            <p class="section-index">05 / История</p>
-            <p class="eyebrow">Готовность / 7 дней</p>
-            <h2 id="history-title">Последние 7 дней</h2>
-            <p class="hint">Текущая сохранённая история по дням. Значения могут измениться после пересчёта; это не неизменяемые утренние решения или отправленные сообщения.</p>
-            <a class="diary-rpe" href="/today/history">Открыть дневник</a>
-            {% if history_section.status == "error" %}
-            <p class="error">История временно недоступна. Обновите страницу, чтобы повторить попытку.</p>
-            {% else %}
-            {% for group in history_groups %}
-            <div class="history-group">
-                <h3 class="history-version">Модель {{ group.version }}{% if not group.supported %} · Историческая версия; рекомендация не определяется{% endif %}</h3>
-                {% if group.supported %}{{ readiness_figure(group.rows[:7]) }}{% endif %}
-                <ul class="overview-values" aria-label="Точные значения готовности">
-                {% for row in group.rows[:7] %}
-                    <li><time datetime="{{ row.date }}">{{ row.date }}</time>: {% if row.readiness_score is not none %}{{ row.readiness_score }}/100{% else %}Нет готовности{% endif %}</li>
-                {% endfor %}
-                </ul>
-            </div>
-            {% endfor %}
-            {% endif %}
-        </section>
-        <footer class="footer"><strong>WHATTE / СЕГОДНЯ</strong><span>Рекомендации по сохранённым сигналам и данным.</span></footer>
-    </div>
+    </details>
+    <footer class="today-footer"><a href="/today/history">Открыть дневник →</a><span>WHATTE / СЕГОДНЯ · рекомендации по сохранённым данным</span></footer>
 </main>
 {% include "today/lifecycle.html" %}
 <script>

@@ -1,85 +1,52 @@
-{% macro option(o, main=false) %}
-<div class="training-option">
-{% if main %}<h2>{% else %}<h3>{% endif %}{{ training_actions[o.action] }} <span class="badge">{{ o.action }}</span>{% if main %}</h2>{% else %}</h3>{% endif %}
-{% if o.session_type %}<p class="briefing">{{ training_types[o.session_type] }} · {{ o.duration_minutes }} мин{% if o.window_id %} · {{ o.window_id }}{% endif %}</p>{% endif %}
-{% for line in o.reasons %}<p>{{ line | decision_text }}</p>{% endfor %}
-<dl class="training-tradeoff"><dt>Сохраняем</dt><dd>{% for line in o.preserved_stimulus %}{{ line | decision_text }}{% if not loop.last %}; {% endif %}{% else %}Тренировочный стимул сегодня не предлагается.{% endfor %}</dd>
-<dt>Жертвуем</dt><dd>{% for line in o.lost_stimulus %}{{ line | decision_text }}{% if not loop.last %}; {% endif %}{% else %}Потеря планового стимула не заявлена.{% endfor %}</dd>
-<dt>Остаток недели</dt><dd>{% for line in o.week_consequences %}<p>{{ line | decision_text }}</p>{% endfor %}</dd></dl>
+{% set t = training if screen.current else none %}
+{% set edit = t.saved_context if t else none %}
+{% set form = training_draft if training_draft else (t.form if t else {}) %}
+{% set o = screen.option %}
+{% set d = screen.latest %}
+{% set needs_plan = t and screen.state == 'missing' and (not edit.block_priority or not t.targets) %}
+<article class="today-story training-decision" id="training-decision" aria-labelledby="training-title" data-state="{{ screen.state }}">
+<div class="story-dateline"><span>{{ screen.date_label }}</span><span>{{ screen.status }}</span></div>
+<div class="story-layout"><div class="story-main"><p class="eyebrow">{{ screen.kicker }}</p><h1 id="training-title">{{ screen.title }}</h1><p class="briefing">{{ screen.lead }}</p></div>
+<aside class="story-session" aria-label="Занятие на сегодня">
+{% if screen.facts %}<span class="metric-label">Записанный факт</span>
+{% if screen.facts|length == 1 and screen.facts[0].get('duration_s') is not none %}<p class="story-duration">{{ (screen.facts[0].duration_s / 60)|round|int }}<span> мин</span></p>{% elif screen.facts|length == 1 and screen.facts[0].get('duration_label') %}<p class="story-duration duration-label">{{ screen.facts[0].duration_label }}</p>{% else %}<p class="story-duration">{{ screen.facts|length }}<span> {{ 'активность' if screen.facts|length == 1 else 'активностей' }}</span></p>{% endif %}
+<p>Сегодня · {{ screen.facts[0].get('activity_type', 'Тренировка') }}</p>
+{% elif o %}<span class="metric-label">{{ 'Ваш выбор' if screen.state == 'accepted' else 'Предложение WHATTE' }}</span>
+{% if o.duration_minutes is not none %}<p class="story-duration">{{ o.duration_minutes }}<span> мин</span></p><p>{{ training_types[o.session_type] }} · {{ o.duration_minutes }} мин</p>{% else %}<p class="story-duration">{{ t.minutes if t and t.minutes is not none else '—' }}<span> мин доступно</span></p><p>{{ training_actions[o.action] }}</p>{% endif %}
+{% else %}<span class="metric-label">Доступно сегодня</span><p class="story-duration">{{ t.minutes if t and t.minutes is not none else '?' }}<span> мин</span></p>{% endif %}
+{% if screen.original %}<p class="story-original">По плану: {{ training_types[screen.original.session_type] }} · {{ screen.original.duration_minutes }} мин</p>{% endif %}
+</aside></div>
+{% if o %}<div class="story-reasons"><div><span class="metric-label">Сохраняем / компромисс</span><p>{% for line in o.preserved_stimulus %}{{ line | editorial_text }}{% if not loop.last %}; {% endif %}{% else %}Тренировочный стимул сегодня не предлагается.{% endfor %}</p>{% for line in o.lost_stimulus %}<p>{{ line | editorial_text }}</p>{% endfor %}</div><div><span class="metric-label">Остаток недели</span>{% for line in o.week_consequences %}<p>{{ line | editorial_text }}</p>{% endfor %}{% if t and t.decision and 'future_windows_unknown_no_move_assumed' in t.decision.warnings %}<p>Будущая доступность неизвестна. Возможность переноса не предполагается.</p>{% endif %}</div></div>
+{% elif screen.facts %}<div class="story-reasons"><div><span class="metric-label">План и факт — отдельно</span><p>{% for fact in screen.facts %}{% if fact.get('plan_link') %}{{ 'Выполнение назначения подтверждено.' if fact.plan_link.correspondence == 'fulfilled' else 'Тренировка отличается от назначения; выполнение не засчитано.' }}{% else %}Связь с планом не подтверждена. Совпадение типа или длительности не подтверждает выполнение.{% endif %}{% if not loop.last %} {% endif %}{% endfor %}</p></div><div><span class="metric-label">Следующее действие</span><p>{% if screen.facts|selectattr('plan_link')|list|length == screen.facts|length %}Связь с назначением уже сохранена. При необходимости оцените усилие поездки.{% else %}Оцените усилие и явно укажите соответствие назначению. RPE не заменяет подтверждение связи.{% endif %}</p></div></div>{% endif %}
+{% if screen.warnings %}<div class="story-warning" role="status">{% for line in screen.warnings %}<p>{{ line }}</p>{% endfor %}</div>{% endif %}
+{% if training_error and screen.state != 'error' and not screen.facts %}<p class="error" role="alert">{{ training_error }}</p>{% endif %}
+<div class="story-actions">
+{% if screen.facts %}<div class="primary-row">{% for a in screen.facts %}<a class="story-primary" {% if loop.first %}id="primary-action"{% endif %} href="/today?activity_id={{ a.activity_id }}#rpe">{{ 'Посмотреть оценку' if a.get('rpe') is not none else 'Оценить усилие' }}{% if screen.facts|length > 1 %} · {{ loop.index }}{% endif %} →</a>{% endfor %}</div>
+{% elif screen.can_choose %}<form action="/today/training-choice" method="post" class="choice-actions"><input type="hidden" name="decision_id" value="{{ d.id }}"><button id="primary-action" class="story-primary" type="submit" name="choice" value="accepted">Принять предложение</button><button class="story-secondary" type="submit" name="choice" value="declined">Отклонить</button><span>План изменится только после принятия.</span></form>
+{% elif screen.state == 'error' %}<a id="primary-action" class="story-primary" href="/today">Обновить Сегодня →</a>{% endif %}
+{% if needs_plan %}<a id="primary-action" class="story-primary plan-action" href="/today/plan">Открыть план и приоритет блока →</a>{% endif %}
+{% if t and not screen.facts %}<details class="story-controls" {% if training_draft %}open{% endif %}><summary {% if not screen.can_choose and not needs_plan %}id="primary-action"{% endif %}>{{ 'Изменить ограничения и получить новое предложение' if screen.state in ['accepted', 'declined'] else 'Уточнить условия и получить предложение' if screen.state in ['missing', 'stale'] else 'Изменить доступное время и условия' }}</summary>{% include 'today/training_controls.html' %}<p class="hint">Просмотр не означает согласие. Изменение плана применяется только после принятия предложения.</p></details>{% elif not screen.facts and screen.state != 'error' %}<a id="primary-action" class="story-primary" href="/today/plan">Задать план недели →</a>{% endif %}
 </div>
-{% endmacro %}
-<section class="card hero training-decision" id="training-decision" aria-labelledby="training-title">
-<p class="eyebrow">What is today? / Тренировочное решение</p>
-<h1 id="training-title">Сегодняшняя тренировка</h1>
-{% if training_error %}<p class="error" role="alert">{{ training_error }}</p>{% endif %}
-{% if training %}
-{% set t = training %}{% set edit = t.saved_context %}{% set form = training_draft if training_draft else t.form %}
-<p>Приоритет блока: <strong>{{ training_types.get(edit.block_priority, 'не задан') }}</strong> · {{ t.today }}</p>
-{% if t.target %}<p>По плану: <strong>{{ training_types[t.target.session_type] }} · {{ t.target.duration_minutes }} мин</strong> · {{ 'ключевое' if t.target.priority == 'key' else 'поддерживающее' }} занятие.</p>{% elif t.targets %}<p>На сегодня запланировано несколько занятий. Выберите одно для предложения.</p>{% else %}<p>На сегодня нет датированного занятия. Плановое решение не строится.</p>{% endif %}
-<p>Доступно сегодня: <strong>{{ (t.minutes ~ " мин") if t.minutes is not none else "неизвестно" }}</strong>.</p>
-<a class="diary-rpe" href="/today/plan">Изменить план и цель блока</a>
-{% if t.delivery.get('status') == 'activity_recorded' or t.today_activities %}
-<h2>Тренировка уже записана</h2><p>Факт тренировки сохранён. Новая тренировка автоматически не предлагается.</p>
-{% elif t.decisions and t.decisions[0].choice and not t.decisions[0].stale %}
-<h2>{{ 'Предложение принято' if t.decisions[0].choice == 'accepted' else 'Предложение отклонено' }}</h2>
-<p>{% if t.decisions[0].choice == 'accepted' %}{{ training_actions[t.decisions[0].decision_json.recommendation.action] }}{% else %}Отказ не означает отдых или выполнение занятия.{% endif %}</p>
-{% elif t.decision and t.decision.recommendation %}
-{{ option(t.decision.recommendation, true) }}
-{% for line in t.decision.selection_reasons %}<p class="hint">{{ line | decision_text }}</p>{% endfor %}
-{% else %}<h2>Недостаточно данных для обоснованного выбора</h2><p>Заполните недостающий контекст. Уверенная плановая рекомендация пока не сформирована.</p>{% endif %}
-{% for d in t.decisions[:1] %}
-{% if d.status == 'proposed' and not t.today_activities and t.proposal_matches %}
-<form action="/today/training-choice" method="post" class="training-form">
-<input type="hidden" name="decision_id" value="{{ d.id }}">
-<p>Сохранено предложение: {{ training_actions[d.decision_json.recommendation.action] }}{% if d.decision_json.recommendation.duration_minutes %} · {{ d.decision_json.recommendation.duration_minutes }} мин{% endif %}.</p>
-<button class="physiology-save" type="submit" name="choice" value="accepted">Принять предложение</button>
-<button class="physiology-save" type="submit" name="choice" value="declined">Отклонить</button>
-</form>
-{% elif d.stale and not d.choice %}<p class="stale-warning">Сохранённое предложение устарело. Получите новое перед подтверждением.</p>
-{% elif d.choice %}<p class="hint">Ответ сохранён: {{ 'принято' if d.choice == 'accepted' else 'отклонено' }}{% if d.stale and not t.today_activities %}; контекст после ответа изменился{% endif %}.</p>{% endif %}
-{% endfor %}
+{% if t %}
+<div class="story-followup">
 {% for a in t.activities %}
-
-<p>Активность · {{ a.get('local_date', '') }}{% if a.get('duration_s') is not none %} · {{ (a.duration_s / 60)|round|int }} мин{% endif %}:
-{% if a.get('plan_link') %}{{ 'выполнение назначения подтверждено' if a.plan_link.correspondence == 'fulfilled' else 'тренировка отличается от назначения; выполнение не засчитано' }}.</p>
-{% else %}связь с планом не подтверждена.</p>
-{% if t.link_targets %}
-<form action="/today/training-completion" method="post" class="training-form">
+{% if a.get('local_date') == t.today or not a.get('plan_link') %}
+<details class="activity-correspondence"><summary>Активность · {{ a.get('local_date', 'дата неизвестна') }}{% if a.get('duration_s') is not none %} · {{ (a.duration_s / 60)|round|int }} мин{% endif %} · {% if a.get('plan_link') %}{{ 'выполнение назначения подтверждено' if a.plan_link.correspondence == 'fulfilled' else 'тренировка отличается; выполнение не засчитано' }}{% else %}связь с планом не подтверждена{% endif %}</summary>
+{% if not a.get('plan_link') and t.link_targets %}<form action="/today/training-completion" method="post" class="training-form">
 <input type="hidden" name="decision_day" value="{{ t.today }}"><input type="hidden" name="revision" value="{{ edit.revision }}"><input type="hidden" name="activity_id" value="{{ a.activity_id }}">
 <label>Какому занятию соответствует активность?<select name="session_id"><option value="">Выберите назначение</option>{% for s in t.link_targets %}<option value="{{ s.id }}">{{ s.day }} · {{ training_types[s.session_type] }} · {{ s.duration_minutes }} мин</option>{% endfor %}</select></label>
 <label>Результат<select name="correspondence"><option value="">Выберите результат</option><option value="fulfilled">Выполнил выбранное занятие</option><option value="different">Тренировка отличалась; назначение не выполнено</option></select></label>
-<button class="physiology-save" type="submit">Подтвердить связь</button></form>
-{% endif %}{% endif %}
-{% endfor %}
-{% if not t.today_activities %}
-{% set answered = t.decisions and t.decisions[0].choice and not t.decisions[0].stale %}
-{% if answered %}<details><summary>Изменить ограничения и получить новое предложение</summary>{% endif %}
-<form action="/today/training-decision" method="post" class="training-form">
-<input type="hidden" name="decision_day" value="{{ t.today }}"><input type="hidden" name="revision" value="{{ edit.revision }}">
-{% if t.targets %}<label>Занятие сегодня<select name="session_id">{% if t.targets|length > 1 %}<option value="">Выберите занятие</option>{% endif %}{% for s in t.targets %}<option value="{{ s.id }}" {% if form.get('session_id', t.target.id if t.target else '') == s.id %}selected{% endif %}>{{ training_types[s.session_type] }} · {{ s.duration_minutes }} мин · {{ 'ключевое' if s.priority == 'key' else 'поддерживающее' }}</option>{% endfor %}</select></label>{% endif %}
-<label for="training-minutes">Доступное время сегодня, мин</label>
-<input id="training-minutes" type="number" min="0" step="1" max="999999" name="minutes" value="{{ training_draft.get('minutes', '') if training_draft else (t.minutes if t.minutes is not none else '') }}" aria-describedby="training-time-help">
-<p class="hint" id="training-time-help">Включая разминку и заминку. 0 — времени нет; пусто — доступность неизвестна. Известное время сохраняется между посещениями.</p>
-<label>Тренировка сегодня допустима?<select name="training_allowed">{% for value, label in [('', 'Пока неизвестно'), ('yes', 'Да'), ('no', 'Нет')] %}<option value="{{ value }}" {% if form.get('training_allowed', '') == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
-<details><summary>Ограничения и проверенные альтернативы</summary>
-<p class="hint">Разрешения относятся к этому предложению и дню. Они не выводятся из readiness. Выполнение занятия отмечается отдельно по фактической активности.</p>
-<label>Интенсивная работа допустима?<select name="intensity_allowed">{% for value, label in [('', 'Пока неизвестно'), ('yes', 'Да'), ('no', 'Нет')] %}<option value="{{ value }}" {% if form.get('intensity_allowed', '') == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
-{% for w in t.future_windows %}<label class="training-check"><input type="checkbox" name="reviewed_window" value="{{ w.day }}" {% if w.day|string in form.get('reviewed_window', ()) %}checked{% endif %}> Проверил перенос выбранного занятия на {{ w.day }} ({{ w.duration_minutes }} мин): соседние занятия, переносимость и бюджет недели совместимы.</label>{% else %}<p>Подтверждённых будущих окон нет. Неизвестное время не считается свободным.</p>{% endfor %}
-{% for s in t.substitutes %}<label class="training-check"><input type="checkbox" name="substitute" value="{{ s.id }}" {% if s.id in form.get('substitute', ()) %}checked{% endif %}> Разрешаю как замену сегодня: {{ training_types[s.session_type] }} · {{ s.duration_minutes }} мин ({{ s.day }}). Проверил влияние на оставшуюся неделю; занятие ещё не выполнено.</label>{% endfor %}
-</details>
-<button class="physiology-save" type="submit">Сохранить время и получить предложение</button>
-</form>
-<p class="hint">Просмотр не означает согласие. Изменение плана применяется только после принятия предложения.</p>
-{% if answered %}</details>{% endif %}
-{% endif %}
-{% for a in t.activities if a.load.included != true %}<p class="stale-warning">Нагрузка активности {{ a.activity_id }} неизвестна или не поддерживается. Она не считается нулевой.</p>{% endfor %}
-{% if not t.today_activities and t.decision and t.decision.alternatives %}<details><summary>Допустимые альтернативы ({{ t.decision.alternatives|length }})</summary>{% for o in t.decision.alternatives %}{{ option(o) }}{% endfor %}</details>{% endif %}
-{% if t.missing_context and not t.today_activities and not (t.decisions and t.decisions[0].choice and not t.decisions[0].stale) %}<div class="training-missing"><p>Неизвестные данные</p><ul>{% for line in t.missing_context %}<li>{{ line | decision_text }}</li>{% endfor %}</ul></div>{% endif %}
-<details><summary>Фактическая работа и ограничения данных</summary>
-<p>Локально сохранено активностей с начала недели: {{ t.activities|length }}. Совпадение с планом не предполагается.</p>
-{% for a in t.activities %}<p>Активность {{ a.activity_id }} · {{ a.get('local_date', '') }} · RPE {{ a.get('rpe') if a.get('rpe') is not none else 'неизвестен' }} · {{ 'нагрузка учтена' if a.load.included == true else 'нагрузка неизвестна или не поддерживается' }}</p>{% endfor %}
-{% for line in t.limitations %}<p class="hint">{{ line | decision_text }}</p>{% endfor %}
-{% if t.decision %}{% for line in t.decision.warnings %}<p class="hint">{{ line | decision_text }}</p>{% endfor %}<p class="hint">Правила: {{ t.decision.rule_version }}. Результат воспроизводим при тех же входных данных.</p>{% endif %}
+<button class="physiology-save" type="submit">Подтвердить связь</button></form>{% elif not a.get('plan_link') %}<p>Нет доступных датированных назначений этой недели для подтверждения. <a href="/today/plan">Проверить план</a>.</p>{% else %}<p>{{ 'Выполнение назначения подтверждено. Это не доказывает эквивалентность исходному полному стимулу.' if a.plan_link.correspondence == 'fulfilled' else 'Тренировка отличается от назначения; выполнение не засчитано.' }}</p>{% endif %}
+</details>{% endif %}{% endfor %}
+</div>
+<details class="training-sources"><summary>Источники решения и ограничения</summary>
+{% if edit %}<p>Приоритет блока: {{ training_types.get(edit.block_priority, 'не задан') }}.</p>{% endif %}
+{% if d %}<p>Сохранённое предложение: {{ training_actions[d.decision_json.recommendation.action] }} · {{ d.status }}.</p>{% if d.choice %}<p>Ответ сохранён: {{ 'принято' if d.choice == 'accepted' else 'отклонено' }}{% if d.stale %}; контекст после ответа изменился{% endif %}.</p>{% endif %}{% endif %}
+{% if not screen.facts and t.decision and t.decision.alternatives %}<details><summary>Допустимые альтернативы ({{ t.decision.alternatives|length }})</summary>{% for alt in t.decision.alternatives %}<p>{{ training_actions[alt.action] }}{% if alt.duration_minutes %} · {{ alt.duration_minutes }} мин{% endif %}.</p>{% for line in alt.reasons %}<p>{{ line | editorial_text }}</p>{% endfor %}{% endfor %}</details>{% endif %}
+<p>Локально сохранено активностей с начала недели: {{ t.activities|length }}.</p>
+{% for line in t.limitations %}{% if line != 'strava_sync_completeness_unverified' %}<p>{{ line | editorial_text }}</p>{% endif %}{% endfor %}
+{% if t.decision %}{% for line in t.decision.warnings %}{% if not line.startswith('load_not_covered:') and not line.startswith('plan_completion_unconfirmed:') %}<p>{{ line | editorial_text }}</p>{% endif %}{% endfor %}<p>Правила: <span class="badge">{{ t.decision.recommendation.action if t.decision.recommendation else t.decision.status }}</span> · {{ t.decision.rule_version }}.</p>{% endif %}
+{% for line in t.missing_context %}{% if line.startswith('future_window_unknown:') %}<p>{{ line | editorial_text }}</p>{% endif %}{% endfor %}
 </details>
 {% endif %}
-</section>
+</article>

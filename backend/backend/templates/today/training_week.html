@@ -1,0 +1,21 @@
+<section class="today-week" aria-label="Контекст недели">
+<div class="week-heading"><span>{{ screen.week[0].date | diary_week(today) }}</span><a href="/today/plan">План недели →</a></div>
+<div class="week-days">
+{% for day in screen.week %}
+<details class="week-day{% if day.current %} current{% endif %}">
+<summary{% if day.current %} aria-current="date"{% endif %} aria-label="{{ day.weekday }} {{ day.date }}. План: {% if day.plan_known %}{{ day.plan|length }} занятий{% else %}неизвестен{% endif %}. Факт: {% if day.facts_known %}{{ day.facts|length }} записей{% else %}недоступен{% endif %}. Подтверждено назначений: {% if day.facts_known and day.plan_known %}{{ day.fulfilled|length }}{% else %}неизвестно{% endif %}.">
+<span class="week-date">{{ day.weekday }} <strong>{{ day.number }}</strong></span>
+<span class="week-plan"><span class="week-prefix">П </span>{% if day.plan|length == 1 %}<span class="week-type">{{ training_types[day.plan[0].session_type] }} · </span>{{ day.plan[0].duration_minutes }}′{% elif day.plan %}{{ day.plan|length }} зан.{% else %}{{ '—' if day.plan_known else '?' }}{% endif %}</span>
+<span class="week-fact"><span class="week-prefix">Ф </span>{% if day.facts %}{{ day.facts|length }} зап.{% else %}{{ '—' if day.facts_known else '?' }}{% endif %}</span>
+<span class="week-confirmation">{% if day.fulfilled %}✓ {{ day.fulfilled|length }} подтв.{% else %}{{ '—' if day.facts_known else '?' }}{% endif %}</span>
+</summary>
+<div class="week-detail"><strong>{{ day.date }}</strong>
+{% for s in day.plan %}<p>План: {{ training_types[s.session_type] }} · {{ s.duration_minutes }} мин.</p>{% else %}<p>{{ 'Датированное занятие не задано; это не подтверждённый отдых.' if day.plan_known else 'План неизвестен.' }}</p>{% endfor %}
+{% for a in day.facts %}<p>Факт: {{ a.get('activity_type', 'Активность') }}{% if a.get('duration_s') is not none %} · {{ (a.duration_s / 60)|round|int }} мин{% endif %}. <a href="/today?activity_id={{ a.activity_id }}#rpe">Оценка / RPE</a></p>
+{% if a.get('plan_link') %}<p>{{ 'Выполнение назначения подтверждено' if a.plan_link.correspondence == 'fulfilled' else 'Тренировка отличается от назначения; выполнение не засчитано' }}.</p>{% else %}<p>Связь с планом не подтверждена.</p>{% endif %}
+{% else %}<p>{{ 'Нет локальной записи; это не доказывает отсутствие тренировки.' if day.facts_known else 'Фактическая работа недоступна.' }}</p>{% endfor %}
+{% if day.fulfilled %}<p>Подтверждено назначений этого дня: {{ day.fulfilled|length }}. Отметка относится к назначению, а не к полному исходному стимулу.</p>{% endif %}
+</div></details>
+{% endfor %}
+</div><p class="week-legend">П — план · Ф — записанный факт · ✓ — подтверждённое выполнение назначения</p>
+</section>

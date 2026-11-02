@@ -1,10 +1,9 @@
 # Web Today surface
 
-> Scope note, 2026-10-21: this document specifies the **implemented readiness
-> baseline**, unchanged by the new [product direction](../ai/PRODUCT_CONTEXT.md).
-> Since 2026-10-31 Today also consumes the existing [training time policy](../models/TRAINING_DECISION_POLICY.md)
-> and [persisted context](../data/TRAINING_CONTEXT.md), as a separate proposal contract.
-> A high readiness category does not establish which workout best serves a block.
+> Updated 2026-11-02 for #197. Today renders one editorial training answer
+> over the existing [policy](../models/TRAINING_DECISION_POLICY.md) and
+> [Task 4 choice/activity contracts](../data/TRAINING_CONTEXT.md#decision-loop-2026-11-01).
+> Readiness remains supporting state; its formula and category are unchanged.
 
 ## Purpose
 
@@ -13,46 +12,78 @@ single-user daily loop. It renders backend-owned state; it does not calculate
 readiness, recommendation, or missing-data fallbacks in the browser.
 
 Its visual language follows [Whatte visual identity](VISUAL_IDENTITY.md):
-the daily reading is presented as an editorial issue, with the stored
-decision first, supporting signals and feedback next, and a compact 7-day overview linking to the 14-day diary.
+the daily reading follows the approved local prototype at
+`docs/ui/prototypes/today-197/index.html` (reviewed in this task).
+The seven-day strip gives context; one article explains today's situation; compact
+readiness/feeling/RPE notes support it. Detailed readiness history lives in Diary.
 
-## Training proposal, 2026-10-31
+## Editorial answer and weekly context, #197
 
-The first block shows today's saved session (type, minutes, key/supporting),
-block priority and a native time editor. Known capacity is prefilled. Unknown
-capacity, absent goal/plan and multiple same-day sessions remain explicit.
-Training permission is a separate explicit input. A disclosure collects intensity
-permission, future compatibility reviews and permitted existing-plan substitutes.
+The read-only presentation projection in `today/presentation.py` uses existing
+snapshots, not new storage, queries or decision rules. One H1 presents, in order:
 
-The shared backend policy owns KEEP/SHORTEN/SUBSTITUTE/RESCHEDULE/SKIP, reasons,
-stimulus tradeoffs, week consequences and alternatives. Insufficient context
-produces uncertainty. Unknown load is visible without opening a disclosure;
-activities, RPE, missing optional physiology and data limitations remain available.
+1. Today's recorded eligible activity, regardless of whether it matches the plan.
+   No additional workout proposal or consent form is shown. Each activity links to
+   its existing RPE editor and has a native correspondence disclosure.
+2. A read error or local-date mismatch: refresh the context before acting.
+3. A stale saved proposal/choice: explain the changed context; historical accepted
+   or declined choice remains explicit. No old acceptance button is exposed.
+4. A current accepted/declined choice. Acceptance shows the stored recommendation
+   and original assignment from immutable evidence; the week shows the current
+   plan. Declining does not imply rest or fulfillment.
+5. The existing backend recommendation, or concrete missing inputs. No readiness
+   category substitutes for a missing training-plan decision.
 
-When today's plan and block priority exist, this is the primary workout answer.
-The unchanged readiness surface is collapsed as supporting state; its historical
-category/briefing remains available and is explicitly distinguished from workout
-choice. Without that plan context the readiness baseline remains visible with a
-clear fallback label. Failures of the plan read are displayed, never empty history.
+A proposed recommendation exposes accept/decline only when the existing
+`proposal_matches` contract agrees with its immutable stored inputs. A GET-only
+preview must first be saved through the existing preview POST. Changed minutes,
+permission, intensity permission, reviewed future windows and substitutes retain
+their existing form names, explicit unknown values and validation. The compact
+conditions disclosure is opened automatically after a failed preview with a draft.
+If the plan/priority itself is missing, the main action opens Plan week instead.
 
-Only available time is persisted. Preview constraints live in a local-date-scoped
-URL and are cleared for another day. Viewing/reloading never accepts proposals,
-changes the plan, creates assignments or records decision history. Confirmation
-and plan/activity linkage remain Task 4.
+The Monday–Sunday strip uses the rendered local date and current saved weekly
+sessions, local activity facts and explicit `plan_link.correspondence`:
+
+- `П` is the dated plan, `Ф` is a locally recorded fact, `✓` is confirmed fulfillment
+  of the linked assignment. The credit belongs to the assignment date; the fact
+  stays on its own activity date. `different` is a link without completion credit.
+- Missing plans and failed reads are unknown, never rest/zero. No local activity
+  record does not prove no exercise; Strava completeness remains unverified.
+- A native day disclosure shows full types, minutes and each fact/link. The strip
+  does not select a new decision date or edit the plan. Current day remains marked.
+
+Unknown load, missing input, stale/partial readiness and read errors remain visible
+outside technical disclosures. Readiness/decision versions and source details are
+available on demand. Internal identities remain in native form fields, not narrative
+copy. Training policy, formulas, persistence, API semantics and Telegram are unchanged.
+
+## Training proposal and actions
+
+The shared policy still owns KEEP/SHORTEN/SUBSTITUTE/RESCHEDULE/SKIP, reasons,
+stimulus tradeoffs, week consequences and alternatives. The article presents these
+without ranking them again. Shortening never claims full-stimulus equivalence;
+unknown future availability never creates a move or compensation debt.
+
+Native POSTs for preview, choice and activity correspondence retain Task 4 ownership,
+revision, local-day, replay and idempotency checks. RPE/feeling writes retain existing
+source precedence and recomputation. Viewing Today neither writes a proposal nor
+accepts a choice or confirms an activity. An activity-to-plan link is immutable in
+this UI; no new correction, planning or history workflow was added.
 
 ## Existing readiness behavior
 
-- Presents one main answer for the stored result date: backend recommendation,
-  shared briefing, and readiness labeled N/100. `good_day_probability` remains
+- Presents stored readiness N/100 with its actual date and freshness as a compact
+  supporting note. The stored category/briefing is available in model diagnostics,
+  not a second workout prescription. `good_day_probability` remains
   in the API but is not displayed on Today. Status text uses neutral styling.
 - Shows calculation and source timestamps in `WHATTE_TIMEZONE`. A stale result
   or a result from another date has an always-visible warning and its actual
   date; a historical briefing is explicitly labeled with that date. Freshness
   policy and shared briefing text remain unchanged.
-- Places existing signal availability/participation and source timestamps in
-  the keyboard-accessible «Почему такая рекомендация» disclosure under the
-  answer, followed by morning feedback. Missing/error states have no invented
-  score or recommendation. RPE, observations and the history overview remain available.
+- Places signal availability/participation and source timestamps in the native
+  «Источники готовности» disclosure. Missing/error states have no invented score
+  or recommendation. RPE and observations remain editable; history is in Diary.
 - Shows optional historical physiology only when it belongs to the same date;
   unavailable physiology is not an error and is not rendered as a fake score.
 - Lets the user create or edit today's one-tap next-day recovery score.
@@ -69,10 +100,10 @@ and plan/activity linkage remain Task 4.
   effective RPE, which identifies Strava, Telegram fallback, or Web
   fallback. If observations disagree, the page shows each recorded source
   score and the Strava > Telegram > Web resolution rule.
-  When effective RPE is available, the page says additional input is unnecessary
-  and keeps the voluntary Web editor in closed native details, including
-  Strava-only and Telegram-only observations. Without effective RPE the editor
-  opens immediately, even if a Web observation exists without resolution.
+  The Web editor starts collapsed and opens on a selected-activity visit,
+  comparison, saved response or failed draft. When effective RPE is available,
+  the editor explains that additional input is unnecessary, including Strava-only
+  and Telegram-only observations.
   Saved Web selections remain available for editing. Failed native saves retain
   the submitted draft and reopen the editor, with a linked error. Before input, the editor
   explains that Web is stored separately and cannot override available Strava
@@ -84,9 +115,10 @@ and plan/activity linkage remain Task 4.
 
 ## Optional manual physiology
 
-After recovery and RPE, Today shows optional sleep duration (minutes), sleep
-quality (1–5, very poor to very good), HRV (ms), and resting heart rate (bpm)
-for the current local date. Each missing field is unavailable, including an
+After the compact notes, a native «Сон и другие наблюдения» disclosure contains
+optional sleep duration (minutes), sleep quality (1–5), HRV (ms), and resting heart
+rate (bpm) for the current local date. It opens on validation errors or saved input.
+Each missing field is unavailable, including an
 all-null record. Values entered through Telegram and Web share one record;
 source and update time are displayed separately from readiness signal evidence.
 
@@ -151,9 +183,9 @@ The configured user, recovery score and backend recomputation remain unchanged.
 ## Deliberate limits
 
 - No SPA, frontend build step, OAuth account system, or client-side model logic.
-- No workout construction, duration prescription, calendar-aware planning, or
-  HRV or 28-day load figure without a real backend data contract. The 14-day
-  readiness figure uses the existing history rows and marks missing dates.
+- No new workout construction, calendar planner, HRV or 28-day load figure.
+  Duration and changes come only from the existing policy/choice contract. The
+  14-day readiness figure in Diary marks missing dates.
 - No additional stress, motivation, or fatigue questionnaire without a
   documented persistence and calibration use.
 
@@ -172,8 +204,8 @@ with `aria-current="page"`, an underlined active link and 44px minimum link heig
 All three pages declare `lang="ru"`. Forms, scales, units, saved messages, validation
 errors and empty states use Russian labels; FTP, HRV, RPE and source names remain.
 Web-only labels map existing backend codes without score thresholds. Unknown
-codes have a neutral label. The main briefing remains the shared formatter output;
-raw recommendation reasons and section errors are available as technical details.
+codes have a neutral label. The main training answer presents existing policy output; stored readiness briefing,
+raw reasons and section errors remain available as technical details.
 POST routes, values, source priority and calculation behavior are unchanged.
 
 ## Diary
@@ -243,7 +275,7 @@ day. «Вернуться к дню в дневнике» points only to `/today
 Return context is accepted only for the owned activity's local date inside the
 current 14-day diary window; malformed, mismatched and out-of-window context
 is discarded. No URL or arbitrary anchor is accepted. Diary day anchors are
-stable, and both readiness figures use keyboard-accessible day links, including
+stable, and the Diary readiness figure uses keyboard-accessible day links, including
 missing days, with exact dated values in accessible labels.
 
 ## RPE selector form contract (#192)
@@ -323,5 +355,37 @@ Today adds native accept/decline and explicit activity-to-assignment confirmatio
 using the [backend loop contract](../data/TRAINING_CONTEXT.md#decision-loop-2026-11-01).
 GET stays read-only; accepted/declined state survives reload. Recorded work today
 is shown ahead of a new training prescription even without a plan link or metrics.
-Fulfilled/different and pending/complete remain distinct. This is a bounded functional
-addition to the existing screen, not implementation of the #197 visual prototype.
+Fulfilled/different and pending/complete remain distinct. The #197 presentation above now incorporates this loop into the approved
+editorial composition; its persistence and policy contracts are unchanged.
+
+
+## #197 validation, 2026-11-02
+
+- Unit regression: 1071 passing checks, including the new presentation cases;
+  Today feedback, missing/stale/error, local-day, source precedence and security
+  checks retain their behavioral assertions. Removed-figure/title expectations
+  now assert the approved hierarchy and Diary link instead.
+- Local disposable PostgreSQL: 35 training-loop/Today-history integration checks
+  passed, including preview → accept → activity → fulfillment → next decision,
+  stale consent rejection, idempotency, source ownership and read-only reloads.
+  Native PostgreSQL has no pgvector: the unrelated auxiliary embedding column is
+  text in this temporary baseline fixture. V2/V3 and all touched tables are exact;
+  the normal CI job validates the complete migration chain with pgvector.
+- Chromium: 11 synthetic states rendered by the real SSR/policy at
+  320/390/1280/1440 px. No horizontal overflow, one H1. On 1280×800 the main action
+  ends at 568–750 px in these fixtures; additional persistent profile/lifecycle
+  warnings can legitimately take space above the article.
+- Open RPE, readiness, correspondence and observation controls were checked at
+  320/390/1280 px. Native radio arrows and Enter-to-open conditions work with
+  visible focus. Primary/summary controls retain 44px minimum height. Text/paper
+  contrast ratios: ink 12.63, muted 5.18, olive 5.08, warning 6.82.
+- With JavaScript disabled, browser-native preview, accept, decline, correspondence,
+  RPE and feeling forms emitted the original six POST payloads. These browser
+  requests were intercepted locally; persistence/rejection is covered by the
+  PostgreSQL integration checks, not inferred from a screenshot.
+- Local review artifacts: `output/playwright/today-197-production/` contains
+  desktop 1280×800 and full-page mobile 390px screenshots for decision, missing,
+  recorded/unmatched, no-time, accepted, declined, stale, fulfilled, different,
+  read-error and empty-plan states. They use synthetic fixtures, not athlete data.
+  These local screenshots and the original prototype are outside the production
+  package; the runtime has no fixture switch or preview route.

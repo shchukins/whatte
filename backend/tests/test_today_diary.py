@@ -390,7 +390,7 @@ def test_today_overview_uses_only_latest_seven_days(monkeypatch):
     page = TestClient(app_module.app).get('/today').text
     assert '2026-08-24' in page
     assert '2026-08-23' not in page and '2026-08-17' not in page
-    assert 'Последние 7 дней' in page and 'Открыть дневник' in page
+    assert 'Последние 7 дней' not in page and 'Открыть дневник' in page
     assert 'class="history-table"' not in page
 
 
@@ -491,5 +491,6 @@ def test_diary_and_today_figure_links_include_missing_days(monkeypatch):
     monkeypatch.setattr(today, 'get_today_data', lambda *a, **k: data)
     page = client.get('/today').text
     assert 'Последняя подходящая тренировка' in page
-    assert page.count('class="diary-point" href=') == 7
-    assert 'href="/today/history#day-2026-08-24"' in page
+    assert page.count('class="diary-point" href=') == 0
+    assert 'href="/today/history"' in page
+    assert page.count('class="week-date"') == 7

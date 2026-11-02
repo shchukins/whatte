@@ -38,6 +38,7 @@ from backend.services import training_decision_loop as training_loop
 from .history_service import get_diary_data
 from .presentation import (
     diary_date_label, diary_week_label, diary_week_start, physiology_error, today_label,
+    today_editorial, editorial_decision_text,
 )
 from backend.services import user_profile_service as profile_service
 from backend.services import training_context_service as training_context
@@ -47,6 +48,7 @@ templates = Jinja2Templates(
     directory=str(Path(__file__).resolve().parents[1] / "templates")
 )
 templates.env.filters["decision_text"] = training_view.decision_text
+templates.env.filters["editorial_text"] = editorial_decision_text
 templates.env.filters["today_label"] = today_label
 templates.env.filters["diary_date"] = diary_date_label
 templates.env.filters["diary_week_start"] = diary_week_start
@@ -228,6 +230,7 @@ def _today_page(
         context={
             "page_title": "Сегодня · Whatte",
             "training": training, "training_error": training_error,
+            "screen": today_editorial(data, training, training_error),
             "training_draft": training_draft,
             "training_primary": bool(training and training["primary"]),
             "training_types": training_view.TYPES, "training_actions": training_view.ACTIONS,

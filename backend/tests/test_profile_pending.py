@@ -67,7 +67,7 @@ def test_notice_states_and_failure_isolation(monkeypatch, path, state):
     if state == 'error':
         assert 'Актуальность связанных расчётов не подтверждена' in page.text
     assert ('href="/today/profile#profile-pending-title"' in page.text) == (state != 'empty')
-    assert ('Утренний отчёт' if path == '/today' else 'Последние 14 дней') in page.text
+    assert ('Самочувствие / сегодня' if path == '/today' else 'Последние 14 дней') in page.text
 
 
 @pytest.mark.parametrize('path', ['/today', '/today/history'])

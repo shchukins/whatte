@@ -378,9 +378,9 @@ def test_today_editorial_metrics_and_figure_use_persisted_values(monkeypatch):
 
     assert response.status_code == 200
     assert "Вероятность хорошего дня" not in response.text
-    assert 'class="score">68.0<span class="unit">/100</span>' in response.text
-    assert 'height: 68.0%' in response.text
-    assert 'class="diary-gap"' in response.text
+    assert 'class="context-value">68.0 / 100</p>' in response.text
+    assert 'class="diary-point"' not in response.text
+    assert 'Открыть дневник' in response.text
 
 
 def test_today_rpe_scale_is_numeric_and_shows_source_resolution(monkeypatch):
@@ -461,10 +461,9 @@ def test_today_history_overview_renders_versions_and_missing_values(monkeypatch)
     response = TestClient(app_module.app).get("/today")
 
     assert response.status_code == 200
-    assert "Текущая сохранённая история по дням" in response.text
-    assert "Нет готовности" in response.text
-    assert "Историческая версия; рекомендация не определяется" in response.text
-    assert "Последние 7 дней" in response.text
+    assert "Текущая сохранённая история по дням" not in response.text
+    assert "Последние 7 дней" not in response.text
+    assert 'aria-label="Контекст недели"' in response.text
     assert "Открыть дневник" in response.text
     assert 'class="history-table"' not in response.text
 
@@ -629,8 +628,9 @@ def test_today_labels_preserve_backend_contract(monkeypatch, state, label):
                  "recommendation": "future_zone", "status_text": "future_status"}
     monkeypatch.setattr(today_service, "get_today_data", lambda *args, **kwargs: replace(data, readiness=readiness))
     page = TestClient(app_module.app).get("/today").text
-    assert f"<strong>{label}</strong>" in page
-    assert '<h1 id="readiness-title">Неизвестное состояние</h1>' in page
+    assert label in page
+    assert '<h1 id="readiness-title">' not in page
+    assert "Неизвестное состояние" in page
     assert 'id="decision-title"' not in page
     assert readiness["readiness_score"] == 68.0
     assert readiness["recommendation"] == "future_zone"
@@ -667,19 +667,21 @@ def test_today_answer_disclosure_and_feedback_order(monkeypatch):
                  "recovery_source_at": "2026-08-30T06:05:00+00:00"}
     monkeypatch.setattr(today_service, "get_today_data", lambda *a, **k: replace(data, readiness=readiness))
     page = TestClient(app_module.app).get("/today").text
-    assert page.count('<h1 id="readiness-title">Умеренная аэробная тренировка</h1>') == 1
+    assert page.count('<h1 id="training-title">') == 1
+    assert '<h1 id="readiness-title">' not in page
     assert 'class="card decision"' not in page
     assert 'class="positive"' not in page
     assert '<details class="readiness-explanation">' in page
-    assert '<summary>Почему такая рекомендация</summary>' in page
-    assert page.index('id="readiness-title"') < page.index('Почему такая рекомендация') < page.index('id="recovery-title"')
+    assert '<summary>Источники готовности</summary>' in page
+    assert page.index('id="training-title"') < page.index('Источники готовности') < page.index('id="recovery-title"')
     assert '30.08.2026, 09:00 MSK' in page
     assert '30.08.2026, 08:00 MSK' in page
     assert '30.08.2026, 09:05 MSK' in page
     assert 'Отклик на тренировку' in page and 'Нет данных' in page
     assert '/today/rpe/17855535922' in page
     assert 'action="/today/physiology"' in page
-    assert 'id="history-title"' in page
+    assert 'id="history-title"' not in page
+    assert 'href="/today/history"' in page
 
 
 @pytest.mark.parametrize("result_date,state", [("2026-08-29", "stale"), ("2026-08-30", "stale"), ("2026-08-29", "fresh")])
@@ -752,13 +754,13 @@ def test_today_rpe_web_selection_is_independent_of_effective_source(monkeypatch,
 @pytest.mark.parametrize(
     "scores,editor_open,source",
     [
-        ({}, True, None),
+        ({}, False, None),
         ({"rpe_score": 8, "rpe_value": "strava", "rpe_strava_score": 8}, False, "Strava"),
         ({"rpe_score": 7, "rpe_value": "telegram", "rpe_telegram_score": 7}, False, "Telegram"),
         ({"rpe_score": 5, "rpe_value": "web", "rpe_web_score": 5}, False, "Web"),
         ({"rpe_score": 8, "rpe_value": "strava", "rpe_strava_score": 8,
           "rpe_telegram_score": 7, "rpe_web_score": 5, "rpe_disagreement": True}, False, "Strava"),
-        ({"rpe_web_score": 5}, True, None),
+        ({"rpe_web_score": 5}, False, None),
     ],
     ids=["no-score", "strava-only", "telegram-only", "web-only", "conflict", "web-without-resolution"],
 )

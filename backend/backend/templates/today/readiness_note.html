@@ -1,0 +1,16 @@
+<section class="context-note readiness-note" aria-labelledby="readiness-title">
+<p class="metric-label">Готовность / сигнал</p><h2 id="readiness-title" class="sr-only">Готовность</h2>
+{% if readiness %}
+{% if readiness.readiness_score is defined and readiness.readiness_score is not none %}<p class="context-value">{{ readiness.readiness_score | round(1) }} / 100</p>{% else %}<p class="empty">Оценка недоступна</p>{% endif %}
+<p class="context-caption">За {{ readiness.date }} · {{ readiness.status_text | today_label('status') }} · {{ readiness.freshness_state | today_label('freshness') }}</p>
+<details class="readiness-explanation"><summary>Источники готовности</summary>
+<p>Ответ на {{ readiness.date }}. Рассчитано {{ readiness.readiness_computed_at | today_timestamp }}.</p>
+<p>Это дополнительный сигнал; занятие выбирается в главной статье.</p>
+{% if readiness.date|string != today %}<p>Сохранённая сводка за {{ readiness.date }}:</p>{% endif %}
+{% if factors %}<div class="factor-list">{% for factor in factors %}<div class="factor"><span class="factor-name">{{ factor.key | today_label('factor') }}</span><span class="factor-score">{{ factor.score | round(1) if factor.score is not none else '—' }}</span><span class="badge {{ 'badge-used' if factor.used else '' }}">{{ 'учтено' if factor.used else factor.availability | today_label('availability') }}</span></div>{% endfor %}</div>{% else %}<p>Факторы недоступны.</p>{% endif %}
+<p>Источник тренировок: {{ readiness.training_source_at | today_timestamp }}. Источник восстановления: {{ readiness.recovery_source_at | today_timestamp }}.</p>
+<details><summary>Сохранённая сводка модели / диагностика</summary><p>{{ readiness.briefing_text or 'Краткая рекомендация недоступна.' }}</p><p>{{ readiness.reason }}</p></details>
+</details>
+{% elif readiness_section.status == 'error' %}<p class="error">Готовность недоступна.</p><details><summary>Технические подробности</summary>{{ readiness_section.error }}</details>
+{% else %}<p class="empty">Готовность ещё не рассчитана.</p>{% endif %}
+</section>

@@ -170,14 +170,16 @@ def test_planned_decision_is_primary_and_readiness_is_supporting(state, monkeypa
         status_text='Высокая готовность', freshness_state='fresh', briefing_text='Baseline briefing')
     monkeypatch.setattr(service, 'get_today_data', lambda *a, **kw: replace(base, readiness=readiness))
     page = TestClient(app).get(url()).text
-    assert '<h2 id="readiness-title">Готовность</h2>' in page
-    assert 'Готовность и восстановление · дополнительный контекст</summary>' in page
+    assert '<h2 id="readiness-title" class="sr-only">Готовность</h2>' in page
+    assert 'Готовность / сигнал' in page
+    assert page.count('<h1 ') == 1
     assert '<h1 id="readiness-title">' not in page
     assert 'Baseline briefing' in page and '>SHORTEN</span>' in page
     state['edit'] = store.TrainingContextEdit(plan=store.WeekPlan(week_start=store.week_start(TODAY)))
     fallback = TestClient(app).get('/today').text
-    assert 'Базовая сводка по состоянию. Планового решения пока нет.' in fallback
-    assert '<h1 id="readiness-title">' in fallback
+    assert 'Плановое решение не строится' in fallback
+    assert '<h1 id="readiness-title">' not in fallback
+    assert fallback.count('<h1 ') == 1
 
 
 def test_midnight_during_storage_read_rejects_previous_day_patch(state, monkeypatch):
